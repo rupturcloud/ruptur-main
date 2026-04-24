@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruptur Cloud | Tech-Dark Front</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #f97316;
+      --primary-glow: rgba(249, 115, 22, 0.2);
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-image: radial-gradient(circle at 50% 0%, rgba(249, 115, 22, 0.08), transparent 50%);
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      padding: 2rem;
+      z-index: 10;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 4rem;
+      animation: fadeUp 0.8s ease-out;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+      background-clip: text; -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      animation: fadeUp 1s ease-out;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 10px 40px -10px var(--primary-glow);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .risk-calc {
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 1.5rem;
+      border: 1px solid var(--card-border);
+    }
+
+    .risk-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .risk-bar-bg {
+      height: 6px;
+      background: #27272a;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .risk-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      width: 100%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+    }
+    
+    .btn-primary:hover {
+      background: #e4e4e7;
+      transform: scale(1.02);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .glow-blob {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 600px;
+      height: 600px;
+      background: var(--primary);
+      filter: blur(150px);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.05;
+      z-index: 1;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-blob"></div>
+  
+  <div class="container">
+    <div class="hero">
+      <h1>Ruptur Cloud</h1>
+      <p>A arquitetura definitiva de alta performance, roteamento inteligente e automação operacional.</p>
+    </div>
+
+    <div class="grid">
+      <!-- Risk Calculator Card -->
+      <div class="card">
+        <h3>⚡ Diagnóstico de IA</h3>
+        <p>Calculadora paramétrica de risco em tempo real. Analise a temperatura da sua infraestrutura operacional.</p>
+        
+        <div class="risk-calc">
+          <div class="risk-row">
+            <span style="color: var(--text-muted)">Exposure Risk</span>
+            <span id="risk-value">0%</span>
+          </div>
+          <div class="risk-bar-bg">
+            <div class="risk-bar-fill" id="risk-fill"></div>
+          </div>
+          <button class="btn btn-primary" onclick="runDiagnostic()">Rodar Diagnóstico</button>
+        </div>
+      </div>
+
+      <!-- System Status Card -->
+      <div class="card">
+        <h3>🛡️ System Status</h3>
+        <p>Acesso rápido aos gateways operacionais. O ecossistema está rodando com isolamento reativo KVM2.</p>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto;">
+          <a href="/warmup/" class="btn btn-outline" style="border-color: rgba(249, 115, 22, 0.3); color: #f97316;">
+            Acessar Warmup Manager →
+          </a>
+          <!-- O EcosystemChrome automaticamente injetará outro botão caso configurado, mas mantemos este explícito -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function runDiagnostic() {
+      const btn = document.querySelector('.btn-primary');
+      const fill = document.getElementById('risk-fill');
+      const val = document.getElementById('risk-value');
+      
+      btn.textContent = 'Analisando...';
+      btn.style.opacity = '0.7';
+      fill.style.width = '0%';
+      val.textContent = '0%';
+      
+      setTimeout(() => {
+        const targetRisk = Math.floor(Math.random() * 35) + 12; // 12% a 47%
+        fill.style.width = targetRisk + '%';
+        
+        let current = 0;
+        const interval = setInterval(() => {
+          if(current >= targetRisk) {
+            clearInterval(interval);
+            btn.textContent = 'Diagnóstico Concluído';
+            btn.style.opacity = '1';
+            
+            setTimeout(() => {
+              btn.textContent = 'Rodar Novamente';
+            }, 2000);
+          } else {
+            current++;
+            val.textContent = current + '%';
+          }
+        }, 1500 / targetRisk);
+      }, 500);
+    }
+    
+    // Auto-run on load
+    setTimeout(runDiagnostic, 1000);
+  </script>
+</body>
+</html>

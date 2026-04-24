@@ -1,0 +1,21 @@
+{
+  "name": "saas-front-e-warmup-manager",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node modules/warmup-core/server.mjs",
+    "runtime": "node modules/warmup-core/server.mjs",
+    "preview": "WARMUP_RUNTIME_HOST=127.0.0.1 WARMUP_RUNTIME_PORT=4173 npm start",
+    "preview:playwright": "playwright open http://127.0.0.1:4173/",
+    "preview:screenshot": "mkdir -p tmp/playwright && playwright screenshot --full-page http://127.0.0.1:4173/ tmp/playwright/preview-home.png",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "jarvis:ativar": "node scripts/jarvis/resolve-activation.mjs",
+    "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

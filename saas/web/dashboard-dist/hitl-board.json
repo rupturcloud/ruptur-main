@@ -1,0 +1,1690 @@
+{
+  "generated_at": "2026-04-21T22:35:36Z",
+  "status": "idle",
+  "current_task": null,
+  "active_agent": null,
+  "resolution_blocks": [
+    {
+      "block_id": "tokens-p0",
+      "title": "Tokens + sessão + login",
+      "priority": "P0",
+      "status": "blocked",
+      "reason": "Sessão, login e revogação precisam ficar coerentes antes de declarar o projeto pronto.",
+      "task_refs": [
+        "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca",
+        "INFRA-028-tokens-p0-sessao-login-seguranca-observabilidade"
+      ],
+      "next_action": "Fechar contrato de sessão, token opaco, revogação e auditoria no Agent Hub.",
+      "task_count": 2,
+      "linked_tasks": [
+        {
+          "task_id": "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": "INFRA-027",
+          "linear_project": "Sprint Final",
+          "service_target": "agent-hub",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "arquitetura de sessão e login padronizada com Redis e cookies seguros",
+            "observabilidade com logs, métricas e traces correlacionados",
+            "controles de segurança para evitar sessão indevida e logoff inconsistente",
+            "backlog confirmado como sprint final após os impedimentos e débitos técnicos",
+            "impedimento formal de pronto do projeto até haver solução ou decisão registrada"
+          ]
+        },
+        {
+          "task_id": "INFRA-028-tokens-p0-sessao-login-seguranca-observabilidade",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": "INFRA-028",
+          "linear_project": "Sprint Final",
+          "service_target": "agent-hub",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "contrato de tokens opacos e sessão server-side com Redis",
+            "login/logout e revogação imediata com auditoria",
+            "observabilidade com logs, métricas e traces correlacionados",
+            "triagem P0 para falhas, bugs e drift de sessão"
+          ]
+        }
+      ]
+    },
+    {
+      "block_id": "debug-triage",
+      "title": "Debug + falhas + erros",
+      "priority": "P0",
+      "status": "open",
+      "reason": "Erros e falhas recorrentes precisam virar triagem explícita com evidências e resolução.",
+      "task_refs": [
+        "INFRA-017-ligar-legado-kvm2-no-ruptur-cloud-lab",
+        "INFRA-021-jarvis-p0-ansible-terraform-iac-dns",
+        "INFRA-029-debug-falhas-erros-triagem",
+        "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca"
+      ],
+      "next_action": "Classificar falhas por causa raiz, impacto e bloqueio operacional.",
+      "task_count": 4,
+      "linked_tasks": [
+        {
+          "task_id": "INFRA-017-ligar-legado-kvm2-no-ruptur-cloud-lab",
+          "type": "change",
+          "status": "in_progress",
+          "mode": "FULL",
+          "linear_issue_id": "INFRA-017",
+          "linear_project": "Ruptur Cloud Lab",
+          "service_target": "ruptur-cloud-lab",
+          "approval_required": false,
+          "execution_policy": "remote_materialization_with_local_record",
+          "expected_output": [
+            "legado da KVM2 reconciliado com o Ruptur Cloud Lab",
+            "o que ainda tem valor foi ligado ao novo lab",
+            "o que é legado foi documentado como dívida técnica",
+            "rotas e mapas atualizados no State"
+          ]
+        },
+        {
+          "task_id": "INFRA-021-jarvis-p0-ansible-terraform-iac-dns",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": null,
+          "linear_project": "Bootstrap IaC",
+          "service_target": "jarvis-control-plane",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "Jarvis operando em modo Ansible",
+            "Jarvis operando em modo Terraform",
+            "Jarvis operando em modo IaC",
+            "DNS aiox.ruptur.cloud materializado na Cloudflare",
+            "tasks e state atualizados com a fila P0"
+          ]
+        },
+        {
+          "task_id": "INFRA-029-debug-falhas-erros-triagem",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": "INFRA-029",
+          "linear_project": "Sprint Final",
+          "service_target": "shipyard-runtime",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "triagem dos erros P0/P1 com causa raiz e impacto",
+            "correção do schema do context packet e campos incompatíveis",
+            "tratamento da falta de credenciais Linear e outros drifts de sync",
+            "registro explícito no HITL com causa, resolução e follow-up"
+          ]
+        },
+        {
+          "task_id": "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": "INFRA-027",
+          "linear_project": "Sprint Final",
+          "service_target": "agent-hub",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "arquitetura de sessão e login padronizada com Redis e cookies seguros",
+            "observabilidade com logs, métricas e traces correlacionados",
+            "controles de segurança para evitar sessão indevida e logoff inconsistente",
+            "backlog confirmado como sprint final após os impedimentos e débitos técnicos",
+            "impedimento formal de pronto do projeto até haver solução ou decisão registrada"
+          ]
+        }
+      ]
+    },
+    {
+      "block_id": "technical-debt",
+      "title": "Dívida técnica canônica",
+      "priority": "P1",
+      "status": "open",
+      "reason": "Débitos devem permanecer visíveis até haver decisão explícita de fechamento.",
+      "task_refs": [
+        "INFRA-019-rtk-shipyard-state-governance",
+        "INFRA-020-instalar-novas-funcionalidades-e-ferramentas-no-gcp-ruptur-cloud-labs",
+        "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca"
+      ],
+      "next_action": "Manter os débitos como backlog governado e rastreável no HITL.",
+      "task_count": 3,
+      "linked_tasks": [
+        {
+          "task_id": "INFRA-019-rtk-shipyard-state-governance",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": null,
+          "linear_project": "Core Infrastructure",
+          "service_target": "rtk-governance",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "shipyard ownership formalizada para RTK",
+            "indexação contínua de repos em ~/dev e subdiretórios",
+            "mapeamento dos state maps relevantes",
+            "curadoria operacional via Ansible",
+            "registro da decisão no State"
+          ]
+        },
+        {
+          "task_id": "INFRA-020-instalar-novas-funcionalidades-e-ferramentas-no-gcp-ruptur-cloud-labs",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": null,
+          "linear_project": "Ruptur Cloud Lab",
+          "service_target": "gcp-ruptur-cloud-labs",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "novas funcionalidades e ferramentas instaladas no GCP Ruptur Cloud Labs",
+            "infra e operacionalização registradas no State",
+            "playbooks/roles Ansible alinhados ao novo escopo",
+            "dívida técnica separada do que é entrega ativa"
+          ]
+        },
+        {
+          "task_id": "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": "INFRA-027",
+          "linear_project": "Sprint Final",
+          "service_target": "agent-hub",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "arquitetura de sessão e login padronizada com Redis e cookies seguros",
+            "observabilidade com logs, métricas e traces correlacionados",
+            "controles de segurança para evitar sessão indevida e logoff inconsistente",
+            "backlog confirmado como sprint final após os impedimentos e débitos técnicos",
+            "impedimento formal de pronto do projeto até haver solução ou decisão registrada"
+          ]
+        }
+      ]
+    },
+    {
+      "block_id": "external-integrations",
+      "title": "Integrações externas bloqueadoras",
+      "priority": "P0",
+      "status": "open",
+      "reason": "Linear e Supabase exigem validação explícita; ausência de credencial/CA não pode virar erro ambíguo.",
+      "task_refs": [
+        "INFRA-030-linear-credential-gap-and-runtime-sync",
+        "INFRA-031-supabase-tls-ssl-backend-sync"
+      ],
+      "next_action": "Separar ausência de configuração de falha real e registrar decisão no HITL.",
+      "task_count": 1,
+      "linked_tasks": [
+        {
+          "task_id": "INFRA-031-supabase-tls-ssl-backend-sync",
+          "type": "change",
+          "status": "pending",
+          "mode": "FULL",
+          "linear_issue_id": "INFRA-031",
+          "linear_project": "Sprint Final",
+          "service_target": "memory-layer",
+          "approval_required": true,
+          "execution_policy": "human_in_the_loop",
+          "expected_output": [
+            "TLS/SSL do Supabase tratado ou explicitamente documentado como dependência externa",
+            "backend de memória longa sem false positive de erro por falta de CA",
+            "registro no HITL com causa, impacto e decisão",
+            "triagem separada de configuração e de falha real"
+          ]
+        }
+      ]
+    }
+  ],
+  "source_views": [
+    {
+      "source_id": "google_adk_a2a_prod",
+      "label": "Torre Google ADK/A2A — Produção",
+      "tier": "production",
+      "authority": "google-adk-a2a",
+      "kind": "external_remote",
+      "status": "declarada_sem_conector",
+      "priority": 1,
+      "evidence": [
+        "env:HITL_GOOGLE_ADK_BOARD_PATH",
+        "env:HITL_GOOGLE_ADK_API_URL",
+        "env:HITL_GOOGLE_ADK_SOURCE_URL"
+      ],
+      "notes": "Fonte soberana de produção quando conectada; não deve ser confundida com dados locais.",
+      "board_ref": null,
+      "freshness": null,
+      "snapshot": null
+    },
+    {
+      "source_id": "macbook_local",
+      "label": "MacBook Local — Estaleiro",
+      "tier": "local",
+      "authority": "shipyard",
+      "kind": "local_state",
+      "status": "connected",
+      "priority": 2,
+      "evidence": [
+        "kernel/state.json",
+        "tasks/*.json",
+        "registry/runs/*.json",
+        "logs/execution.log"
+      ],
+      "notes": "Fonte operacional local do estaleiro; útil para execução, fila e histórico do trabalho.",
+      "board_ref": "kernel/state.json",
+      "freshness": "idle",
+      "snapshot": {
+        "current_task": null,
+        "queue": {
+          "open": [
+            {
+              "task_id": "INFRA-017-ligar-legado-kvm2-no-ruptur-cloud-lab",
+              "type": "change",
+              "status": "in_progress",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-017",
+              "linear_project": "Ruptur Cloud Lab",
+              "service_target": "ruptur-cloud-lab",
+              "approval_required": false,
+              "execution_policy": "remote_materialization_with_local_record",
+              "expected_output": [
+                "legado da KVM2 reconciliado com o Ruptur Cloud Lab",
+                "o que ainda tem valor foi ligado ao novo lab",
+                "o que é legado foi documentado como dívida técnica",
+                "rotas e mapas atualizados no State"
+              ]
+            },
+            {
+              "task_id": "INFRA-031-legacy-cleanup-kvm2-hostinger-oracle-refs",
+              "type": "change",
+              "status": "in_progress",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-031",
+              "linear_project": "Sprint Final",
+              "service_target": "shipyard-legacy-cleanup",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "referências a KVM2/Hostinger/Oracle classificadas como legado ou removidas",
+                "docs e playbooks alinhados ao Ruptur Cloud Lab/GCP",
+                "ruído operacional reduzido",
+                "state atualizado com a limpeza de legado"
+              ]
+            },
+            {
+              "task_id": "INFRA-001-bootstrap-linear-control-plane",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-001",
+              "linear_project": "Bootstrap IaC",
+              "service_target": "infrastructure-state",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "docs/linear-integration.md",
+                "docs/linear-operating-model.md",
+                "docs/automation-flow.md",
+                "tasks/LINEAR_BACKLOG_BOOTSTRAP.task.json"
+              ]
+            },
+            {
+              "task_id": "INFRA-007-materialize-services-registry",
+              "type": "command",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-007",
+              "linear_project": "Baseline Inventory",
+              "service_target": "infrastructure-state",
+              "approval_required": true,
+              "execution_policy": "local_registry_generation",
+              "expected_output": [
+                "registry/services.yaml",
+                "state/snapshots/registry-services/*",
+                "registry/runs/*.json"
+              ]
+            },
+            {
+              "task_id": "INFRA-008-create-ruptur-forge-adapter",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-008",
+              "linear_project": "Core Infrastructure",
+              "service_target": "ruptur-forge",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "adapters/ruptur-forge/*"
+              ]
+            },
+            {
+              "task_id": "INFRA-010-define-kvm2-core-profile",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-010",
+              "linear_project": "Core Infrastructure",
+              "service_target": "kvm2-core",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "adapters/ruptur-forge/profiles/kvm2-core.yaml"
+              ]
+            },
+            {
+              "task_id": "INFRA-011-define-observability-min-profile",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-011",
+              "linear_project": "Observability",
+              "service_target": "observability-min",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "adapters/ruptur-forge/profiles/observability-min.yaml"
+              ]
+            },
+            {
+              "task_id": "INFRA-012-define-jarvis-foundation-profile",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-012",
+              "linear_project": "Memory Layer",
+              "service_target": "jarvis-foundation",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "adapters/ruptur-forge/profiles/jarvis-foundation.yaml"
+              ]
+            },
+            {
+              "task_id": "INFRA-013-validate-supabase-long-term-memory",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-013",
+              "linear_project": "Memory Layer",
+              "service_target": "memory-layer",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "docs/memory-layer.md",
+                "contexts/memory-layer.md",
+                "tasks/INFRA-013_validate_supabase_long_term_memory.task.json"
+              ]
+            },
+            {
+              "task_id": "INFRA-014-create-memory-layer-interface",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-014",
+              "linear_project": "Memory Layer",
+              "service_target": "memory-layer",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "adapters/memory/interface/memory.py",
+                "adapters/memory/short_term/redis_client.py",
+                "adapters/memory/long_term/supabase_client.py"
+              ]
+            },
+            {
+              "task_id": "INFRA-015-define-memory-promotion-policy",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-015",
+              "linear_project": "Memory Layer",
+              "service_target": "memory-layer",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "docs/memory-policy.md",
+                "adapters/memory/policy/promotion_rules.yaml"
+              ]
+            },
+            {
+              "task_id": "INFRA-016-create-context-packet-for-tasks",
+              "type": "command",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-016",
+              "linear_project": "Memory Layer",
+              "service_target": "context-packet",
+              "approval_required": true,
+              "execution_policy": "local_context_generation",
+              "expected_output": [
+                "contracts/context-packet.schema.json",
+                "templates/context-packet.json.tpl",
+                "registry/runs/*.json"
+              ]
+            },
+            {
+              "task_id": "INFRA-018-agent-hub-auto-account-rotation",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-018",
+              "linear_project": "Agent Hub",
+              "service_target": "agent-hub",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "docs/agent-hub-auto-rotation-plan.md",
+                "../saas/modules/warmup-core/server.mjs",
+                "../saas/web/dashboard-dist/login.html"
+              ]
+            },
+            {
+              "task_id": "INFRA-019-rtk-shipyard-state-governance",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": null,
+              "linear_project": "Core Infrastructure",
+              "service_target": "rtk-governance",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "shipyard ownership formalizada para RTK",
+                "indexação contínua de repos em ~/dev e subdiretórios",
+                "mapeamento dos state maps relevantes",
+                "curadoria operacional via Ansible",
+                "registro da decisão no State"
+              ]
+            },
+            {
+              "task_id": "INFRA-020-instalar-novas-funcionalidades-e-ferramentas-no-gcp-ruptur-cloud-labs",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": null,
+              "linear_project": "Ruptur Cloud Lab",
+              "service_target": "gcp-ruptur-cloud-labs",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "novas funcionalidades e ferramentas instaladas no GCP Ruptur Cloud Labs",
+                "infra e operacionalização registradas no State",
+                "playbooks/roles Ansible alinhados ao novo escopo",
+                "dívida técnica separada do que é entrega ativa"
+              ]
+            },
+            {
+              "task_id": "INFRA-021-jarvis-p0-ansible-terraform-iac-dns",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": null,
+              "linear_project": "Bootstrap IaC",
+              "service_target": "jarvis-control-plane",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "Jarvis operando em modo Ansible",
+                "Jarvis operando em modo Terraform",
+                "Jarvis operando em modo IaC",
+                "DNS aiox.ruptur.cloud materializado na Cloudflare",
+                "tasks e state atualizados com a fila P0"
+              ]
+            },
+            {
+              "task_id": "INFRA-022-separar-tela-agent-hub",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-022",
+              "linear_project": "Agent Hub",
+              "service_target": "agent-hub",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "tela do Agent Hub separada em blocos claros por função",
+                "sessão, runtime, fonte e mirror com leitura visual distinta",
+                "navegação e rotas do painel sem mistura de estados"
+              ]
+            },
+            {
+              "task_id": "INFRA-023-criar-badges-origem-proveniencia",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-023",
+              "linear_project": "Agent Hub",
+              "service_target": "agent-hub",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "badges visuais para origem e proveniência dos dados",
+                "identificação explícita de produção, local e mirror",
+                "status de conectividade e autoridade exibidos por fonte"
+              ]
+            },
+            {
+              "task_id": "INFRA-024-dividir-status-sessao-runtime-fonte-mirror",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-024",
+              "linear_project": "Agent Hub",
+              "service_target": "agent-hub",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "status dividido em sessão, runtime, fonte e mirror",
+                "cada camada com source_ref, summary e status próprios",
+                "board do HITL refletindo a separação sem ambiguidade"
+              ]
+            },
+            {
+              "task_id": "INFRA-025-explicar-origem-dados-painel",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-025",
+              "linear_project": "Agent Hub",
+              "service_target": "agent-hub",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "painel explicando a origem de cada bloco de dados",
+                "mensagens claras sobre o que vem de produção, local e mirror",
+                "separação explícita entre fonte declarada, fonte conectada e fonte espelhada"
+              ]
+            },
+            {
+              "task_id": "INFRA-026-padronizar-navegacao-global-back-home-topo",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-026",
+              "linear_project": "Agent Hub",
+              "service_target": "dashboard-ui",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "todas as telas com link visível para voltar à home",
+                "todas as telas com atalho xcto a home no topo",
+                "todas as telas com ação voltar ao topo no rodapé ou canto inferior"
+              ]
+            },
+            {
+              "task_id": "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-027",
+              "linear_project": "Sprint Final",
+              "service_target": "agent-hub",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "arquitetura de sessão e login padronizada com Redis e cookies seguros",
+                "observabilidade com logs, métricas e traces correlacionados",
+                "controles de segurança para evitar sessão indevida e logoff inconsistente",
+                "backlog confirmado como sprint final após os impedimentos e débitos técnicos",
+                "impedimento formal de pronto do projeto até haver solução ou decisão registrada"
+              ]
+            },
+            {
+              "task_id": "INFRA-028-tokens-p0-sessao-login-seguranca-observabilidade",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-028",
+              "linear_project": "Sprint Final",
+              "service_target": "agent-hub",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "contrato de tokens opacos e sessão server-side com Redis",
+                "login/logout e revogação imediata com auditoria",
+                "observabilidade com logs, métricas e traces correlacionados",
+                "triagem P0 para falhas, bugs e drift de sessão"
+              ]
+            },
+            {
+              "task_id": "INFRA-029-aiox-hermes-bridge-debug",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-029",
+              "linear_project": "Bootstrap IaC",
+              "service_target": "aiox-bridge",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "aiox.ruptur.cloud responde sem erro de borda",
+                "Hermes/Ollama responde ao teste do bridge",
+                "doctor do AIOX fecha sem falha ou deixa causa-raiz explícita",
+                "configuração de host-gateway, TLS ou endpoint fica consolidada"
+              ]
+            },
+            {
+              "task_id": "INFRA-029-aiox-shipyard-bridge-hermes-ollama-fetch-doctor",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-029",
+              "linear_project": "Sprint Final",
+              "service_target": "aiox-shipyard-bridge",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "fetch Hermes/Ollama deixa de falhar",
+                "aiox-core doctor sem BOOTSTRAP_ERROR",
+                "bridge AIOX saudável e reportando estado",
+                "state atualizado com a causa-raiz e a correção"
+              ]
+            },
+            {
+              "task_id": "INFRA-029-debug-falhas-erros-triagem",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-029",
+              "linear_project": "Sprint Final",
+              "service_target": "shipyard-runtime",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "triagem dos erros P0/P1 com causa raiz e impacto",
+                "correção do schema do context packet e campos incompatíveis",
+                "tratamento da falta de credenciais Linear e outros drifts de sync",
+                "registro explícito no HITL com causa, resolução e follow-up"
+              ]
+            },
+            {
+              "task_id": "INFRA-031-supabase-tls-ssl-backend-sync",
+              "type": "change",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-031",
+              "linear_project": "Sprint Final",
+              "service_target": "memory-layer",
+              "approval_required": true,
+              "execution_policy": "human_in_the_loop",
+              "expected_output": [
+                "TLS/SSL do Supabase tratado ou explicitamente documentado como dependência externa",
+                "backend de memória longa sem false positive de erro por falta de CA",
+                "registro no HITL com causa, impacto e decisão",
+                "triagem separada de configuração e de falha real"
+              ]
+            },
+            {
+              "task_id": "INFRA-AUDIT-GCP-001",
+              "type": "command",
+              "status": "pending",
+              "mode": null,
+              "linear_issue_id": null,
+              "linear_project": null,
+              "service_target": "gcp-primary",
+              "approval_required": false,
+              "execution_policy": "standard",
+              "expected_output": []
+            },
+            {
+              "task_id": "LIN-001-baseline-server-inventory",
+              "type": "command",
+              "status": "pending",
+              "mode": "FULL",
+              "linear_issue_id": "INFRA-005",
+              "linear_project": "Baseline Inventory",
+              "service_target": "kvm2",
+              "approval_required": true,
+              "execution_policy": "read_only_remote",
+              "expected_output": [
+                "registry/runs/*.json",
+                "logs/execution.log",
+                "kernel/state.json"
+              ]
+            }
+          ],
+          "open_count": 29
+        },
+        "history": {
+          "recent": [
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T21:20:13Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": null
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "error",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T21:20:40Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": null
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T21:21:00Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": "INFRA-029"
+            },
+            {
+              "task_id": "INFRA-001-bootstrap-linear-control-plane",
+              "status": "done",
+              "type": "change",
+              "mode": "FULL",
+              "timestamp": "2026-04-21T21:21:50Z",
+              "linear_project": "Bootstrap IaC",
+              "service_target": "infrastructure-state",
+              "resolved_linear_issue_identifier": "INF-1"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T21:37:16Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": "INFRA-029"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T21:39:31Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": "INF-29"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T21:41:29Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": "INF-29"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T22:35:35Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": "INF-29"
+            }
+          ],
+          "recent_runs": [
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "mode": "STANDARD",
+              "recorded_at": "2026-04-21T21:21:00Z",
+              "source": "/tmp/rtk-test.task.json",
+              "service_target": null,
+              "linear_project": "Core Infrastructure"
+            },
+            {
+              "task_id": "INFRA-001-bootstrap-linear-control-plane",
+              "status": "done",
+              "mode": "FULL",
+              "recorded_at": "2026-04-21T21:21:50Z",
+              "source": "tasks/LINEAR_BACKLOG_BOOTSTRAP.task.json",
+              "service_target": "infrastructure-state",
+              "linear_project": "Bootstrap IaC"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "mode": "STANDARD",
+              "recorded_at": "2026-04-21T21:37:16Z",
+              "source": "/tmp/rtk-test.task.json",
+              "service_target": null,
+              "linear_project": "Core Infrastructure"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "mode": "STANDARD",
+              "recorded_at": "2026-04-21T21:39:31Z",
+              "source": "/tmp/rtk-test.task.json",
+              "service_target": null,
+              "linear_project": "Core Infrastructure"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "mode": "STANDARD",
+              "recorded_at": "2026-04-21T21:41:29Z",
+              "source": "/tmp/rtk-test.task.json",
+              "service_target": null,
+              "linear_project": "Core Infrastructure"
+            },
+            {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "mode": "STANDARD",
+              "recorded_at": "2026-04-21T22:35:35Z",
+              "source": "/tmp/rtk-test.task.json",
+              "service_target": null,
+              "linear_project": "Core Infrastructure"
+            }
+          ]
+        },
+        "metrics": {
+          "adk": {
+            "active_sessions": 0,
+            "runs_24h": 12,
+            "success_24h": 11,
+            "error_24h": 1,
+            "success_rate_pct": 89.5,
+            "last_success": {
+              "task_id": "RTK-TEST-001",
+              "status": "done",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T22:35:35Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": "INF-29"
+            },
+            "last_error": {
+              "task_id": "RTK-TEST-001",
+              "status": "error",
+              "type": "noop",
+              "mode": "STANDARD",
+              "timestamp": "2026-04-21T21:20:40Z",
+              "linear_project": "Core Infrastructure",
+              "service_target": null,
+              "resolved_linear_issue_identifier": null
+            }
+          },
+          "a2a": {
+            "active_agents": 0,
+            "handoffs_24h": 12,
+            "active_links": 2,
+            "primary_link": null,
+            "pending_approvals": 27
+          }
+        }
+      }
+    },
+    {
+      "source_id": "dashboard_mirror",
+      "label": "Mirror do HITL / Dashboard",
+      "tier": "mirror",
+      "authority": "dashboard",
+      "kind": "ui_mirror",
+      "status": "connected",
+      "priority": 3,
+      "evidence": [
+        "../saas/web/dashboard-dist/hitl-board.json",
+        "../saas/web/dashboard-dist/metrics.html"
+      ],
+      "notes": "Mirror visual para o painel; não é a fonte primária, apenas espelho de leitura.",
+      "board_ref": "saas/web/dashboard-dist/hitl-board.json",
+      "freshness": null,
+      "snapshot": {
+        "mirror_of": "saas/web/dashboard-dist/hitl-board.json"
+      }
+    }
+  ],
+  "status_layers": [
+    {
+      "layer_id": "session",
+      "label": "Sessão",
+      "status": "not_wired",
+      "source_ref": "browser/ui",
+      "summary": "A sessão do usuário precisa ser lida da UI e não do runtime local.",
+      "details": {
+        "browser_session": "não conectada neste board",
+        "distinction": "esta camada não deve ser inferida da runtime local"
+      }
+    },
+    {
+      "layer_id": "runtime",
+      "label": "Runtime",
+      "status": "connected",
+      "source_ref": "kernel/state.json",
+      "summary": "Estado operacional do estaleiro e execução local do trabalho.",
+      "details": {
+        "current_task": null,
+        "open_tasks": 29,
+        "recent_runs": 6
+      }
+    },
+    {
+      "layer_id": "source",
+      "label": "Fontes",
+      "status": "mixed",
+      "source_ref": "state/registry/hitl-sources.json",
+      "summary": "Fontes separadas por proveniência e autoridade.",
+      "details": {
+        "connected_sources": [
+          "macbook_local",
+          "dashboard_mirror"
+        ],
+        "all_sources": [
+          "google_adk_a2a_prod",
+          "macbook_local",
+          "dashboard_mirror"
+        ],
+        "count": 3
+      }
+    },
+    {
+      "layer_id": "mirror",
+      "label": "Mirror",
+      "status": "connected",
+      "source_ref": "saas/web/dashboard-dist/hitl-board.json",
+      "summary": "Espelho visual do board para leitura na UI.",
+      "details": {
+        "mirror_path": "saas/web/dashboard-dist/hitl-board.json",
+        "freshness": "2026-04-21T22:35:36Z"
+      }
+    }
+  ],
+  "queue": {
+    "open": [
+      {
+        "task_id": "INFRA-017-ligar-legado-kvm2-no-ruptur-cloud-lab",
+        "type": "change",
+        "status": "in_progress",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-017",
+        "linear_project": "Ruptur Cloud Lab",
+        "service_target": "ruptur-cloud-lab",
+        "approval_required": false,
+        "execution_policy": "remote_materialization_with_local_record",
+        "expected_output": [
+          "legado da KVM2 reconciliado com o Ruptur Cloud Lab",
+          "o que ainda tem valor foi ligado ao novo lab",
+          "o que é legado foi documentado como dívida técnica",
+          "rotas e mapas atualizados no State"
+        ]
+      },
+      {
+        "task_id": "INFRA-031-legacy-cleanup-kvm2-hostinger-oracle-refs",
+        "type": "change",
+        "status": "in_progress",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-031",
+        "linear_project": "Sprint Final",
+        "service_target": "shipyard-legacy-cleanup",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "referências a KVM2/Hostinger/Oracle classificadas como legado ou removidas",
+          "docs e playbooks alinhados ao Ruptur Cloud Lab/GCP",
+          "ruído operacional reduzido",
+          "state atualizado com a limpeza de legado"
+        ]
+      },
+      {
+        "task_id": "INFRA-001-bootstrap-linear-control-plane",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-001",
+        "linear_project": "Bootstrap IaC",
+        "service_target": "infrastructure-state",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "docs/linear-integration.md",
+          "docs/linear-operating-model.md",
+          "docs/automation-flow.md",
+          "tasks/LINEAR_BACKLOG_BOOTSTRAP.task.json"
+        ]
+      },
+      {
+        "task_id": "INFRA-007-materialize-services-registry",
+        "type": "command",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-007",
+        "linear_project": "Baseline Inventory",
+        "service_target": "infrastructure-state",
+        "approval_required": true,
+        "execution_policy": "local_registry_generation",
+        "expected_output": [
+          "registry/services.yaml",
+          "state/snapshots/registry-services/*",
+          "registry/runs/*.json"
+        ]
+      },
+      {
+        "task_id": "INFRA-008-create-ruptur-forge-adapter",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-008",
+        "linear_project": "Core Infrastructure",
+        "service_target": "ruptur-forge",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "adapters/ruptur-forge/*"
+        ]
+      },
+      {
+        "task_id": "INFRA-010-define-kvm2-core-profile",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-010",
+        "linear_project": "Core Infrastructure",
+        "service_target": "kvm2-core",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "adapters/ruptur-forge/profiles/kvm2-core.yaml"
+        ]
+      },
+      {
+        "task_id": "INFRA-011-define-observability-min-profile",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-011",
+        "linear_project": "Observability",
+        "service_target": "observability-min",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "adapters/ruptur-forge/profiles/observability-min.yaml"
+        ]
+      },
+      {
+        "task_id": "INFRA-012-define-jarvis-foundation-profile",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-012",
+        "linear_project": "Memory Layer",
+        "service_target": "jarvis-foundation",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "adapters/ruptur-forge/profiles/jarvis-foundation.yaml"
+        ]
+      },
+      {
+        "task_id": "INFRA-013-validate-supabase-long-term-memory",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-013",
+        "linear_project": "Memory Layer",
+        "service_target": "memory-layer",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "docs/memory-layer.md",
+          "contexts/memory-layer.md",
+          "tasks/INFRA-013_validate_supabase_long_term_memory.task.json"
+        ]
+      },
+      {
+        "task_id": "INFRA-014-create-memory-layer-interface",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-014",
+        "linear_project": "Memory Layer",
+        "service_target": "memory-layer",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "adapters/memory/interface/memory.py",
+          "adapters/memory/short_term/redis_client.py",
+          "adapters/memory/long_term/supabase_client.py"
+        ]
+      },
+      {
+        "task_id": "INFRA-015-define-memory-promotion-policy",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-015",
+        "linear_project": "Memory Layer",
+        "service_target": "memory-layer",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "docs/memory-policy.md",
+          "adapters/memory/policy/promotion_rules.yaml"
+        ]
+      },
+      {
+        "task_id": "INFRA-016-create-context-packet-for-tasks",
+        "type": "command",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-016",
+        "linear_project": "Memory Layer",
+        "service_target": "context-packet",
+        "approval_required": true,
+        "execution_policy": "local_context_generation",
+        "expected_output": [
+          "contracts/context-packet.schema.json",
+          "templates/context-packet.json.tpl",
+          "registry/runs/*.json"
+        ]
+      },
+      {
+        "task_id": "INFRA-018-agent-hub-auto-account-rotation",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-018",
+        "linear_project": "Agent Hub",
+        "service_target": "agent-hub",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "docs/agent-hub-auto-rotation-plan.md",
+          "../saas/modules/warmup-core/server.mjs",
+          "../saas/web/dashboard-dist/login.html"
+        ]
+      },
+      {
+        "task_id": "INFRA-019-rtk-shipyard-state-governance",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": null,
+        "linear_project": "Core Infrastructure",
+        "service_target": "rtk-governance",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "shipyard ownership formalizada para RTK",
+          "indexação contínua de repos em ~/dev e subdiretórios",
+          "mapeamento dos state maps relevantes",
+          "curadoria operacional via Ansible",
+          "registro da decisão no State"
+        ]
+      },
+      {
+        "task_id": "INFRA-020-instalar-novas-funcionalidades-e-ferramentas-no-gcp-ruptur-cloud-labs",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": null,
+        "linear_project": "Ruptur Cloud Lab",
+        "service_target": "gcp-ruptur-cloud-labs",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "novas funcionalidades e ferramentas instaladas no GCP Ruptur Cloud Labs",
+          "infra e operacionalização registradas no State",
+          "playbooks/roles Ansible alinhados ao novo escopo",
+          "dívida técnica separada do que é entrega ativa"
+        ]
+      },
+      {
+        "task_id": "INFRA-021-jarvis-p0-ansible-terraform-iac-dns",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": null,
+        "linear_project": "Bootstrap IaC",
+        "service_target": "jarvis-control-plane",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "Jarvis operando em modo Ansible",
+          "Jarvis operando em modo Terraform",
+          "Jarvis operando em modo IaC",
+          "DNS aiox.ruptur.cloud materializado na Cloudflare",
+          "tasks e state atualizados com a fila P0"
+        ]
+      },
+      {
+        "task_id": "INFRA-022-separar-tela-agent-hub",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-022",
+        "linear_project": "Agent Hub",
+        "service_target": "agent-hub",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "tela do Agent Hub separada em blocos claros por função",
+          "sessão, runtime, fonte e mirror com leitura visual distinta",
+          "navegação e rotas do painel sem mistura de estados"
+        ]
+      },
+      {
+        "task_id": "INFRA-023-criar-badges-origem-proveniencia",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-023",
+        "linear_project": "Agent Hub",
+        "service_target": "agent-hub",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "badges visuais para origem e proveniência dos dados",
+          "identificação explícita de produção, local e mirror",
+          "status de conectividade e autoridade exibidos por fonte"
+        ]
+      },
+      {
+        "task_id": "INFRA-024-dividir-status-sessao-runtime-fonte-mirror",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-024",
+        "linear_project": "Agent Hub",
+        "service_target": "agent-hub",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "status dividido em sessão, runtime, fonte e mirror",
+          "cada camada com source_ref, summary e status próprios",
+          "board do HITL refletindo a separação sem ambiguidade"
+        ]
+      },
+      {
+        "task_id": "INFRA-025-explicar-origem-dados-painel",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-025",
+        "linear_project": "Agent Hub",
+        "service_target": "agent-hub",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "painel explicando a origem de cada bloco de dados",
+          "mensagens claras sobre o que vem de produção, local e mirror",
+          "separação explícita entre fonte declarada, fonte conectada e fonte espelhada"
+        ]
+      },
+      {
+        "task_id": "INFRA-026-padronizar-navegacao-global-back-home-topo",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-026",
+        "linear_project": "Agent Hub",
+        "service_target": "dashboard-ui",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "todas as telas com link visível para voltar à home",
+          "todas as telas com atalho xcto a home no topo",
+          "todas as telas com ação voltar ao topo no rodapé ou canto inferior"
+        ]
+      },
+      {
+        "task_id": "INFRA-027-sprint-final-sessao-login-observabilidade-seguranca",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-027",
+        "linear_project": "Sprint Final",
+        "service_target": "agent-hub",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "arquitetura de sessão e login padronizada com Redis e cookies seguros",
+          "observabilidade com logs, métricas e traces correlacionados",
+          "controles de segurança para evitar sessão indevida e logoff inconsistente",
+          "backlog confirmado como sprint final após os impedimentos e débitos técnicos",
+          "impedimento formal de pronto do projeto até haver solução ou decisão registrada"
+        ]
+      },
+      {
+        "task_id": "INFRA-028-tokens-p0-sessao-login-seguranca-observabilidade",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-028",
+        "linear_project": "Sprint Final",
+        "service_target": "agent-hub",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "contrato de tokens opacos e sessão server-side com Redis",
+          "login/logout e revogação imediata com auditoria",
+          "observabilidade com logs, métricas e traces correlacionados",
+          "triagem P0 para falhas, bugs e drift de sessão"
+        ]
+      },
+      {
+        "task_id": "INFRA-029-aiox-hermes-bridge-debug",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-029",
+        "linear_project": "Bootstrap IaC",
+        "service_target": "aiox-bridge",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "aiox.ruptur.cloud responde sem erro de borda",
+          "Hermes/Ollama responde ao teste do bridge",
+          "doctor do AIOX fecha sem falha ou deixa causa-raiz explícita",
+          "configuração de host-gateway, TLS ou endpoint fica consolidada"
+        ]
+      },
+      {
+        "task_id": "INFRA-029-aiox-shipyard-bridge-hermes-ollama-fetch-doctor",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-029",
+        "linear_project": "Sprint Final",
+        "service_target": "aiox-shipyard-bridge",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "fetch Hermes/Ollama deixa de falhar",
+          "aiox-core doctor sem BOOTSTRAP_ERROR",
+          "bridge AIOX saudável e reportando estado",
+          "state atualizado com a causa-raiz e a correção"
+        ]
+      },
+      {
+        "task_id": "INFRA-029-debug-falhas-erros-triagem",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-029",
+        "linear_project": "Sprint Final",
+        "service_target": "shipyard-runtime",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "triagem dos erros P0/P1 com causa raiz e impacto",
+          "correção do schema do context packet e campos incompatíveis",
+          "tratamento da falta de credenciais Linear e outros drifts de sync",
+          "registro explícito no HITL com causa, resolução e follow-up"
+        ]
+      },
+      {
+        "task_id": "INFRA-031-supabase-tls-ssl-backend-sync",
+        "type": "change",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-031",
+        "linear_project": "Sprint Final",
+        "service_target": "memory-layer",
+        "approval_required": true,
+        "execution_policy": "human_in_the_loop",
+        "expected_output": [
+          "TLS/SSL do Supabase tratado ou explicitamente documentado como dependência externa",
+          "backend de memória longa sem false positive de erro por falta de CA",
+          "registro no HITL com causa, impacto e decisão",
+          "triagem separada de configuração e de falha real"
+        ]
+      },
+      {
+        "task_id": "INFRA-AUDIT-GCP-001",
+        "type": "command",
+        "status": "pending",
+        "mode": null,
+        "linear_issue_id": null,
+        "linear_project": null,
+        "service_target": "gcp-primary",
+        "approval_required": false,
+        "execution_policy": "standard",
+        "expected_output": []
+      },
+      {
+        "task_id": "LIN-001-baseline-server-inventory",
+        "type": "command",
+        "status": "pending",
+        "mode": "FULL",
+        "linear_issue_id": "INFRA-005",
+        "linear_project": "Baseline Inventory",
+        "service_target": "kvm2",
+        "approval_required": true,
+        "execution_policy": "read_only_remote",
+        "expected_output": [
+          "registry/runs/*.json",
+          "logs/execution.log",
+          "kernel/state.json"
+        ]
+      }
+    ],
+    "open_count": 29,
+    "service_targets": {
+      "ruptur-cloud-lab": 1,
+      "shipyard-legacy-cleanup": 1,
+      "infrastructure-state": 2,
+      "ruptur-forge": 1,
+      "kvm2-core": 1,
+      "observability-min": 1,
+      "jarvis-foundation": 1,
+      "memory-layer": 4,
+      "context-packet": 1,
+      "agent-hub": 7,
+      "rtk-governance": 1,
+      "gcp-ruptur-cloud-labs": 1,
+      "jarvis-control-plane": 1,
+      "dashboard-ui": 1,
+      "aiox-bridge": 1,
+      "aiox-shipyard-bridge": 1,
+      "shipyard-runtime": 1,
+      "gcp-primary": 1,
+      "kvm2": 1
+    },
+    "active_targets": [
+      "ruptur-cloud-lab",
+      "shipyard-legacy-cleanup"
+    ]
+  },
+  "history": {
+    "recent": [
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T21:20:13Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": null
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "error",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T21:20:40Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": null
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T21:21:00Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": "INFRA-029"
+      },
+      {
+        "task_id": "INFRA-001-bootstrap-linear-control-plane",
+        "status": "done",
+        "type": "change",
+        "mode": "FULL",
+        "timestamp": "2026-04-21T21:21:50Z",
+        "linear_project": "Bootstrap IaC",
+        "service_target": "infrastructure-state",
+        "resolved_linear_issue_identifier": "INF-1"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T21:37:16Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": "INFRA-029"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T21:39:31Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": "INF-29"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T21:41:29Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": "INF-29"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T22:35:35Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": "INF-29"
+      }
+    ],
+    "recent_runs": [
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "mode": "STANDARD",
+        "recorded_at": "2026-04-21T21:21:00Z",
+        "source": "/tmp/rtk-test.task.json",
+        "service_target": null,
+        "linear_project": "Core Infrastructure"
+      },
+      {
+        "task_id": "INFRA-001-bootstrap-linear-control-plane",
+        "status": "done",
+        "mode": "FULL",
+        "recorded_at": "2026-04-21T21:21:50Z",
+        "source": "tasks/LINEAR_BACKLOG_BOOTSTRAP.task.json",
+        "service_target": "infrastructure-state",
+        "linear_project": "Bootstrap IaC"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "mode": "STANDARD",
+        "recorded_at": "2026-04-21T21:37:16Z",
+        "source": "/tmp/rtk-test.task.json",
+        "service_target": null,
+        "linear_project": "Core Infrastructure"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "mode": "STANDARD",
+        "recorded_at": "2026-04-21T21:39:31Z",
+        "source": "/tmp/rtk-test.task.json",
+        "service_target": null,
+        "linear_project": "Core Infrastructure"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "mode": "STANDARD",
+        "recorded_at": "2026-04-21T21:41:29Z",
+        "source": "/tmp/rtk-test.task.json",
+        "service_target": null,
+        "linear_project": "Core Infrastructure"
+      },
+      {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "mode": "STANDARD",
+        "recorded_at": "2026-04-21T22:35:35Z",
+        "source": "/tmp/rtk-test.task.json",
+        "service_target": null,
+        "linear_project": "Core Infrastructure"
+      }
+    ],
+    "counts": {
+      "done": 17,
+      "error": 2
+    }
+  },
+  "metrics": {
+    "adk": {
+      "active_sessions": 0,
+      "runs_24h": 12,
+      "success_24h": 11,
+      "error_24h": 1,
+      "success_rate_pct": 89.5,
+      "last_success": {
+        "task_id": "RTK-TEST-001",
+        "status": "done",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T22:35:35Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": "INF-29"
+      },
+      "last_error": {
+        "task_id": "RTK-TEST-001",
+        "status": "error",
+        "type": "noop",
+        "mode": "STANDARD",
+        "timestamp": "2026-04-21T21:20:40Z",
+        "linear_project": "Core Infrastructure",
+        "service_target": null,
+        "resolved_linear_issue_identifier": null
+      }
+    },
+    "a2a": {
+      "active_agents": 0,
+      "handoffs_24h": 12,
+      "active_links": 2,
+      "primary_link": null,
+      "pending_approvals": 27
+    }
+  },
+  "source_index": {
+    "kernel_state": "kernel/state.json",
+    "tasks_dir": "tasks",
+    "runs_dir": "registry/runs",
+    "manifest": "state/registry/hitl-sources.json"
+  }
+}

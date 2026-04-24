@@ -1,0 +1,27 @@
+services:
+  saas-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saas-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      WARMUP_RUNTIME_HOST: 0.0.0.0
+      WARMUP_RUNTIME_PORT: 4173
+    networks:
+      - kvm2_default
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "kvm2_default"
+      traefik.http.routers.saas-web-http.entrypoints: web
+      traefik.http.routers.saas-web-http.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`)"
+      traefik.http.routers.saas-web.entrypoints: websecure
+      traefik.http.routers.saas-web.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`)"
+      traefik.http.routers.saas-web.tls.certresolver: letsencrypt
+      traefik.http.services.saas-web.loadbalancer.server.port: "4173"
+
+networks:
+  kvm2_default:
+    external: true

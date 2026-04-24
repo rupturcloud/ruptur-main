@@ -1,0 +1,5 @@
+1:"$Sreact.fragment"
+2:I[25888,["/_next/static/chunks/df348dcdd60b6fd9.js","/_next/static/chunks/aa997a89dfa39417.js"],"OutletBoundary"]
+3:"$Sreact.suspense"
+0:{"buildId":"s5WSI5KEL9PekSq5YbVac","rsc":["$","$1","c",{"children":[["$","iframe",null,{"src":"/connectome/studio.html","title":"<🛟Ruptur /> Studio","style":{"border":"0","width":"100%","minHeight":"calc(100dvh - 8rem)","display":"block","background":"#020407","borderRadius":"24px"}}],null,["$","$L2",null,{"children":["$","$3",null,{"name":"Next.MetadataOutlet","children":"$@4"}]}]]}],"loading":null,"isPartial":false}
+4:null

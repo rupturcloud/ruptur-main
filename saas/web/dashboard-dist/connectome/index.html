@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>&lt;🛟Ruptur /&gt; Connectome</title>
+  <style>
+    :root {
+      --bg-0: #020407;
+      --bg-1: #07101a;
+      --panel: rgba(3, 7, 12, 0.82);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #eff6ff;
+      --muted: #91a2b6;
+      --brain: #79d8ff;
+      --app: #ff944d;
+      --domain: #ff6b6b;
+      --channel: #ffd166;
+      --infra: #8f96a3;
+      --governance: #f472d0;
+      --ghost: #5a6572;
+      --wired: #61d8ff;
+      --live: #ff7b54;
+      --scaled: #ffe082;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 30% 15%, rgba(121, 216, 255, 0.12), transparent 22%),
+        radial-gradient(circle at 75% 25%, rgba(255, 123, 84, 0.12), transparent 20%),
+        radial-gradient(circle at 55% 80%, rgba(255, 209, 102, 0.08), transparent 24%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1));
+      min-height: 100vh;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      padding: 20px 18px;
+      overflow: auto;
+    }
+
+      .canvas-wrap {
+        position: relative;
+        overflow: hidden;
+        perspective: 1600px;
+        perspective-origin: center center;
+      }
+
+    .toolbar {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      border: 1px solid var(--line);
+      background: rgba(7, 17, 26, 0.82);
+      color: var(--text);
+      border-radius: 12px;
+      width: 42px;
+      height: 42px;
+      font-size: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+    }
+
+    .tool-btn:active {
+      transform: scale(0.98);
+    }
+
+    .add-btn {
+      width: 52px;
+      font-size: 24px;
+      background: linear-gradient(180deg, rgba(186, 231, 255, 0.2), rgba(111, 140, 255, 0.14)), rgba(7, 17, 26, 0.82);
+    }
+
+    .brain-btn {
+      width: 52px;
+      font-size: 22px;
+      background: linear-gradient(180deg, rgba(255, 196, 219, 0.22), rgba(255, 142, 186, 0.14)), rgba(7, 17, 26, 0.82);
+    }
+
+    .mind-title {
+      position: absolute;
+      left: 50%;
+      top: 26px;
+      z-index: 9;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+      transition: transform 320ms ease, opacity 320ms ease;
+    }
+
+    .mind-title .line-1 {
+      display: block;
+      font-size: 14px;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: rgba(219, 231, 243, 0.68);
+    }
+
+    .mind-title .line-2 {
+      display: block;
+      margin-top: 6px;
+      font-size: 34px;
+      letter-spacing: 0.08em;
+      color: #f7fbff;
+      text-shadow: 0 10px 28px rgba(111, 140, 255, 0.3);
+    }
+
+    .canvas-wrap.compact .mind-title {
+      transform: translateX(-50%) translateY(12px) scale(0.96);
+      opacity: 0.9;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .section {
+      margin: 18px 0 22px;
+    }
+
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .chip.active {
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .legend {
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    svg {
+      width: 100%;
+      height: 100vh;
+      display: block;
+      transform-style: preserve-3d;
+      transition: transform 220ms ease, filter 220ms ease;
+    }
+
+    .canvas-wrap.compact svg {
+      filter: saturate(0.92) brightness(0.92);
+    }
+
+    .edge {
+      fill: none;
+      stroke-width: 1.4;
+      opacity: 0.58;
+      transition: opacity 180ms ease;
+    }
+
+    .edge.ghost {
+      stroke-dasharray: 6 8;
+    }
+
+    .edge.wired {
+      stroke-dasharray: 10 7;
+    }
+
+    .edge.live {
+      filter: drop-shadow(0 0 6px currentColor);
+    }
+
+    .edge.scaled {
+      stroke-width: 3;
+      filter: drop-shadow(0 0 10px currentColor);
+    }
+
+    .brain-shell {
+      opacity: 0;
+      transition: opacity 240ms ease;
+      pointer-events: none;
+    }
+
+    .canvas-wrap.compact .brain-shell {
+      opacity: 1;
+    }
+
+    .brain-shell path,
+    .brain-shell ellipse,
+    .brain-shell line {
+      fill: none;
+      stroke: rgba(130, 221, 255, 0.18);
+      stroke-width: 1.1;
+    }
+
+    .brain-shell .hot {
+      stroke: rgba(255, 128, 88, 0.22);
+    }
+
+    .brain-shell .mesh {
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-dasharray: 4 10;
+    }
+
+    .node {
+      cursor: pointer;
+    }
+
+    .node circle {
+      stroke-width: 1.5;
+    }
+
+    .node .shell {
+      fill: url(#sphereFill);
+    }
+
+    .node .grid-line {
+      stroke: rgba(255, 255, 255, 0.12);
+      stroke-width: 0.8;
+      fill: none;
+      opacity: 0.9;
+    }
+
+    .node .highlight {
+      fill: rgba(255, 255, 255, 0.12);
+      filter: blur(1px);
+    }
+
+    .node .orbit {
+      stroke: rgba(255, 209, 102, 0.32);
+      stroke-width: 0.9;
+      fill: none;
+    }
+
+    .node .atom-dot {
+      fill: rgba(255, 255, 255, 0.92);
+      filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.34));
+    }
+
+    .node[data-state="ghost"] circle {
+      fill: rgba(90, 101, 114, 0.08);
+      filter: drop-shadow(0 0 6px rgba(90, 101, 114, 0.16));
+    }
+
+    .node[data-state="wired"] circle {
+      fill: rgba(97, 216, 255, 0.1);
+      filter: drop-shadow(0 0 10px rgba(97, 216, 255, 0.24));
+    }
+
+    .node[data-state="live"] circle {
+      fill: rgba(255, 123, 84, 0.12);
+      filter: drop-shadow(0 0 16px rgba(255, 123, 84, 0.32));
+    }
+
+    .node[data-state="scaled"] circle {
+      fill: rgba(255, 224, 130, 0.12);
+      filter: drop-shadow(0 0 18px rgba(255, 224, 130, 0.32));
+    }
+
+    .node text {
+      font-size: 11px;
+      fill: var(--text);
+      pointer-events: none;
+    }
+
+    .node .meta {
+      font-size: 9px;
+      fill: var(--muted);
+    }
+
+    .node.dragging circle {
+      stroke-width: 2.2;
+      filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.16));
+    }
+
+    .node.anchor circle {
+      stroke-width: 2.2;
+      filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.12));
+    }
+
+    .node.anchor .meta::after {
+      content: "";
+    }
+
+    .canvas-wrap.interacting .edge,
+    .canvas-wrap.interacting .node {
+      transition: none;
+    }
+
+    .node.dimmed,
+    .edge.dimmed {
+      opacity: 0.1;
+    }
+
+    .details {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      width: 320px;
+      max-width: calc(100vw - 40px);
+      background: rgba(7, 17, 26, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      backdrop-filter: blur(16px);
+    }
+
+    .details h3 {
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
+
+    .details p {
+      margin: 8px 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .details .mini {
+      font-size: 12px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .pill {
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at center, rgba(111, 140, 255, 0.08), transparent 42%),
+        rgba(4, 10, 18, 0.18);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(760px, 100%);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 30px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05)),
+        rgba(11, 18, 28, 0.58);
+      box-shadow:
+        0 24px 80px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      backdrop-filter: blur(20px) saturate(1.1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px 10px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .modal-close {
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .modal-body {
+      padding: 8px 22px 22px;
+    }
+
+    .segmented {
+      display: inline-flex;
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      margin-bottom: 18px;
+    }
+
+    .segmented button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .segmented button.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .action-btn {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(180deg, rgba(111, 140, 255, 0.34), rgba(51, 181, 229, 0.24));
+    }
+
+    .helper {
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .hint {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    @media (min-width: 981px) {
+      .layout {
+        grid-template-columns: 320px 1fr;
+      }
+
+      .sidebar {
+        border-bottom: 0;
+        border-right: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 980px) {
+      svg {
+        height: 70vh;
+      }
+
+      .details {
+        position: static;
+        margin: 16px;
+        width: auto;
+      }
+
+      .toolbar {
+        top: 12px;
+        left: 12px;
+        gap: 6px;
+      }
+
+      .tool-btn,
+      .add-btn,
+      .brain-btn {
+        width: 44px;
+        height: 44px;
+      }
+
+      .mind-title {
+        top: 74px;
+      }
+
+      .mind-title .line-1 {
+        font-size: 11px;
+        letter-spacing: 0.28em;
+      }
+
+      .mind-title .line-2 {
+        font-size: 24px;
+      }
+
+      .modal-backdrop {
+        padding: 10px;
+      }
+
+      .modal {
+        border-radius: 24px;
+      }
+
+      .modal-body {
+        padding: 6px 14px 16px;
+      }
+
+      .modal-header {
+        padding: 14px 14px 8px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1 class="title">Connectome Viewer</h1>
+      <p class="subtitle">
+        Seed visual do mapa neural operacional. O sistema nasce inteiro, mas vai acendendo por estado, camada e entrega.
+      </p>
+
+      <div class="section">
+        <h2>Momento</h2>
+        <div class="chips" id="vision-filters"></div>
+      </div>
+
+      <div class="section">
+        <h2>Camadas</h2>
+        <div class="chips" id="layer-filters"></div>
+      </div>
+
+      <div class="section">
+        <h2>Estados</h2>
+        <div class="chips" id="state-filters"></div>
+      </div>
+
+      <div class="section">
+        <h2>Legenda de Estado</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch" style="background:var(--ghost)"></span>ghost: previsto e apagado
+          </div>
+          <div class="legend-item"><span class="swatch" style="background:var(--wired)"></span>wired: ligado no desenho
+          </div>
+          <div class="legend-item"><span class="swatch" style="background:var(--live)"></span>live: entregue e aceso
+          </div>
+          <div class="legend-item"><span class="swatch" style="background:var(--scaled)"></span>scaled: estavel e
+            repetivel</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Legenda de Camada</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch" style="background:var(--brain)"></span>brain</div>
+          <div class="legend-item"><span class="swatch" style="background:var(--app)"></span>app</div>
+          <div class="legend-item"><span class="swatch" style="background:var(--domain)"></span>domain</div>
+          <div class="legend-item"><span class="swatch" style="background:var(--channel)"></span>channel</div>
+          <div class="legend-item"><span class="swatch" style="background:var(--infra)"></span>infra</div>
+          <div class="legend-item"><span class="swatch"
+              style="background:var(--governance)"></span>artifact/task/governance</div>
+        </div>
+      </div>
+
+      <p class="hint">
+        Clique em um nó para ver os detalhes. Use os filtros para ler o sistema por camada ou por estado. Este viewer
+        ainda usa um dataset seed local; depois ele pode ser alimentado pelos arquivos Markdown do connectome.
+      </p>
+    </aside>
+
+    <main class="canvas-wrap">
+      <div class="toolbar" aria-label="Zoom controls">
+        <button class="tool-btn add-btn" id="open-modal" title="Adicionar">＋</button>
+        <button class="tool-btn brain-btn" id="brain-toggle" title="Modo mente">🧠</button>
+        <button class="tool-btn" id="zoom-in" title="Zoom in">+</button>
+        <button class="tool-btn" id="zoom-out" title="Zoom out">−</button>
+        <button class="tool-btn" id="zoom-reset" title="Reset">•</button>
+      </div>
+      <div class="mind-title" id="mind-title">
+        <span class="line-1">Neural Map</span>
+        <span class="line-2">Jarvis / &lt;🛟Ruptur /&gt;</span>
+      </div>
+      <svg viewBox="0 0 1400 900" aria-label="Connectome graph">
+        <defs>
+          <radialGradient id="sphereFill" cx="36%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.2)"></stop>
+            <stop offset="35%" stop-color="rgba(255,255,255,0.08)"></stop>
+            <stop offset="100%" stop-color="rgba(255,255,255,0.02)"></stop>
+          </radialGradient>
+        </defs>
+        <g id="viewport">
+          <g class="brain-shell" id="brain-shell">
+            <ellipse cx="700" cy="430" rx="255" ry="225"></ellipse>
+            <ellipse cx="700" cy="430" rx="215" ry="185" class="mesh"></ellipse>
+            <path d="M700 210 C650 240, 635 315, 650 430 C665 545, 650 625, 700 660"></path>
+            <path d="M700 210 C750 240, 765 315, 750 430 C735 545, 750 625, 700 660"></path>
+            <path d="M445 430 C470 325, 545 240, 650 225" class="hot"></path>
+            <path d="M955 430 C930 325, 855 240, 750 225" class="hot"></path>
+            <path d="M465 505 C525 610, 610 660, 700 670" class="hot"></path>
+            <path d="M935 505 C875 610, 790 660, 700 670" class="hot"></path>
+            <line x1="700" y1="235" x2="700" y2="650" class="mesh"></line>
+            <line x1="520" y1="310" x2="880" y2="310" class="mesh"></line>
+            <line x1="480" y1="430" x2="920" y2="430" class="mesh"></line>
+            <line x1="520" y1="555" x2="880" y2="555" class="mesh"></line>
+          </g>
+          <g id="edges"></g>
+          <g id="nodes"></g>
+        </g>
+      </svg>
+      <section class="details" id="details"></section>
+      <div class="modal-backdrop" id="modal-backdrop">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <div class="modal-header">
+            <h2 class="modal-title" id="modal-title">Add to Connectome</h2>
+            <button class="modal-close" id="close-modal" aria-label="Fechar">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="segmented">
+              <button class="active" id="tab-node" type="button">Node</button>
+              <button id="tab-edge" type="button">Edge</button>
+            </div>
+
+            <form id="node-form">
+              <div class="form-grid">
+                <div class="field">
+                  <label for="node-label">Label</label>
+                  <input id="node-label" name="label" required>
+                </div>
+                <div class="field">
+                  <label for="node-id">Id</label>
+                  <input id="node-id" name="id" placeholder="auto se vazio">
+                </div>
+                <div class="field">
+                  <label for="node-layer">Layer</label>
+                  <select id="node-layer" name="layer">
+                    <option>brain</option>
+                    <option>app</option>
+                    <option>domain</option>
+                    <option>channel</option>
+                    <option>infra</option>
+                    <option selected>governance</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="node-state">State</label>
+                  <select id="node-state" name="state">
+                    <option>ghost</option>
+                    <option selected>wired</option>
+                    <option>live</option>
+                    <option>scaled</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="node-type">Type</label>
+                  <input id="node-type" name="type" placeholder="module, task, artifact...">
+                </div>
+                <div class="field">
+                  <label for="node-tags">Tags</label>
+                  <input id="node-tags" name="tags" placeholder="tag1, tag2">
+                </div>
+                <div class="field full">
+                  <label for="node-desc">Description</label>
+                  <textarea id="node-desc" name="desc"></textarea>
+                </div>
+              </div>
+              <p class="helper">No v0 o item entra apenas no viewer local. Depois podemos sincronizar com os arquivos `.md` do connectome.</p>
+              <div class="modal-actions">
+                <button class="action-btn" type="button" id="cancel-node">Cancelar</button>
+                <button class="action-btn primary" type="submit">Adicionar Node</button>
+              </div>
+            </form>
+
+            <form id="edge-form" hidden>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="edge-from">From</label>
+                  <select id="edge-from" name="from"></select>
+                </div>
+                <div class="field">
+                  <label for="edge-to">To</label>
+                  <select id="edge-to" name="to"></select>
+                </div>
+                <div class="field">
+                  <label for="edge-relation">Relation</label>
+                  <input id="edge-relation" name="relation" placeholder="depends_on, creates...">
+                </div>
+                <div class="field">
+                  <label for="edge-cardinality">Cardinality</label>
+                  <select id="edge-cardinality" name="cardinality">
+                    <option>1:1</option>
+                    <option selected>1:N</option>
+                    <option>N:1</option>
+                    <option>N:N</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="edge-state">State</label>
+                  <select id="edge-state" name="state">
+                    <option>ghost</option>
+                    <option selected>wired</option>
+                    <option>live</option>
+                    <option>scaled</option>
+                  </select>
+                </div>
+              </div>
+              <p class="helper">A ligação é adicionada em memória e aparece no mapa imediatamente.</p>
+              <div class="modal-actions">
+                <button class="action-btn" type="button" id="cancel-edge">Cancelar</button>
+                <button class="action-btn primary" type="submit">Adicionar Edge</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const layerColors = {
+      brain: "var(--brain)",
+      app: "var(--app)",
+      domain: "var(--domain)",
+      channel: "var(--channel)",
+      infra: "var(--infra)",
+      governance: "var(--governance)"
+    };
+
+    const stateColors = {
+      ghost: "var(--ghost)",
+      wired: "var(--wired)",
+      live: "var(--live)",
+      scaled: "var(--scaled)"
+    };
+
+    const nodes = [
+      { id: "node_farm_platform", label: "Farm Platform", layer: "governance", state: "ghost", x: 110, y: 120, type: "mother-platform", desc: "Hipotese de plataforma mae acima de ADK, <🛟Ruptur />, canais, infra e automacoes.", tags: ["farm", "platform", "ecosystem"] },
+      { id: "node_receita_previsivel", label: "Receita Previsivel", layer: "domain", state: "wired", x: 270, y: 155, type: "method", desc: "Metodo-fonte usado para decompor a maquina comercial do cliente e a maquina comercial do Diego.", tags: ["sales", "predictable-revenue", "method"] },
+      { id: "node_adk", label: "ADK", layer: "brain", state: "wired", x: 520, y: 135, type: "brain", desc: "Camada cerebral e de orquestracao do ecossistema.", tags: ["brain", "memory", "orchestration"] },
+      { id: "node_a2a", label: "A2A", layer: "brain", state: "ghost", x: 665, y: 95, type: "protocol", desc: "Camada de coordenacao entre agentes, apps e servicos.", tags: ["a2a", "protocol", "coordination"] },
+      { id: "node_mcp", label: "MCP", layer: "brain", state: "ghost", x: 665, y: 185, type: "protocol", desc: "Camada para acesso padronizado a ferramentas, contexto e memoria.", tags: ["mcp", "tools", "context"] },
+      { id: "node_machine_builder", label: "Machine Builder", layer: "brain", state: "ghost", x: 850, y: 140, type: "factory", desc: "Camada responsavel por construir e adaptar maquinas de venda e operacao.", tags: ["factory", "machine-builder"] },
+      { id: "node_jarvis", label: "Jarvis", layer: "brain", state: "ghost", x: 1045, y: 135, type: "assistant", desc: "Inteligencia neural e gestora que deve operar a maquina de construir maquinas.", tags: ["jarvis", "assistant"] },
+      { id: "node_antigravity_kit", label: "Antigravity Kit", layer: "brain", state: "ghost", x: 1225, y: 135, type: "toolkit", desc: "Kit-base e referencia para organizar agentes, fluxos e ferramental.", tags: ["toolkit", "agent-kit"] },
+      { id: "node_vps_oracle", label: "VPS Oracle", layer: "infra", state: "wired", x: 1260, y: 330, type: "infra-hosting", desc: "Camada de infraestrutura e provisionamento de runtime e gateways.", tags: ["infra", "oracle", "vps"] },
+      { id: "node_ruptur", label: "<🛟Ruptur />", layer: "app", state: "live", x: 835, y: 360, type: "app", desc: "Aplicacao operacional e comercial usada para executar a maquina de vendas.", tags: ["app", "crm", "sales"] },
+      { id: "node_cockpit", label: "Cockpit", layer: "app", state: "live", x: 1000, y: 340, type: "operator-console", desc: "Superficie operacional para acompanhamento humano, fila, override e visibilidade.", tags: ["cockpit", "inbox", "supervision"] },
+      { id: "node_whatsapp", label: "WhatsApp", layer: "channel", state: "wired", x: 1160, y: 450, type: "channel", desc: "Canal transversal com papeis diferentes conforme camada e momento.", tags: ["channel", "prospecting", "followup", "dispatch"] },
+      { id: "node_uazapi", label: "UAZAPI", layer: "channel", state: "live", x: 1280, y: 470, type: "provider", desc: "Provider de WhatsApp hoje acoplado a partes centrais do fluxo operacional.", tags: ["provider", "uazapi", "whatsapp"] },
+      { id: "node_baileys", label: "Baileys", layer: "channel", state: "wired", x: 1280, y: 585, type: "provider", desc: "Gateway/provider alternativo para WhatsApp e fallback operacional.", tags: ["provider", "baileys", "fallback"] },
+      { id: "node_crm", label: "CRM", layer: "domain", state: "wired", x: 665, y: 350, type: "domain-core", desc: "Dominio comercial com leads, conversas, mensagens, labels e fila operacional.", tags: ["crm", "leads", "pipeline"] },
+      { id: "node_messaging", label: "Messaging", layer: "domain", state: "ghost", x: 915, y: 505, type: "domain-core", desc: "Dominio de envio, roteamento e estado de mensagens entre providers e aplicacoes.", tags: ["messaging", "dispatch", "routing"] },
+      { id: "node_automation", label: "Automation", layer: "domain", state: "ghost", x: 805, y: 605, type: "domain-core", desc: "Dominio de automacao duravel com agent runs, dispatch jobs e trilha auditavel.", tags: ["automation", "agent-runs", "durability"] },
+      { id: "node_sales_machine_diego", label: "Sales Machine Diego", layer: "app", state: "ghost", x: 350, y: 345, type: "sales-machine", desc: "Maquina de vendas usada para vender a propria solucao para as imobiliarias.", tags: ["sales", "diego", "acquisition"] },
+      { id: "node_imob_client", label: "Imobiliaria Cliente", layer: "domain", state: "wired", x: 240, y: 445, type: "buyer", desc: "Cliente direto do Diego que compra a maquina e a usa para vender aos clientes dela.", tags: ["imob", "customer", "b2b"] },
+      { id: "node_end_customer", label: "Cliente Final", layer: "domain", state: "ghost", x: 160, y: 565, type: "buyer", desc: "Cliente final da imobiliaria, alvo da maquina operacional que sera vendida.", tags: ["end-customer", "buyer"] },
+      { id: "node_prospect", label: "Prospect", layer: "domain", state: "ghost", x: 350, y: 565, type: "sales-entity", desc: "Entrada inicial do funil comercial antes da qualificacao.", tags: ["prospecting", "funnel"] },
+      { id: "node_qualification", label: "Qualification", layer: "domain", state: "ghost", x: 505, y: 645, type: "sales-stage", desc: "Etapa de qualificacao que transforma prospect em lead viavel.", tags: ["qualification", "funnel"] },
+      { id: "node_lead", label: "Lead", layer: "domain", state: "wired", x: 655, y: 720, type: "sales-entity", desc: "Entidade comercial principal ja presente no <🛟Ruptur />.", tags: ["lead", "funnel"] },
+      { id: "node_follow_up", label: "Follow-up", layer: "domain", state: "ghost", x: 825, y: 720, type: "sales-stage", desc: "Etapa critica para evitar morte de oportunidade por inercia ou esquecimento.", tags: ["followup", "cadence", "sales"] },
+      { id: "node_opportunity", label: "Opportunity", layer: "domain", state: "ghost", x: 980, y: 720, type: "sales-entity", desc: "Entidade de negocio madura entre qualificacao e fechamento.", tags: ["opportunity", "pipeline"] },
+      { id: "node_close", label: "Close", layer: "domain", state: "ghost", x: 1135, y: 720, type: "sales-stage", desc: "Etapa final de conversao e captura do dinheiro que orienta o funil reverso.", tags: ["close", "conversion", "revenue"] },
+      { id: "node_n8n_workflows", label: "n8n Workflows", layer: "governance", state: "ghost", x: 1160, y: 835, type: "workflow-library", desc: "Biblioteca lateral de workflows e automacoes reaproveitaveis.", tags: ["n8n", "workflows", "library"] },
+      { id: "artifact_connectome_spec", label: "Connectome Spec", layer: "governance", state: "live", x: 420, y: 845, type: "artifact", desc: "Especificacao base do connectome.", tags: ["artifact", "spec"] },
+      { id: "artifact_visual_seed", label: "Visual Seed", layer: "governance", state: "live", x: 650, y: 845, type: "artifact", desc: "Primeira visualizacao compacta do connectome.", tags: ["artifact", "wireframe", "graph"] },
+      { id: "artifact_ontologia_connectome", label: "Ontologia Connectome", layer: "governance", state: "wired", x: 845, y: 845, type: "artifact", desc: "Definicao de tipos, regras de ligacao e metadados do connectome.", tags: ["artifact", "ontology", "schema"] },
+      { id: "artifact_receita_blueprint", label: "Receita Blueprint", layer: "governance", state: "ghost", x: 1035, y: 845, type: "artifact", desc: "Blueprint futuro com a decomposicao operacional do metodo em fases, entidades e handoffs.", tags: ["artifact", "receita-previsivel", "blueprint"] },
+      { id: "task_seed_receita_mapping", label: "Task Receita Mapping", layer: "governance", state: "wired", x: 160, y: 835, type: "task", desc: "Task seed para decompor o metodo Receita Previsivel em fatias operacionais.", tags: ["task", "mapping"] },
+      { id: "task_seed_whatsapp_roles", label: "Task WhatsApp Roles", layer: "governance", state: "wired", x: 1330, y: 745, type: "task", desc: "Task seed para mapear papeis distintos do WhatsApp por camada e momento.", tags: ["task", "whatsapp", "roles"] },
+      { id: "task_receita_decomposition", label: "Task Decompose Receita", layer: "governance", state: "wired", x: 245, y: 760, type: "task", desc: "Decompor o metodo em fatias, entidades, handoffs, cadencias e metricas.", tags: ["task", "receita-previsivel", "decomposition"] },
+      { id: "task_git_projects_bridge", label: "Task Git Projects Bridge", layer: "governance", state: "ghost", x: 1230, y: 815, type: "task", desc: "Ligar tasks e artifacts do connectome ao fluxo real do Git Projects.", tags: ["task", "github-projects", "integration"] },
+      { id: "task_viewer_external_data", label: "Task Viewer External Data", layer: "governance", state: "ghost", x: 1330, y: 870, type: "task", desc: "Fazer o viewer consumir dados externos em vez de dataset embutido.", tags: ["task", "viewer", "json"] }
+    ];
+
+    const compactPositions = {
+      node_farm_platform: { x: 540, y: 255 },
+      node_receita_previsivel: { x: 505, y: 335 },
+      node_adk: { x: 620, y: 275 },
+      node_a2a: { x: 690, y: 240 },
+      node_mcp: { x: 670, y: 325 },
+      node_machine_builder: { x: 805, y: 270 },
+      node_jarvis: { x: 895, y: 330 },
+      node_antigravity_kit: { x: 930, y: 250 },
+      node_vps_oracle: { x: 905, y: 555 },
+      node_ruptur: { x: 790, y: 430 },
+      node_cockpit: { x: 885, y: 420 },
+      node_whatsapp: { x: 975, y: 480 },
+      node_uazapi: { x: 940, y: 565 },
+      node_baileys: { x: 920, y: 635 },
+      node_crm: { x: 700, y: 390 },
+      node_messaging: { x: 820, y: 515 },
+      node_automation: { x: 775, y: 605 },
+      node_sales_machine_diego: { x: 585, y: 430 },
+      node_imob_client: { x: 500, y: 470 },
+      node_end_customer: { x: 470, y: 550 },
+      node_prospect: { x: 545, y: 560 },
+      node_qualification: { x: 620, y: 640 },
+      node_lead: { x: 695, y: 690 },
+      node_follow_up: { x: 790, y: 690 },
+      node_opportunity: { x: 865, y: 650 },
+      node_close: { x: 915, y: 590 },
+      node_n8n_workflows: { x: 980, y: 725 },
+      artifact_connectome_spec: { x: 560, y: 735 },
+      artifact_visual_seed: { x: 640, y: 760 },
+      artifact_ontologia_connectome: { x: 760, y: 760 },
+      artifact_receita_blueprint: { x: 860, y: 735 },
+      task_seed_receita_mapping: { x: 465, y: 705 },
+      task_seed_whatsapp_roles: { x: 1025, y: 705 },
+      task_receita_decomposition: { x: 520, y: 640 },
+      task_git_projects_bridge: { x: 935, y: 755 },
+      task_viewer_external_data: { x: 1045, y: 755 }
+    };
+
+    const edges = [
+      { from: "node_farm_platform", to: "node_adk", relation: "contains", state: "ghost", cardinality: "1:N" },
+      { from: "node_farm_platform", to: "node_ruptur", relation: "contains", state: "ghost", cardinality: "1:N" },
+      { from: "node_receita_previsivel", to: "node_sales_machine_diego", relation: "enables", state: "wired", cardinality: "1:N" },
+      { from: "node_receita_previsivel", to: "node_ruptur", relation: "enables", state: "wired", cardinality: "1:N" },
+      { from: "node_adk", to: "node_a2a", relation: "contains", state: "ghost", cardinality: "1:1" },
+      { from: "node_adk", to: "node_mcp", relation: "contains", state: "ghost", cardinality: "1:1" },
+      { from: "node_adk", to: "node_machine_builder", relation: "enables", state: "ghost", cardinality: "1:1" },
+      { from: "node_adk", to: "node_jarvis", relation: "contains", state: "wired", cardinality: "1:1" },
+      { from: "node_adk", to: "node_antigravity_kit", relation: "contains", state: "ghost", cardinality: "1:N" },
+      { from: "node_machine_builder", to: "node_jarvis", relation: "contains", state: "ghost", cardinality: "1:1" },
+      { from: "node_jarvis", to: "node_whatsapp", relation: "uses_as_channel", state: "ghost", cardinality: "1:N" },
+      { from: "node_ruptur", to: "node_whatsapp", relation: "uses_as_channel", state: "live", cardinality: "1:N" },
+      { from: "node_ruptur", to: "node_crm", relation: "contains", state: "live", cardinality: "1:1" },
+      { from: "node_ruptur", to: "node_cockpit", relation: "contains", state: "live", cardinality: "1:1" },
+      { from: "node_ruptur", to: "node_messaging", relation: "contains", state: "ghost", cardinality: "1:1" },
+      { from: "node_ruptur", to: "node_automation", relation: "contains", state: "ghost", cardinality: "1:1" },
+      { from: "node_messaging", to: "node_uazapi", relation: "routes_to", state: "live", cardinality: "1:N" },
+      { from: "node_messaging", to: "node_baileys", relation: "routes_to", state: "wired", cardinality: "1:N" },
+      { from: "node_vps_oracle", to: "node_baileys", relation: "enables", state: "wired", cardinality: "1:N" },
+      { from: "node_sales_machine_diego", to: "node_imob_client", relation: "targets", state: "ghost", cardinality: "1:N" },
+      { from: "node_imob_client", to: "node_end_customer", relation: "sells_to", state: "ghost", cardinality: "1:N" },
+      { from: "node_sales_machine_diego", to: "node_prospect", relation: "creates", state: "ghost", cardinality: "1:N" },
+      { from: "node_prospect", to: "node_qualification", relation: "qualifies_to", state: "ghost", cardinality: "1:N" },
+      { from: "node_qualification", to: "node_lead", relation: "creates", state: "ghost", cardinality: "1:N" },
+      { from: "node_lead", to: "node_follow_up", relation: "enables", state: "ghost", cardinality: "1:N" },
+      { from: "node_follow_up", to: "node_opportunity", relation: "creates", state: "ghost", cardinality: "1:N" },
+      { from: "node_opportunity", to: "node_close", relation: "enables", state: "ghost", cardinality: "1:N" },
+      { from: "task_seed_receita_mapping", to: "node_receita_previsivel", relation: "implements", state: "wired", cardinality: "N:1" },
+      { from: "task_seed_receita_mapping", to: "artifact_connectome_spec", relation: "creates", state: "wired", cardinality: "N:1" },
+      { from: "task_seed_whatsapp_roles", to: "node_whatsapp", relation: "documents", state: "wired", cardinality: "N:1" },
+      { from: "task_seed_whatsapp_roles", to: "artifact_visual_seed", relation: "creates", state: "wired", cardinality: "N:1" },
+      { from: "task_receita_decomposition", to: "artifact_receita_blueprint", relation: "creates", state: "ghost", cardinality: "N:1" },
+      { from: "task_git_projects_bridge", to: "artifact_ontologia_connectome", relation: "implements", state: "ghost", cardinality: "N:1" },
+      { from: "task_viewer_external_data", to: "artifact_visual_seed", relation: "updates", state: "ghost", cardinality: "N:1" },
+      { from: "artifact_connectome_spec", to: "node_adk", relation: "documents", state: "live", cardinality: "1:N" },
+      { from: "artifact_visual_seed", to: "node_whatsapp", relation: "documents", state: "live", cardinality: "1:N" },
+      { from: "artifact_ontologia_connectome", to: "node_adk", relation: "documents", state: "wired", cardinality: "1:N" },
+      { from: "artifact_receita_blueprint", to: "node_receita_previsivel", relation: "documents", state: "ghost", cardinality: "1:N" }
+    ];
+
+    const nodeContexts = {
+      node_adk: ["all", "jarvis", "factory"],
+      node_a2a: ["all", "jarvis", "factory"],
+      node_mcp: ["all", "jarvis", "factory"],
+      node_machine_builder: ["all", "factory", "growth"],
+      node_jarvis: ["all", "jarvis", "factory"],
+      node_antigravity_kit: ["all", "jarvis", "factory"],
+      node_ruptur: ["all", "ruptur", "growth"],
+      node_cockpit: ["all", "ruptur"],
+      node_crm: ["all", "ruptur", "growth"],
+      node_messaging: ["all", "ruptur", "growth"],
+      node_automation: ["all", "ruptur", "growth"],
+      node_whatsapp: ["all", "jarvis", "ruptur", "growth"],
+      node_uazapi: ["all", "ruptur"],
+      node_baileys: ["all", "ruptur"],
+      node_sales_machine_diego: ["all", "growth", "factory"],
+      node_imob_client: ["all", "growth", "ruptur"],
+      node_prospect: ["all", "growth"],
+      node_qualification: ["all", "growth"],
+      node_lead: ["all", "growth", "ruptur"],
+      node_follow_up: ["all", "growth", "ruptur"],
+      node_opportunity: ["all", "growth", "ruptur"],
+      node_close: ["all", "growth", "ruptur"],
+    };
+
+    const nodeDepths = {
+      node_farm_platform: -180,
+      node_receita_previsivel: -140,
+      node_adk: -90,
+      node_a2a: -150,
+      node_mcp: -40,
+      node_machine_builder: -95,
+      node_jarvis: -130,
+      node_antigravity_kit: -180,
+      node_vps_oracle: 180,
+      node_ruptur: 20,
+      node_cockpit: -10,
+      node_whatsapp: 130,
+      node_uazapi: 200,
+      node_baileys: 240,
+      node_crm: -20,
+      node_messaging: 90,
+      node_automation: 110,
+      node_sales_machine_diego: -10,
+      node_imob_client: 40,
+      node_end_customer: 80,
+      node_prospect: 50,
+      node_qualification: 65,
+      node_lead: 70,
+      node_follow_up: 95,
+      node_opportunity: 110,
+      node_close: 130,
+      node_n8n_workflows: 170,
+      artifact_connectome_spec: 150,
+      artifact_visual_seed: 155,
+      artifact_ontologia_connectome: 145,
+      artifact_receita_blueprint: 150,
+      task_seed_receita_mapping: 165,
+      task_seed_whatsapp_roles: 185,
+      task_receita_decomposition: 155,
+      task_git_projects_bridge: 170,
+      task_viewer_external_data: 185,
+    };
+
+    const layerFilters = document.getElementById("layer-filters");
+    const visionFilters = document.getElementById("vision-filters");
+    const stateFilters = document.getElementById("state-filters");
+    const details = document.getElementById("details");
+    const edgesGroup = document.getElementById("edges");
+    const nodesGroup = document.getElementById("nodes");
+    const viewport = document.getElementById("viewport");
+    const svg = document.querySelector("svg");
+    const canvasWrap = document.querySelector(".canvas-wrap");
+    const brainToggleButton = document.getElementById("brain-toggle");
+    const openModalButton = document.getElementById("open-modal");
+    const zoomInButton = document.getElementById("zoom-in");
+    const zoomOutButton = document.getElementById("zoom-out");
+    const zoomResetButton = document.getElementById("zoom-reset");
+    const modalBackdrop = document.getElementById("modal-backdrop");
+    const closeModalButton = document.getElementById("close-modal");
+    const nodeForm = document.getElementById("node-form");
+    const edgeForm = document.getElementById("edge-form");
+    const nodeTabButton = document.getElementById("tab-node");
+    const edgeTabButton = document.getElementById("tab-edge");
+    const edgeFromSelect = document.getElementById("edge-from");
+    const edgeToSelect = document.getElementById("edge-to");
+
+    const activeLayers = new Set(Object.keys(layerColors));
+    const activeStates = new Set(Object.keys(stateColors));
+    const visionModes = ["all", "jarvis", "factory", "ruptur", "growth"];
+    let currentVision = "all";
+    const anchorChildren = new Map([
+      ["node_adk", ["node_a2a", "node_mcp", "node_machine_builder", "node_jarvis", "node_antigravity_kit"]],
+      ["node_ruptur", ["node_cockpit", "node_crm", "node_messaging", "node_automation"]],
+      ["node_messaging", ["node_whatsapp", "node_uazapi", "node_baileys", "node_vps_oracle"]],
+      ["node_crm", ["node_imob_client", "node_prospect", "node_qualification", "node_lead", "node_follow_up", "node_opportunity", "node_close"]],
+      ["node_sales_machine_diego", ["node_imob_client", "node_prospect"]],
+      ["node_imob_client", ["node_end_customer"]],
+      ["artifact_ontologia_connectome", ["task_git_projects_bridge", "task_viewer_external_data"]],
+      ["node_receita_previsivel", ["artifact_receita_blueprint", "task_seed_receita_mapping", "task_receita_decomposition"]],
+    ]);
+    const nodeParentAnchor = new Map();
+    anchorChildren.forEach((children, anchorId) => {
+      children.forEach((childId) => {
+        if (!nodeParentAnchor.has(childId)) nodeParentAnchor.set(childId, anchorId);
+      });
+    });
+    const expandedAnchors = new Set(["node_adk", "node_ruptur", "node_receita_previsivel"]);
+    const transform = { scale: 1, x: 0, y: 0 };
+    const rotation = { x: 0, y: 0 };
+    const customPositions = new Map();
+    let compactMode = false;
+    let idleAnimationEnabled = true;
+    let idleAnimationFrame = null;
+    let idlePauseTimer = null;
+    let idleTime = 0;
+    let dragging = false;
+    let rotating = false;
+    let panning = false;
+    let draggingNodeId = null;
+    let dragStart = { x: 0, y: 0 };
+    let dragOrigin = { x: 0, y: 0 };
+    let rotateOrigin = { x: 0, y: 0 };
+
+    function makeChip(target, label, activeSet, value) {
+      const chip = document.createElement("button");
+      chip.className = "chip active";
+      chip.textContent = label;
+      chip.addEventListener("click", () => {
+        if (activeSet.has(value)) {
+          activeSet.delete(value);
+          chip.classList.remove("active");
+        } else {
+          activeSet.add(value);
+          chip.classList.add("active");
+        }
+        render();
+      });
+      target.appendChild(chip);
+    }
+
+    function makeVisionChip(target, label) {
+      const chip = document.createElement("button");
+      chip.className = `chip ${currentVision === label ? "active" : ""}`.trim();
+      chip.textContent = label;
+      chip.addEventListener("click", () => {
+        currentVision = label;
+        Array.from(target.children).forEach((child) => child.classList.remove("active"));
+        chip.classList.add("active");
+        render();
+      });
+      target.appendChild(chip);
+    }
+
+    Object.keys(layerColors).forEach(layer => makeChip(layerFilters, layer, activeLayers, layer));
+    Object.keys(stateColors).forEach(state => makeChip(stateFilters, state, activeStates, state));
+    visionModes.forEach((mode) => makeVisionChip(visionFilters, mode));
+
+    function curvedPath(a, b) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const curve = Math.max(50, Math.abs(dx) * 0.18);
+      return `M ${a.x} ${a.y} C ${a.x + curve} ${a.y}, ${b.x - curve} ${b.y}, ${b.x} ${b.y}`;
+    }
+
+    function isVisibleNode(node) {
+      if (!activeLayers.has(node.layer) || !activeStates.has(node.state)) {
+        return false;
+      }
+      const contexts = nodeContexts[node.id] || ["all"];
+      if (!(currentVision === "all" || contexts.includes(currentVision))) {
+        return false;
+      }
+      const parentAnchor = nodeParentAnchor.get(node.id);
+      if (!parentAnchor) return true;
+      return expandedAnchors.has(parentAnchor);
+    }
+
+    function isAnchorNode(nodeId) {
+      return anchorChildren.has(nodeId);
+    }
+
+    function getNodePosition(node) {
+      if (customPositions.has(node.id)) {
+        const custom = customPositions.get(node.id);
+        return { ...custom, z: nodeDepths[node.id] || 0 };
+      }
+      if (compactMode && compactPositions[node.id]) {
+        return { ...compactPositions[node.id], z: nodeDepths[node.id] || 0 };
+      }
+      return { x: node.x, y: node.y, z: nodeDepths[node.id] || 0 };
+    }
+
+    function rotate3D(point) {
+      const cx = point.x - 700;
+      const cy = point.y - 430;
+      const cz = point.z || 0;
+
+      const rx = rotation.x * Math.PI / 180;
+      const ry = rotation.y * Math.PI / 180;
+
+      const y1 = cy * Math.cos(rx) - cz * Math.sin(rx);
+      const z1 = cy * Math.sin(rx) + cz * Math.cos(rx);
+
+      const x2 = cx * Math.cos(ry) + z1 * Math.sin(ry);
+      const z2 = -cx * Math.sin(ry) + z1 * Math.cos(ry);
+
+      return { x: x2, y: y1, z: z2 };
+    }
+
+    function project3D(point) {
+      const rotated = rotate3D(point);
+      const perspective = 920;
+      const camera = 720;
+      const scale = perspective / (camera + rotated.z + 260);
+      return {
+        x: 700 + rotated.x * scale,
+        y: 430 + rotated.y * scale,
+        scale,
+        depth: rotated.z,
+      };
+    }
+
+    function resetNodeLayout() {
+      customPositions.clear();
+    }
+
+    function getAnimatedOffset(node) {
+      if (!idleAnimationEnabled || draggingNodeId === node.id) {
+        return { x: 0, y: 0 };
+      }
+      const seed = Array.from(node.id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+      const ax = compactMode ? 2.2 : 3.8;
+      const ay = compactMode ? 1.6 : 3.1;
+      return {
+        x: Math.sin(idleTime * 0.00115 + seed * 0.17) * ax,
+        y: Math.cos(idleTime * 0.00095 + seed * 0.11) * ay
+      };
+    }
+
+    function pauseIdleAnimation() {
+      idleAnimationEnabled = false;
+      canvasWrap.classList.add("interacting");
+      if (idlePauseTimer) clearTimeout(idlePauseTimer);
+    }
+
+    function normalizeAngle(angle) {
+      const turns = angle % 360;
+      return turns < 0 ? turns + 360 : turns;
+    }
+
+    function resumeIdleAnimationSoon() {
+      if (idlePauseTimer) clearTimeout(idlePauseTimer);
+      idlePauseTimer = setTimeout(() => {
+        idleAnimationEnabled = true;
+        canvasWrap.classList.remove("interacting");
+      }, 1400);
+    }
+
+    function startIdleLoop() {
+      function tick(timestamp) {
+        idleTime = timestamp;
+        if (idleAnimationEnabled) {
+          render();
+          applyTransform();
+        }
+        idleAnimationFrame = requestAnimationFrame(tick);
+      }
+      idleAnimationFrame = requestAnimationFrame(tick);
+    }
+
+    function renderDetails(node) {
+      const isAnchor = isAnchorNode(node.id);
+      const children = anchorChildren.get(node.id) || [];
+      details.innerHTML = `
+          <h3>${node.label}</h3>
+          <p class="mini">${node.type} · ${node.layer} · ${node.state}</p>
+          <p>${node.desc}</p>
+          ${isAnchor ? `<p class="mini">anchor · ${expandedAnchors.has(node.id) ? "expanded" : "collapsed"} · ${children.length} linked items</p>` : ""}
+          <div class="pill-row">
+            ${node.tags.map(tag => `<span class="pill">${tag}</span>`).join("")}
+          </div>
+        `;
+    }
+
+    function slugify(value) {
+      return value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+
+    function openModal() {
+      pauseIdleAnimation();
+      modalBackdrop.classList.add("open");
+      refreshEdgeSelects();
+    }
+
+    function closeModal() {
+      modalBackdrop.classList.remove("open");
+      resumeIdleAnimationSoon();
+    }
+
+    function switchTab(mode) {
+      const nodeMode = mode === "node";
+      nodeTabButton.classList.toggle("active", nodeMode);
+      edgeTabButton.classList.toggle("active", !nodeMode);
+      nodeForm.hidden = !nodeMode;
+      edgeForm.hidden = nodeMode;
+    }
+
+    function refreshEdgeSelects() {
+      const options = nodes
+        .map(node => `<option value="${node.id}">${node.label}</option>`)
+        .join("");
+      edgeFromSelect.innerHTML = options;
+      edgeToSelect.innerHTML = options;
+      edgeToSelect.selectedIndex = Math.min(1, edgeToSelect.options.length - 1);
+    }
+
+    function applyTransform() {
+      viewport.setAttribute(
+        "transform",
+        `translate(${transform.x} ${transform.y}) scale(${transform.scale})`
+      );
+      const depthScale = compactMode ? 0.8 : 1;
+      const depthZ = compactMode ? -180 : 0;
+      const baseY = compactMode ? 18 : 0;
+      svg.style.transform = `translateY(${baseY}px) translateZ(${depthZ}px) scale(${depthScale}) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
+      canvasWrap.classList.toggle("compact", compactMode);
+    }
+
+    function zoomAt(multiplier) {
+      const next = Math.min(2.5, Math.max(0.45, transform.scale * multiplier));
+      transform.scale = next;
+      applyTransform();
+    }
+
+    function resetView() {
+      transform.scale = 1;
+      transform.x = 0;
+      transform.y = 0;
+      applyTransform();
+    }
+
+    function render() {
+      edgesGroup.innerHTML = "";
+      nodesGroup.innerHTML = "";
+
+      const nodeMap = new Map(nodes.map(node => [node.id, node]));
+      const visibleNodeIds = new Set(nodes.filter(isVisibleNode).map(node => node.id));
+      const projectedPositions = new Map();
+
+      nodes.forEach((node) => {
+        const basePos = getNodePosition(node);
+        const offset = getAnimatedOffset(node);
+        const projected = project3D({
+          x: basePos.x + offset.x,
+          y: basePos.y + offset.y,
+          z: basePos.z || 0,
+        });
+        projectedPositions.set(node.id, projected);
+      });
+
+      edges.forEach(edge => {
+        const fromNode = nodeMap.get(edge.from);
+        const toNode = nodeMap.get(edge.to);
+        const from = projectedPositions.get(edge.from);
+        const to = projectedPositions.get(edge.to);
+        const visible = visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to) && activeStates.has(edge.state);
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", curvedPath(from, to));
+        path.setAttribute("class", `edge ${edge.state} ${visible ? "" : "dimmed"}`.trim());
+        path.setAttribute("stroke", stateColors[edge.state]);
+        path.setAttribute("color", stateColors[edge.state]);
+        const edgeTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        edgeTitle.textContent = `${edge.relation} · ${edge.cardinality} · ${edge.state}`;
+        path.appendChild(edgeTitle);
+        edgesGroup.appendChild(path);
+
+        if (visible) {
+          const midX = (from.x + to.x) / 2;
+          const midY = (from.y + to.y) / 2 - 12;
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", midX);
+          text.setAttribute("y", midY);
+          text.setAttribute("fill", "rgba(219,231,243,0.72)");
+          text.setAttribute("font-size", "10");
+          text.setAttribute("text-anchor", "middle");
+          text.textContent = `${edge.relation} · ${edge.cardinality}`;
+          edgesGroup.appendChild(text);
+        }
+      });
+
+      const visibleNodes = nodes
+        .map((node) => ({ node, pos: projectedPositions.get(node.id) }))
+        .sort((a, b) => a.pos.depth - b.pos.depth);
+
+      visibleNodes.forEach(({ node, pos }) => {
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.setAttribute("class", `node ${isAnchorNode(node.id) ? "anchor" : ""} ${draggingNodeId === node.id ? "dragging" : ""} ${isVisibleNode(node) ? "" : "dimmed"}`.trim());
+        group.dataset.state = node.state;
+        group.dataset.nodeId = node.id;
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", pos.x);
+        circle.setAttribute("cy", pos.y);
+        const radiusBase = isAnchorNode(node.id) ? 34 : node.layer === "governance" ? 22 : 28;
+        const radius = Math.max(10, radiusBase * pos.scale);
+        circle.setAttribute("r", radius);
+        circle.setAttribute("stroke", layerColors[node.layer] || "white");
+        circle.setAttribute("fill", "transparent");
+        const nodeTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+        nodeTitle.textContent = `${node.label}\n${node.type} · ${node.layer} · ${node.state}\n${node.desc}`;
+        circle.appendChild(nodeTitle);
+
+        const shell = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        shell.setAttribute("cx", pos.x);
+        shell.setAttribute("cy", pos.y);
+        shell.setAttribute("r", radius);
+        shell.setAttribute("class", "shell");
+        shell.setAttribute("stroke", layerColors[node.layer] || "white");
+        shell.setAttribute("fill", "transparent");
+        group.appendChild(shell);
+
+        const meridian = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        meridian.setAttribute("cx", pos.x);
+        meridian.setAttribute("cy", pos.y);
+        meridian.setAttribute("rx", Math.max(4, radius * 0.42));
+        meridian.setAttribute("ry", radius * 0.94);
+        meridian.setAttribute("class", "grid-line");
+        group.appendChild(meridian);
+
+        const latitudeTop = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        latitudeTop.setAttribute("cx", pos.x);
+        latitudeTop.setAttribute("cy", pos.y - radius * 0.1);
+        latitudeTop.setAttribute("rx", radius * 0.82);
+        latitudeTop.setAttribute("ry", Math.max(3, radius * 0.18));
+        latitudeTop.setAttribute("class", "grid-line");
+        group.appendChild(latitudeTop);
+
+        const latitudeMid = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        latitudeMid.setAttribute("cx", pos.x);
+        latitudeMid.setAttribute("cy", pos.y + radius * 0.12);
+        latitudeMid.setAttribute("rx", radius * 0.88);
+        latitudeMid.setAttribute("ry", Math.max(3, radius * 0.14));
+        latitudeMid.setAttribute("class", "grid-line");
+        group.appendChild(latitudeMid);
+
+        const highlight = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        highlight.setAttribute("cx", pos.x - radius * 0.28);
+        highlight.setAttribute("cy", pos.y - radius * 0.34);
+        highlight.setAttribute("rx", Math.max(4, radius * 0.22));
+        highlight.setAttribute("ry", Math.max(3, radius * 0.14));
+        highlight.setAttribute("class", "highlight");
+        group.appendChild(highlight);
+
+        const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        core.setAttribute("cx", pos.x);
+        core.setAttribute("cy", pos.y);
+        core.setAttribute("r", Math.max(2.2, radius * 0.14));
+        core.setAttribute("fill", layerColors[node.layer] || "white");
+        core.setAttribute("opacity", "0.92");
+        group.appendChild(core);
+
+        const innerOrbitA = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        innerOrbitA.setAttribute("cx", pos.x);
+        innerOrbitA.setAttribute("cy", pos.y);
+        innerOrbitA.setAttribute("rx", radius * 0.34);
+        innerOrbitA.setAttribute("ry", Math.max(3, radius * 0.11));
+        innerOrbitA.setAttribute("class", "orbit");
+        innerOrbitA.setAttribute("opacity", "0.35");
+        group.appendChild(innerOrbitA);
+
+        const innerOrbitB = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+        innerOrbitB.setAttribute("cx", pos.x);
+        innerOrbitB.setAttribute("cy", pos.y);
+        innerOrbitB.setAttribute("rx", radius * 0.26);
+        innerOrbitB.setAttribute("ry", Math.max(3, radius * 0.09));
+        innerOrbitB.setAttribute("class", "orbit");
+        innerOrbitB.setAttribute("transform", `rotate(62 ${pos.x} ${pos.y})`);
+        innerOrbitB.setAttribute("opacity", "0.28");
+        group.appendChild(innerOrbitB);
+
+        group.appendChild(circle);
+
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", pos.x);
+        label.setAttribute("y", pos.y - Math.max(22, 40 * pos.scale));
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-size", `${Math.max(8, 11 * pos.scale)}`);
+        label.textContent = node.label;
+        group.appendChild(label);
+
+        const meta = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        meta.setAttribute("class", "meta");
+        meta.setAttribute("x", pos.x);
+        meta.setAttribute("y", pos.y + Math.max(24, 48 * pos.scale));
+        meta.setAttribute("text-anchor", "middle");
+        meta.setAttribute("font-size", `${Math.max(7, 9 * pos.scale)}`);
+        meta.textContent = isAnchorNode(node.id)
+          ? `${node.layer} · ${expandedAnchors.has(node.id) ? "open" : "closed"}`
+          : `${node.layer} · ${node.state}`;
+        group.appendChild(meta);
+
+        group.addEventListener("click", () => {
+          if (isAnchorNode(node.id)) {
+            if (expandedAnchors.has(node.id)) {
+              expandedAnchors.delete(node.id);
+            } else {
+              expandedAnchors.add(node.id);
+            }
+            render();
+            applyTransform();
+          }
+          renderDetails(node);
+        });
+        nodesGroup.appendChild(group);
+      });
+    }
+
+    svg.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      zoomAt(event.deltaY < 0 ? 1.08 : 0.92);
+    }, { passive: false });
+
+    svg.addEventListener("pointerdown", (event) => {
+      pauseIdleAnimation();
+      const nodeGroup = event.target.closest(".node");
+      draggingNodeId = nodeGroup?.dataset.nodeId || null;
+      panning = !draggingNodeId && event.altKey;
+      rotating = !draggingNodeId && !panning;
+      dragging = false;
+      dragStart = { x: event.clientX, y: event.clientY };
+      dragOrigin = { x: transform.x, y: transform.y };
+      rotateOrigin = { x: rotation.x, y: rotation.y };
+      if (draggingNodeId) {
+        const current = getNodePosition(nodes.find(node => node.id === draggingNodeId));
+        dragOrigin = { x: current.x, y: current.y };
+      }
+      svg.setPointerCapture(event.pointerId);
+    });
+
+    svg.addEventListener("pointermove", (event) => {
+      if (draggingNodeId) {
+        const viewBox = svg.viewBox.baseVal;
+        const rect = svg.getBoundingClientRect();
+        const px = ((event.clientX - rect.left) / rect.width) * viewBox.width;
+        const py = ((event.clientY - rect.top) / rect.height) * viewBox.height;
+        const x = (px - transform.x) / transform.scale;
+        const y = (py - transform.y) / transform.scale;
+        customPositions.set(draggingNodeId, { x, y });
+        render();
+        applyTransform();
+      } else if (rotating) {
+        rotation.y = normalizeAngle(rotateOrigin.y + (event.clientX - dragStart.x) * 0.18);
+        rotation.x = Math.max(-89, Math.min(89, rotateOrigin.x - (event.clientY - dragStart.y) * 0.12));
+        applyTransform();
+      } else if (panning) {
+        transform.x = dragOrigin.x + (event.clientX - dragStart.x);
+        transform.y = dragOrigin.y + (event.clientY - dragStart.y);
+        applyTransform();
+      }
+    });
+
+    svg.addEventListener("pointerup", (event) => {
+      dragging = false;
+      rotating = false;
+      panning = false;
+      draggingNodeId = null;
+      svg.releasePointerCapture(event.pointerId);
+      resumeIdleAnimationSoon();
+    });
+
+    svg.addEventListener("pointerleave", () => {
+      dragging = false;
+      rotating = false;
+      panning = false;
+      draggingNodeId = null;
+      resumeIdleAnimationSoon();
+    });
+
+    svg.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+
+    zoomInButton.addEventListener("click", () => zoomAt(1.12));
+    zoomOutButton.addEventListener("click", () => zoomAt(0.88));
+    zoomResetButton.addEventListener("click", () => {
+      pauseIdleAnimation();
+      compactMode = false;
+      rotation.x = 0;
+      rotation.y = 0;
+      resetNodeLayout();
+      resetView();
+      render();
+      resumeIdleAnimationSoon();
+    });
+    brainToggleButton.addEventListener("click", () => {
+      pauseIdleAnimation();
+      compactMode = true;
+      resetNodeLayout();
+      transform.scale = 0.88;
+      transform.x = 42;
+      transform.y = 30;
+      rotation.x = -10;
+      rotation.y = 10;
+      render();
+      applyTransform();
+      resumeIdleAnimationSoon();
+    });
+    openModalButton.addEventListener("click", openModal);
+    closeModalButton.addEventListener("click", closeModal);
+    modalBackdrop.addEventListener("click", (event) => {
+      if (event.target === modalBackdrop) closeModal();
+    });
+    nodeTabButton.addEventListener("click", () => switchTab("node"));
+    edgeTabButton.addEventListener("click", () => switchTab("edge"));
+    document.getElementById("cancel-node").addEventListener("click", closeModal);
+    document.getElementById("cancel-edge").addEventListener("click", closeModal);
+
+    nodeForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const form = new FormData(nodeForm);
+      const label = String(form.get("label") || "").trim();
+      if (!label) return;
+      const id = String(form.get("id") || "").trim() || `node_${slugify(label)}`;
+      const exists = nodes.some(node => node.id === id);
+      const safeId = exists ? `${id}_${nodes.length + 1}` : id;
+      const desc = String(form.get("desc") || "").trim();
+      const tags = String(form.get("tags") || "")
+        .split(",")
+        .map(tag => tag.trim())
+        .filter(Boolean);
+      const angle = (nodes.length * 37) % 360;
+      const radius = 110 + (nodes.length % 7) * 22;
+      const x = 700 + Math.cos(angle * Math.PI / 180) * radius;
+      const y = 460 + Math.sin(angle * Math.PI / 180) * radius;
+      nodes.push({
+        id: safeId,
+        label,
+        layer: String(form.get("layer")),
+        state: String(form.get("state")),
+        type: String(form.get("type") || "module").trim() || "module",
+        x,
+        y,
+        desc: desc || "Node adicionado manualmente no viewer.",
+        tags
+      });
+      render();
+      renderDetails(nodes[nodes.length - 1]);
+      nodeForm.reset();
+      closeModal();
+      resumeIdleAnimationSoon();
+    });
+
+    edgeForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const form = new FormData(edgeForm);
+      const from = String(form.get("from"));
+      const to = String(form.get("to"));
+      if (!from || !to || from === to) return;
+      edges.push({
+        from,
+        to,
+        relation: String(form.get("relation") || "depends_on").trim() || "depends_on",
+        state: String(form.get("state")),
+        cardinality: String(form.get("cardinality"))
+      });
+      render();
+      edgeForm.reset();
+      closeModal();
+      resumeIdleAnimationSoon();
+    });
+
+    renderDetails(nodes[0]);
+    refreshEdgeSelects();
+    render();
+    applyTransform();
+    startIdleLoop();
+  </script>
+<script data-ruptur-global-nav>
+(() => {
+  const NAV_ID = "ruptur-global-nav";
+  if (document.getElementById(NAV_ID)) return;
+
+  const baseStyle = "display:inline-flex;align-items:center;gap:8px;border-radius:999px;border:1px solid rgba(15,23,42,0.12);background:rgba(255,255,255,0.94);padding:10px 14px;color:#111827;font:600 12px/1.1 system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;text-decoration:none;box-shadow:0 10px 28px rgba(15,23,42,0.08);backdrop-filter:blur(10px);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;";
+
+  const decorate = (el) => {
+    el.addEventListener("mouseenter", () => {
+      el.style.transform = "translateY(-1px)";
+      el.style.borderColor = "rgba(157,78,49,0.32)";
+      el.style.boxShadow = "0 14px 34px rgba(157,78,49,0.12)";
+    });
+    el.addEventListener("mouseleave", () => {
+      el.style.transform = "translateY(0)";
+      el.style.borderColor = "rgba(15,23,42,0.12)";
+      el.style.boxShadow = "0 10px 28px rgba(15,23,42,0.08)";
+    });
+    return el;
+  };
+
+  const createLink = (text, href, ariaLabel) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.setAttribute("aria-label", ariaLabel);
+    a.textContent = text;
+    a.style.cssText = baseStyle;
+    return decorate(a);
+  };
+
+  const createButton = (text, ariaLabel) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", ariaLabel);
+    button.textContent = text;
+    button.style.cssText = baseStyle + "cursor:pointer;";
+    return decorate(button);
+  };
+
+  const mount = () => {
+    if (document.getElementById(NAV_ID)) return;
+
+    const nav = document.createElement("div");
+    nav.id = NAV_ID;
+    nav.style.cssText = "position:fixed;inset:16px auto auto 16px;z-index:1000;display:flex;flex-direction:column;gap:10px;pointer-events:none;";
+
+    const topRow = document.createElement("div");
+    topRow.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;pointer-events:auto;";
+    topRow.appendChild(createLink("← Back to home", "/", "Voltar para a home"));
+    topRow.appendChild(createLink("× Home", "/", "Voltar para a home"));
+
+    const bottomWrap = document.createElement("div");
+    bottomWrap.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:1000;pointer-events:auto;";
+    const backTop = createButton("↑ Voltar ao topo", "Voltar ao topo");
+    backTop.style.display = "none";
+    backTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    const syncBackTop = () => {
+      const shouldShow = (window.scrollY || document.documentElement.scrollTop || 0) > 220;
+      backTop.style.display = shouldShow ? "inline-flex" : "none";
+    };
+
+    nav.appendChild(topRow);
+    bottomWrap.appendChild(backTop);
+    document.body.appendChild(nav);
+    document.body.appendChild(bottomWrap);
+    syncBackTop();
+    window.addEventListener("scroll", syncBackTop, { passive: true });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mount, { once: true });
+  } else {
+    mount();
+  }
+})();
+</script></body>
+
+</html>

@@ -1,0 +1,29 @@
+{
+  "product": {
+    "shortName": "Ruptur",
+    "frontName": "Front Lindona",
+    "warmupName": "Warmup Manager"
+  },
+  "browser": {
+    "defaultTitle": "Ruptur",
+    "defaultDescription": "Ecossistema Ruptur com front principal, operação comercial e Warmup Manager."
+  },
+  "domains": {
+    "canonicalAppUrl": "https://app.ruptur.cloud",
+    "canonicalLandingUrl": "https://ruptur.cloud",
+    "warmupPath": "/warmup/"
+  },
+  "footer": {
+    "copyrightText": "© 2025 All Rights Reserved. Status Persianas",
+    "madeWithText": "Feito com 💙 por"
+  },
+  "company": {
+    "name": "2DL Company",
+    "instagramUrl": "https://instagram.com/2dlcompany.oficial"
+  },
+  "support": {
+    "whatsappNumber": "553175052770",
+    "whatsappBaseUrl": "https://wa.me/553175052770",
+    "defaultIntent": "Preciso de ajuda"
+  }
+}

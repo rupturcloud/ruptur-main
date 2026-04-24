@@ -10,9 +10,16 @@ const TICK_INTERVAL_MS = Number(process.env.WARMUP_TICK_INTERVAL_MS || 60_000);
 const DATA_DIR = path.resolve(process.cwd(), "runtime-data");
 const STATE_FILE = path.join(DATA_DIR, "warmup-state.json");
 const DNA_DIR = path.join(DATA_DIR, "instance-dna");
-const FRONT_DIST_DIR = path.resolve(process.cwd(), "dist"); // Front Lindona
-const DASHBOARD_DIST_DIR = path.resolve(process.cwd(), "dashboard-dist"); // Legacy Dashboard SafeFlow
-const MANAGER_DIST_DIR = path.resolve(process.cwd(), "manager-dist"); // Warmup Manager
+
+function resolveAssetDir(dirname) {
+  const rootDir = path.resolve(process.cwd(), dirname);
+  if (existsSync(rootDir)) return rootDir;
+  return path.resolve(process.cwd(), "web", dirname);
+}
+
+const FRONT_DIST_DIR = resolveAssetDir("dist"); // Front Lindona
+const DASHBOARD_DIST_DIR = resolveAssetDir("dashboard-dist"); // Legacy Dashboard SafeFlow
+const MANAGER_DIST_DIR = resolveAssetDir("manager-dist"); // Warmup Manager
 
 /**
  * Estratégia de Isolamento Triple-Path (Conforme SITEMAP.md v2.0):
@@ -44,6 +51,8 @@ const WARMUP_MANAGER_BUTTON_MARKER = "codex-warmup-manager-link";
 const WARMUP_TOKEN_CLEAR_MARKER = "codex-runtime-token-clear-action";
 const ECOSYSTEM_CHROME_MARKER = "codex-ecosystem-global-chrome";
 const ECOSYSTEM_SUPPORT_MARKER = "codex-ecosystem-support-link";
+const ECOSYSTEM_THEME_MARKER = "codex-ecosystem-theme-toggle";
+const ECOSYSTEM_THEME_STORAGE_KEY = "ruptur:theme";
 const DEFAULT_ECOSYSTEM_BRANDING = {
   product: {
     shortName: "Ruptur",
@@ -1988,11 +1997,196 @@ function buildEcosystemSupportHref(pathname = "/") {
   return `${ECOSYSTEM_BRANDING.support.whatsappBaseUrl}?text=${encodeURIComponent(buildEcosystemSupportMessage(pathname))}`;
 }
 
+function buildEcosystemThemeHeadHtml() {
+  return `
+  <style data-ecosystem-theme="true">
+    html[data-ruptur-theme="light"] {
+      color-scheme: light;
+      --bg: #f6f8fc;
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --card-border: rgba(15, 23, 42, 0.12);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --primary-glow: rgba(249, 115, 22, 0.16);
+    }
+
+    html[data-ruptur-theme="dark"] {
+      color-scheme: dark;
+      --background: 222 47% 8%;
+      --foreground: 210 40% 98%;
+      --card: 224 34% 11%;
+      --card-foreground: 210 40% 96%;
+      --popover: 224 34% 11%;
+      --popover-foreground: 210 40% 96%;
+      --secondary: 223 24% 16%;
+      --secondary-foreground: 210 40% 96%;
+      --muted: 223 24% 16%;
+      --muted-foreground: 215 20% 72%;
+      --accent: 223 24% 16%;
+      --accent-foreground: 210 40% 96%;
+      --border: 217 20% 22%;
+      --input: 217 20% 22%;
+      --sidebar-background: 224 34% 10%;
+      --sidebar-foreground: 214 24% 88%;
+      --sidebar-accent: 223 24% 16%;
+      --sidebar-accent-foreground: 210 40% 96%;
+      --sidebar-border: 217 20% 20%;
+      --glass-bg: 224 34% 10% / 0.78;
+      --glass-border: 215 25% 85% / 0.08;
+      --glass-shadow: 222 84% 5% / 0.45;
+      --bg: #06070b;
+      --card-bg: rgba(15, 23, 42, 0.78);
+      --card-border: rgba(148, 163, 184, 0.14);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary-glow: rgba(59, 130, 246, 0.18);
+    }
+
+    html[data-ruptur-theme="dark"] body {
+      background-color: hsl(var(--background, 222 47% 8%)) !important;
+      color: hsl(var(--foreground, 210 40% 98%)) !important;
+    }
+
+    html[data-ruptur-theme="dark"] .glass-card,
+    html[data-ruptur-theme="dark"] .glass-sidebar,
+    html[data-ruptur-theme="dark"] .stat-card {
+      box-shadow: 0 24px 80px rgba(2, 6, 23, 0.36);
+    }
+
+    html[data-ruptur-theme="light"] body {
+      background-color: var(--bg) !important;
+      color: var(--text) !important;
+    }
+
+    body[data-ecosystem-page="front"] {
+      justify-content: flex-start !important;
+      padding-top: 88px !important;
+    }
+
+    body[data-ecosystem-page="front"] > .container {
+      padding-top: 1.5rem !important;
+      padding-bottom: 6.5rem !important;
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .hero h1 {
+      background: linear-gradient(135deg, #0f172a 0%, #334155 58%, #f97316 100%) !important;
+      background-clip: text !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .hero p,
+    html[data-ruptur-theme="light"] body > .container > .grid > .card p,
+    html[data-ruptur-theme="light"] body > .container > .grid > .card .risk-row span {
+      color: var(--text-muted) !important;
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .grid > .card {
+      background: var(--card-bg) !important;
+      border-color: var(--card-border) !important;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .grid > .card h3,
+    html[data-ruptur-theme="light"] body > .container > .grid > .card #risk-value {
+      color: var(--text) !important;
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .grid > .card .risk-calc {
+      background: rgba(248, 250, 252, 0.94) !important;
+      border-color: rgba(15, 23, 42, 0.1) !important;
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .grid > .card .risk-bar-bg {
+      background: #e2e8f0 !important;
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .grid > .card .btn-primary {
+      background: #0f172a !important;
+      color: #f8fafc !important;
+    }
+
+    html[data-ruptur-theme="light"] body > .container > .grid > .card .btn-outline {
+      background: rgba(255, 247, 237, 0.72) !important;
+      border-color: rgba(249, 115, 22, 0.28) !important;
+      color: #c2410c !important;
+    }
+  </style>
+  <script data-ecosystem-theme-bootstrap="true">
+    (() => {
+      try {
+        const savedTheme = window.localStorage.getItem("${ECOSYSTEM_THEME_STORAGE_KEY}");
+        const nextTheme = savedTheme === "light" || savedTheme === "dark"
+          ? savedTheme
+          : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-ruptur-theme", nextTheme);
+        document.documentElement.style.colorScheme = nextTheme;
+      } catch (error) {
+        document.documentElement.setAttribute("data-ruptur-theme", "light");
+        document.documentElement.style.colorScheme = "light";
+      }
+    })();
+  </script>
+  `;
+}
+
 function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
   const warmupButtonHtml = includeWarmupButton ? WARMUP_MANAGER_BUTTON_HTML : "";
   const brandingJson = JSON.stringify(ECOSYSTEM_BRANDING);
   return `
   <style>
+    .${ECOSYSTEM_THEME_MARKER} {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 10000;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 250, 242, 0.96);
+      color: #4b5563;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+    }
+
+    .${ECOSYSTEM_THEME_MARKER}[data-has-warmup-button="true"] {
+      right: 312px;
+    }
+
+    .${ECOSYSTEM_THEME_MARKER} button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font: 700 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0.01em;
+      transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+    }
+
+    .${ECOSYSTEM_THEME_MARKER} button:hover {
+      transform: translateY(-1px);
+      background: rgba(15, 23, 42, 0.06);
+    }
+
+    .${ECOSYSTEM_THEME_MARKER} button[data-active="true"] {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(51, 65, 85, 0.96));
+      color: #ffffff;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+    }
+
+    .${ECOSYSTEM_THEME_MARKER} button span[aria-hidden="true"] {
+      font-size: 14px;
+    }
+
     .${ECOSYSTEM_CHROME_MARKER}-footer {
       position: fixed;
       left: 16px;
@@ -2052,11 +2246,61 @@ function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
       filter: brightness(1.04);
     }
 
+    html[data-ruptur-theme="dark"] .${ECOSYSTEM_THEME_MARKER} {
+      border-color: rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.88);
+      color: #cbd5e1;
+      box-shadow: 0 20px 44px rgba(2, 6, 23, 0.42);
+    }
+
+    html[data-ruptur-theme="dark"] .${ECOSYSTEM_THEME_MARKER} button:hover {
+      background: rgba(148, 163, 184, 0.12);
+    }
+
+    html[data-ruptur-theme="dark"] .${ECOSYSTEM_THEME_MARKER} button[data-active="true"] {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(59, 130, 246, 0.22));
+      color: #f8fafc;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.34);
+    }
+
+    html[data-ruptur-theme="dark"] .${ECOSYSTEM_CHROME_MARKER}-footer > div {
+      border-color: rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.92);
+      color: #cbd5e1;
+      box-shadow: 0 20px 44px rgba(2, 6, 23, 0.42);
+    }
+
+    html[data-ruptur-theme="dark"] .${ECOSYSTEM_CHROME_MARKER}-footer a {
+      color: #7dd3fc;
+    }
+
+    html[data-ruptur-theme="dark"] .${ECOSYSTEM_SUPPORT_MARKER} {
+      box-shadow: 0 20px 48px rgba(37, 211, 102, 0.24);
+    }
+
     body {
       padding-bottom: 92px !important;
     }
 
     @media (max-width: 900px) {
+      body[data-ecosystem-page="front"] {
+        padding-top: 140px !important;
+      }
+
+      .${ECOSYSTEM_THEME_MARKER},
+      .${ECOSYSTEM_THEME_MARKER}[data-has-warmup-button="true"] {
+        top: 12px;
+        right: 12px;
+      }
+
+      .${ECOSYSTEM_THEME_MARKER} button {
+        padding: 9px 11px;
+      }
+
+      .${ECOSYSTEM_THEME_MARKER} button span[data-theme-label="true"] {
+        display: none;
+      }
+
       .${ECOSYSTEM_SUPPORT_MARKER} {
         right: 12px;
         bottom: 96px;
@@ -2076,6 +2320,16 @@ function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
     }
   </style>
   ${warmupButtonHtml}
+  <div class="${ECOSYSTEM_THEME_MARKER}" data-ecosystem-theme-toggle="true" data-has-warmup-button="${includeWarmupButton ? "true" : "false"}" aria-label="Alternar tema do SaaS">
+    <button type="button" data-theme-value="light" aria-pressed="false">
+      <span aria-hidden="true">☀️</span>
+      <span data-theme-label="true">Light</span>
+    </button>
+    <button type="button" data-theme-value="dark" aria-pressed="false">
+      <span aria-hidden="true">🌙</span>
+      <span data-theme-label="true">Dark</span>
+    </button>
+  </div>
   <a class="${ECOSYSTEM_SUPPORT_MARKER}" data-ecosystem-support="true" href="${buildEcosystemSupportHref("/")}" target="_blank" rel="noopener noreferrer">
     <span>💬</span>
     <span>Precisa de ajuda?</span>
@@ -2092,6 +2346,9 @@ function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
     (() => {
       const branding = ${brandingJson};
       const supportLink = document.querySelector('[data-ecosystem-support="true"]');
+      const themeToggle = document.querySelector('[data-ecosystem-theme-toggle="true"]');
+      const themeButtons = Array.from(document.querySelectorAll('[data-theme-value]'));
+      const themeStorageKey = "${ECOSYSTEM_THEME_STORAGE_KEY}";
 
       function getLabel(pathname) {
         if (pathname.startsWith("${WARMUP_BASE_PATH}")) return branding.product.warmupName;
@@ -2113,6 +2370,31 @@ function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
         return branding.support.whatsappBaseUrl + "?text=" + encodeURIComponent(message);
       }
 
+      function getResolvedTheme() {
+        const theme = document.documentElement.getAttribute("data-ruptur-theme");
+        if (theme === "light" || theme === "dark") return theme;
+        return "light";
+      }
+
+      function syncThemeButtons() {
+        const resolvedTheme = getResolvedTheme();
+        themeButtons.forEach((button) => {
+          const active = button.getAttribute("data-theme-value") === resolvedTheme;
+          button.setAttribute("data-active", active ? "true" : "false");
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+      }
+
+      function applyTheme(nextTheme) {
+        if (nextTheme !== "light" && nextTheme !== "dark") return;
+        document.documentElement.setAttribute("data-ruptur-theme", nextTheme);
+        document.documentElement.style.colorScheme = nextTheme;
+        try {
+          window.localStorage.setItem(themeStorageKey, nextTheme);
+        } catch (error) {}
+        syncThemeButtons();
+      }
+
       function syncChrome() {
         const pathname = window.location.pathname || "/";
         document.title = buildTitle(pathname);
@@ -2129,6 +2411,8 @@ function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
           supportLink.setAttribute("href", buildSupportHref(pathname));
           supportLink.setAttribute("aria-label", "Falar no WhatsApp com contexto da página " + pathname);
         }
+
+        syncThemeButtons();
       }
 
       const wrapHistory = (method) => {
@@ -2144,6 +2428,11 @@ function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
       wrapHistory("replaceState");
       window.addEventListener("popstate", () => window.dispatchEvent(new Event("ecosystem:locationchange")));
       window.addEventListener("ecosystem:locationchange", syncChrome);
+      if (themeToggle) {
+        themeButtons.forEach((button) => {
+          button.addEventListener("click", () => applyTheme(button.getAttribute("data-theme-value")));
+        });
+      }
       syncChrome();
     })();
   </script>
@@ -2152,11 +2441,23 @@ function buildEcosystemChromeHtml({ includeWarmupButton = false } = {}) {
 
 function injectEcosystemChrome(html, options = {}) {
   if (html.includes(ECOSYSTEM_CHROME_MARKER)) return html;
+  const themeHeadHtml = buildEcosystemThemeHeadHtml();
   const chromeHtml = buildEcosystemChromeHtml(options);
-  if (html.includes("</body>")) {
-    return html.replace("</body>", `${chromeHtml}\n</body>`);
+  let nextHtml = html;
+  if (options.includeWarmupButton && !nextHtml.includes("data-ecosystem-page=")) {
+    nextHtml = nextHtml.replace(/<body([^>]*)>/i, '<body$1 data-ecosystem-page="front">');
   }
-  return `${html}\n${chromeHtml}`;
+  if (!nextHtml.includes("data-ecosystem-theme=\"true\"")) {
+    if (nextHtml.includes("</head>")) {
+      nextHtml = nextHtml.replace("</head>", `${themeHeadHtml}\n</head>`);
+    } else {
+      nextHtml = `${themeHeadHtml}\n${nextHtml}`;
+    }
+  }
+  if (nextHtml.includes("</body>")) {
+    return nextHtml.replace("</body>", `${chromeHtml}\n</body>`);
+  }
+  return `${nextHtml}\n${chromeHtml}`;
 }
 
 function injectWarmupManagerSettingsActions(html) {
