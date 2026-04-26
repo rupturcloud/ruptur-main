@@ -58,6 +58,16 @@ daemon.log
 # Project Specific
 tiatendeai/
 scratch/
+contexts/
+knowledge/
+**/*.doc
+**/*.docx
+**/*.xls
+**/*.xlsx
+**/*.ppt
+**/*.pptx
+**/*.rtf
+**/*.txt
 *_output/
 robo_*/
 visual_output/
