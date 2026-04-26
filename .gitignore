@@ -45,6 +45,16 @@ daemon.log
 *.gif
 *.ico
 
+# IA & Agents
+.agents/
+.claude/
+.gemini/
+.playwright-mcp/
+.cursor/
+**/.agents/
+**/.claude/
+**/.gemini/
+
 # Project Specific
 tiatendeai/
 scratch/
