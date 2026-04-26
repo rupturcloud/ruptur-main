@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build and Output
+build/
+dist/
+.next/
+.serverless/
+out/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+daemon.log
+
+# Env
+.env*
+!.env.example
+
+# Others
+*.zip
+*.tar.gz
+*.pdf
+*.mp4
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.gif
+*.ico
+
+# Project Specific
+tiatendeai/
+scratch/
+*_output/
+robo_*/
+visual_output/
+test_real_output/
+test_screenshots_smoke/
+teste_honesto_output/
+websocket_output/
+robot_will_output/
+bot_telemetry_output/
+ciclo*_output/
+click_cores_output/
+debug_output/
+dojo_output/
+mouse_visual_output/
+public-bacbo/
+public-bacbo-chips/
+public/
+selector_map/
+downloaded_files/
+.playwright-mcp/
