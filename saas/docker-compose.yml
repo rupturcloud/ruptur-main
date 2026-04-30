@@ -11,17 +11,17 @@ services:
       WARMUP_RUNTIME_HOST: 0.0.0.0
       WARMUP_RUNTIME_PORT: 4173
     networks:
-      - kvm2_default
+      - ruptur-edge
     labels:
       traefik.enable: "true"
-      traefik.docker.network: "kvm2_default"
+      traefik.docker.network: "ruptur-edge"
       traefik.http.routers.saas-web-http.entrypoints: web
-      traefik.http.routers.saas-web-http.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`)"
+      traefik.http.routers.saas-web-http.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`) || Host(`saas.ruptur.cloud`)"
       traefik.http.routers.saas-web.entrypoints: websecure
-      traefik.http.routers.saas-web.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`)"
+      traefik.http.routers.saas-web.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`) || Host(`saas.ruptur.cloud`)"
       traefik.http.routers.saas-web.tls.certresolver: letsencrypt
       traefik.http.services.saas-web.loadbalancer.server.port: "4173"
 
 networks:
-  kvm2_default:
+  ruptur-edge:
     external: true
