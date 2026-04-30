@@ -1,0 +1,63 @@
+---
+- name: Verificar se Ollama já está instalado
+  ansible.builtin.stat:
+    path: "{{ ollama_binary_path }}"
+  register: ollama_bin
+
+- name: Instalar Ollama via script oficial
+  ansible.builtin.shell: |
+    curl -fsSL {{ ollama_install_script_url }} | sh
+  args:
+    executable: /bin/bash
+  when: not ollama_bin.stat.exists
+
+- name: Garantir diretório de override do systemd para o Ollama
+  ansible.builtin.file:
+    path: "{{ ollama_systemd_override_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Garantir diretório persistente de modelos do Ollama
+  ansible.builtin.file:
+    path: "{{ ollama_models_dir }}"
+    state: directory
+    owner: ollama
+    group: ollama
+    mode: "0755"
+
+- name: Configurar override do systemd — expor Ollama na rede e persistir modelos
+  ansible.builtin.copy:
+    dest: "{{ ollama_systemd_override_dir }}/10-runtime.conf"
+    mode: "0644"
+    content: |
+      [Service]
+      Environment="OLLAMA_HOST={{ ollama_host }}:{{ ollama_port }}"
+      Environment="OLLAMA_MODELS={{ ollama_models_dir }}"
+  notify: Recarregar systemd e reiniciar Ollama
+
+- name: Garantir que o serviço Ollama está ativo e habilitado
+  ansible.builtin.systemd:
+    name: "{{ ollama_service_name }}"
+    state: started
+    enabled: true
+
+- name: Aguardar Ollama responder na API local
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ ollama_port }}/api/tags"
+    method: GET
+    status_code: 200
+    timeout: 10
+  retries: 24
+  delay: 5
+  register: ollama_ready
+  until: ollama_ready.status == 200
+
+- name: Puxar modelos configurados
+  ansible.builtin.shell: |
+    {{ ollama_binary_path }} pull {{ item }}
+  args:
+    executable: /bin/bash
+  loop: "{{ ollama_models }}"
+  when: ollama_models | length > 0
+  async: "{{ ollama_pull_timeout }}"
+  poll: 15

@@ -1,0 +1,25 @@
+services:
+  redis:
+    image: {{ shipyard_images.redis }}
+    container_name: ruptur-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - {{ shipyard_redis_password }}
+    volumes:
+      - {{ shipyard_data_dir }}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "{{ shipyard_redis_password }}", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - data
+
+networks:
+  data:
+    external: true
+    name: ruptur-data

@@ -1,0 +1,454 @@
+import http from "node:http";
+import { mkdir, writeFile, access, readFile } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+
+const PORT = Number(process.env.PORT || {{ aiox_port }});
+const AIOX_CORE_VERSION = process.env.AIOX_CORE_VERSION || "{{ aiox_core_version }}";
+const PROJECT_DIR = process.env.AIOX_PROJECT_DIR || "{{ aiox_project_dir }}";
+const AIOX_HOME = process.env.AIOX_HOME || "{{ aiox_home_dir }}";
+const AIOX_MODEL_PROFILE = process.env.AIOX_MODEL_PROFILE || "{{ aiox_model_profile }}";
+const AIOX_MODEL = process.env.AIOX_MODEL || process.env.HERMES_MODEL || "{{ aiox_model }}";
+const HERMES_BASE_URL = (process.env.HERMES_BASE_URL || "{{ aiox_hermes_base_url }}").replace(/\/$/, "");
+const HERMES_CHAT_PATH = process.env.HERMES_CHAT_PATH || "{{ aiox_hermes_chat_path }}";
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || "{{ aiox_public_base_url }}";
+const PROMPT_ENVELOPE_PATH = process.env.PROMPT_ENVELOPE_PATH || "";
+const HERMES_TIMEOUT_MS = Number(process.env.HERMES_TIMEOUT_MS || 15000);
+
+const state = {
+  bootstrapped: false,
+  bootstrapStartedAt: null,
+  bootstrapFinishedAt: null,
+  aioxVersion: null,
+  installOutput: "",
+  doctorOutput: "",
+  bootstrapWarnings: [],
+  hermes: {
+    status: "unknown",
+    lastCheckedAt: null,
+    lastError: null,
+    lastResponse: null,
+  },
+};
+
+async function run(command, args, options = {}) {
+  const { stdout, stderr } = await execFileAsync(command, args, {
+    timeout: options.timeout ?? 180000,
+    maxBuffer: 20 * 1024 * 1024,
+    cwd: options.cwd ?? process.cwd(),
+    env: options.env ?? process.env,
+  });
+  return {
+    stdout: stdout?.toString?.() ?? String(stdout ?? ""),
+    stderr: stderr?.toString?.() ?? String(stderr ?? ""),
+  };
+}
+
+async function fileExists(path) {
+  try {
+    await access(path, fsConstants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function loadPromptEnvelope() {
+  if (!PROMPT_ENVELOPE_PATH) {
+    return null;
+  }
+  if (!(await fileExists(PROMPT_ENVELOPE_PATH))) {
+    return null;
+  }
+  try {
+    const raw = await readFile(PROMPT_ENVELOPE_PATH, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function bootstrapAiox() {
+  state.bootstrapStartedAt = new Date().toISOString();
+  await mkdir(PROJECT_DIR, { recursive: true });
+  await mkdir(AIOX_HOME, { recursive: true });
+
+  const packageJsonPath = `${PROJECT_DIR}/package.json`;
+  if (!(await fileExists(packageJsonPath))) {
+    await writeFile(
+      packageJsonPath,
+      JSON.stringify(
+        {
+          name: "aiox-lab",
+          private: true,
+          version: "1.0.0",
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+  }
+
+  try {
+    if (!(await fileExists(`${PROJECT_DIR}/.aiox-core`))) {
+      const install = await run("aiox-core", ["install", "--quiet", "--force"], {
+        cwd: PROJECT_DIR,
+        timeout: 360000,
+      });
+      state.installOutput = [install.stdout, install.stderr].filter(Boolean).join("\n").trim();
+    } else {
+      state.installOutput = "AIOX já estava instalado neste workspace.";
+    }
+  } catch (error) {
+    state.installOutput = `INSTALL_WARNING: ${error instanceof Error ? error.message : String(error)}`;
+    state.bootstrapWarnings.push("install_warning");
+  }
+
+  try {
+    const version = await run("aiox-core", ["--version"], { cwd: PROJECT_DIR });
+    state.aioxVersion = version.stdout.trim() || `aiox-core@${AIOX_CORE_VERSION}`;
+  } catch {
+    state.aioxVersion = `aiox-core@${AIOX_CORE_VERSION}`;
+    state.bootstrapWarnings.push("version_warning");
+  }
+
+  try {
+    const doctor = await run("aiox-core", ["doctor"], {
+      cwd: PROJECT_DIR,
+      timeout: 360000,
+    });
+    state.doctorOutput = [doctor.stdout, doctor.stderr].filter(Boolean).join("\n").trim();
+  } catch (error) {
+    state.doctorOutput = `DOCTOR_WARNING: ${error instanceof Error ? error.message : String(error)}`;
+    state.bootstrapWarnings.push("doctor_warning");
+  }
+
+  state.bootstrapped = true;
+  state.bootstrapFinishedAt = new Date().toISOString();
+}
+
+function buildHermesMessages(promptText, envelope) {
+  const systemPrompt = envelope?.system_prompt || "Você é Hermes, o motor local do Shipyard.";
+  const developerPrompt = envelope?.developer_prompt || "Responda de forma objetiva e alinhada ao State.";
+  const contextLines = [];
+  if (envelope?.context_budget) {
+    const budget = envelope.context_budget;
+    contextLines.push(`Budget de contexto: max_files=${budget.max_files}, max_chars=${budget.max_chars}, strict=${envelope?.strict ? "true" : "false"}.`);
+  }
+  if (envelope?.whitelisted_context_refs?.length) {
+    contextLines.push(`Refs whitelistados: ${envelope.whitelisted_context_refs.length}.`);
+  }
+  if (envelope?.context_packet_path) {
+    contextLines.push(`Context packet: ${envelope.context_packet_path}.`);
+  }
+  const guardrailPrompt = contextLines.length
+    ? `${developerPrompt}\n\n${contextLines.join("\n")}`
+    : developerPrompt;
+
+  return [
+    { role: "system", content: systemPrompt },
+    { role: "system", content: guardrailPrompt },
+    { role: "user", content: promptText },
+  ];
+}
+
+function uniqueStrings(values) {
+  const seen = new Set();
+  const output = [];
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (!text || seen.has(text)) {
+      continue;
+    }
+    seen.add(text);
+    output.push(text);
+  }
+  return output;
+}
+
+function buildHermesCandidateUrls() {
+  const base = HERMES_BASE_URL.replace(/\/$/, "");
+  const path = HERMES_CHAT_PATH.startsWith("/") ? HERMES_CHAT_PATH : `/${HERMES_CHAT_PATH}`;
+  return uniqueStrings([
+    `${base}${path}`,
+    `${base}/v1/chat/completions`,
+    `${base}/chat/completions`,
+  ]);
+}
+
+async function fetchJson(url, payload) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(new Error(`timeout after ${HERMES_TIMEOUT_MS}ms`)), HERMES_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    const text = await response.text();
+    let parsed = null;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = { raw: text };
+    }
+    return { ok: response.ok, status: response.status, body: parsed, url };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function checkHermes(promptText) {
+  const envelope = await loadPromptEnvelope();
+  const payload = {
+    model: AIOX_MODEL,
+    messages: buildHermesMessages(promptText, envelope),
+    stream: false,
+  };
+
+  const attempts = [];
+  for (const url of buildHermesCandidateUrls()) {
+    try {
+      const response = await fetchJson(url, payload);
+      attempts.push({ url, ok: response.ok, status: response.status });
+      if (response.ok) {
+        return { ...response, attempts };
+      }
+    } catch (error) {
+      attempts.push({
+        url,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return {
+    ok: false,
+    status: 502,
+    body: {
+      error: "all_hermes_attempts_failed",
+      attempts,
+      candidate_urls: buildHermesCandidateUrls(),
+    },
+    url: buildHermesCandidateUrls()[0] || `${HERMES_BASE_URL}${HERMES_CHAT_PATH}`,
+  };
+}
+
+function htmlEscape(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function renderPage() {
+  const doctor = state.doctorOutput ? htmlEscape(state.doctorOutput) : "Aguardando bootstrap...";
+  const install = state.installOutput ? htmlEscape(state.installOutput) : "Aguardando bootstrap...";
+  const status = state.bootstrapped ? "online" : "bootstrapping";
+  return `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIOX Shipyard Bridge</title>
+    <style>
+      body { font-family: Inter, system-ui, sans-serif; margin: 0; background: #0b1220; color: #e5eefb; }
+      main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 56px; }
+      .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 20px; margin: 16px 0; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+      textarea, button, input { width: 100%; box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06); color: #e5eefb; padding: 12px 14px; font: inherit; }
+      textarea { min-height: 140px; }
+      button { cursor: pointer; background: linear-gradient(135deg, #7c3aed, #06b6d4); font-weight: 700; }
+      pre { white-space: pre-wrap; word-break: break-word; background: #08101d; padding: 16px; border-radius: 14px; overflow: auto; }
+      .meta { color: #9db0d0; font-size: 14px; line-height: 1.5; }
+      .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; background: rgba(34,197,94,0.15); color: #86efac; font-weight: 700; }
+      .warn { background: rgba(245,158,11,0.15); color: #fbbf24; }
+      a { color: #93c5fd; }
+      .subtle { color: #9db0d0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>AIOX Shipyard Bridge</h1>
+      <p class="meta">Casa própria do AIOX, separada do cockpit HITL e pronta para hotswap por projeto.</p>
+      <p class="meta">
+        Subdomínio: <strong>${htmlEscape(PUBLIC_BASE_URL)}</strong> ·
+        Home canônica: <a href="https://hitl.ruptur.cloud" target="_blank" rel="noreferrer">hitl.ruptur.cloud</a> ·
+        Estado: <span class="pill ${state.bootstrapped ? "" : "warn"}">${htmlEscape(status)}</span>
+      </p>
+
+      <div class="grid">
+      <section class="card">
+        <h2>Status do AIOX</h2>
+        <p class="meta">Versão detectada: <strong>${htmlEscape(state.aioxVersion || "pendente")}</strong></p>
+        <p class="meta">Bootstrap: <strong>${htmlEscape(state.bootstrapStartedAt || "pendente")}</strong> → <strong>${htmlEscape(state.bootstrapFinishedAt || "pendente")}</strong></p>
+        <p class="meta">Warnings: <strong>${htmlEscape((state.bootstrapWarnings || []).join(", ") || "nenhum")}</strong></p>
+        <p class="meta">Projeto: <code>${htmlEscape(PROJECT_DIR)}</code></p>
+        <p class="meta">Home: <code>${htmlEscape(AIOX_HOME)}</code></p>
+      </section>
+
+        <section class="card">
+          <h2>Hermes/Ollama</h2>
+          <p class="meta">Base URL: <code>${htmlEscape(HERMES_BASE_URL)}</code></p>
+          <p class="meta">Perfil ativo: <code>${htmlEscape(AIOX_MODEL_PROFILE)}</code></p>
+          <p class="meta">Model: <code>${htmlEscape(AIOX_MODEL)}</code></p>
+          <p class="meta">Endpoint: <code>${htmlEscape(HERMES_CHAT_PATH)}</code></p>
+          <p class="meta">Último check: <strong>${htmlEscape(state.hermes.lastCheckedAt || "nunca")}</strong></p>
+          <p class="meta">Estado: <strong>${htmlEscape(state.hermes.status)}</strong></p>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Teste Hermes</h2>
+        <textarea id="prompt" placeholder="Escreva uma mensagem de teste para Hermes...">Oi Hermes, responde com uma frase curta dizendo que o motor está vivo no Shipyard.</textarea>
+        <div style="height: 10px;"></div>
+        <button id="send">Enviar teste</button>
+        <div style="height: 16px;"></div>
+        <pre id="output">Aguardando teste…</pre>
+      </section>
+
+      <section class="card">
+        <h2>Saída do install</h2>
+        <pre>${install}</pre>
+      </section>
+
+      <section class="card">
+        <h2>Saída do doctor</h2>
+        <pre>${doctor}</pre>
+      </section>
+
+      <p class="meta subtle">Este espaço é a casa operacional do AIOX: bridge, teste e retorno ao home. Não substitui o HITL, só entra e sai quando precisa.</p>
+    </main>
+    <script>
+      const button = document.getElementById("send");
+      const promptEl = document.getElementById("prompt");
+      const output = document.getElementById("output");
+      button.addEventListener("click", async () => {
+        output.textContent = "Processando...";
+        try {
+          const response = await fetch("/api/hermes/chat", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ prompt: promptEl.value })
+          });
+          const raw = await response.text();
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            try {
+              output.textContent = JSON.stringify(JSON.parse(raw), null, 2);
+              return;
+            } catch (parseError) {
+              output.textContent = `JSON inválido na resposta (${response.status}): ${String(parseError)}\n\n${raw}`;
+              return;
+            }
+          }
+          output.textContent = `Resposta não-JSON (${response.status}, ${contentType || "sem content-type"}):\n\n${raw}`;
+        } catch (error) {
+          output.textContent = String(error);
+        }
+      });
+    </script>
+  </body>
+</html>`;
+}
+
+async function refreshHermes(promptText = "ping") {
+  state.hermes.lastCheckedAt = new Date().toISOString();
+  try {
+    const result = await checkHermes(promptText);
+    state.hermes.status = result.ok ? "ok" : "error";
+    state.hermes.lastError = result.ok ? null : `HTTP ${result.status}`;
+    state.hermes.lastResponse = result.body;
+    return result;
+  } catch (error) {
+    state.hermes.status = "error";
+    state.hermes.lastError = error instanceof Error ? error.message : String(error);
+    state.hermes.lastResponse = null;
+    return { ok: false, error: state.hermes.lastError };
+  }
+}
+
+bootstrapAiox()
+  .then(() => refreshHermes("Ollama e Hermes estão conectados?"))
+  .catch((error) => {
+    state.installOutput = state.installOutput || "";
+    state.doctorOutput = `${state.doctorOutput ? `${state.doctorOutput}\n` : ""}BOOTSTRAP_ERROR: ${error instanceof Error ? error.stack || error.message : String(error)}`;
+    state.bootstrapWarnings.push("bootstrap_error");
+    state.bootstrapped = false;
+    state.bootstrapFinishedAt = new Date().toISOString();
+  });
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/health") {
+    res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    res.end(JSON.stringify({
+      ok: true,
+      service: "aiox-bridge",
+      bootstrapped: state.bootstrapped,
+      aioxVersion: state.aioxVersion,
+      hermes: state.hermes,
+    }, null, 2));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/hermes/chat") {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    let payload = {};
+    try {
+      payload = JSON.parse(Buffer.concat(chunks).toString("utf-8") || "{}");
+    } catch {
+      payload = {};
+    }
+    const prompt = String(payload.prompt || "ping");
+    const result = await refreshHermes(prompt);
+    res.writeHead(result.ok ? 200 : 502, { "content-type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/api/status") {
+    res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    res.end(JSON.stringify({
+      ok: true,
+      state,
+      publicBaseUrl: PUBLIC_BASE_URL,
+    }, null, 2));
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/") {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    res.end(renderPage());
+    return;
+  }
+
+  res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify({ ok: false, error: "not_found" }, null, 2));
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[aiox-bridge] listening on ${PORT}`);
+});

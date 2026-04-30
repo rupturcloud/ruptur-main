@@ -1,0 +1,34 @@
+---
+- name: Instalar e expor o AIOX no GCP
+  hosts: shipyard
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Verificar se existe arquivo local de segredos do inventory
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      delegate_to: localhost
+      become: false
+      register: shipyard_local_secrets_file
+
+    - name: Carregar segredos locais do inventory quando disponíveis
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      when: shipyard_local_secrets_file.stat.exists
+
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian/Ubuntu."
+
+  vars:
+    shipyard_compose_autostart: true
+
+  roles:
+    - role: base
+    - role: docker
+    - role: shipyard_dirs
+    - role: traefik
+    - role: aiox

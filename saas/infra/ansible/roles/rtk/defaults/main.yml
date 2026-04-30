@@ -1,0 +1,79 @@
+---
+# RTK — Rust Token Killer
+# Dono: shipyard | Controle: Ansible
+
+rtk_version: "0.37.1"
+rtk_binary_path: "/usr/local/bin/rtk"
+rtk_config_root: "{{ ansible_env.HOME }}/.config/rtk"
+rtk_config_dir: "{{ rtk_config_root }}"
+rtk_config_path: "{{ rtk_config_root }}/config.toml"
+rtk_legacy_macos_config_dir: "{{ ansible_env.HOME }}/Library/Application Support/rtk"
+rtk_legacy_macos_config_path: "{{ rtk_legacy_macos_config_dir }}/config.toml"
+rtk_profile_path: "{{ rtk_config_root }}/operational-profile.md"
+rtk_budget_path: "{{ rtk_config_root }}/context-budget.yaml"
+rtk_scripts_dir: "{{ ansible_env.HOME }}/.claude/scripts"
+rtk_index_dir: "{{ ansible_env.HOME }}/.claude/rtk"
+rtk_index_path: "{{ rtk_index_dir }}/repo_index.md"
+rtk_log_path: "/tmp/rtk_repo_indexer.log"
+
+rtk_dev_root: "{{ shipyard_dev_root | default(ansible_env.HOME ~ '/dev') }}"
+rtk_state_root: "{{ shipyard_state_root | default(rtk_dev_root ~ '/ruptur-cloud/ruptur-main/state') }}"
+rtk_cron_schedule: "0 */4 * * *"
+
+rtk_operational_profile:
+  residency: "mac_local_and_vps"
+  scope: "shipyard"
+  primary_runtime: "paperclip"
+  primary_model: "codex"
+  autonomy: "human_in_the_loop"
+  secret_source: "infisical_or_gcp_secret_manager"
+  observability: "langfuse_and_uptime_kuma"
+
+rtk_context_budget:
+  max_files: 20
+  max_chars: 8000
+  prefer_diffs: true
+  prefer_whitelist: true
+  heartbeat_seconds_min: 300
+  allow_repo_rediscovery: false
+
+# Config funcional — sem filtrar ls/find/tree dentro do Claude Code
+rtk_config:
+  tracking:
+    enabled: true
+    history_days: 90
+  display:
+    colors: true
+    emoji: true
+    max_width: 120
+  filters:
+    ignore_dirs:
+      - ".git"
+      - "node_modules"
+      - "target"
+      - "__pycache__"
+      - ".venv"
+      - "vendor"
+    ignore_files:
+      - "*.lock"
+      - "*.min.js"
+      - "*.min.css"
+  tee:
+    enabled: true
+    mode: "failures"
+    max_files: 20
+    max_file_size: 1048576
+  telemetry:
+    enabled: false
+  hooks:
+    # ls/find/tree excluídos: Claude Code usa Glob/Grep nativos — mais precisos e sem risco de output vazio
+    exclude_commands:
+      - "ls"
+      - "find"
+      - "tree"
+  limits:
+    grep_max_results: 200
+    grep_max_per_file: 25
+    status_max_files: 50
+    status_max_untracked: 30
+    passthrough_max_chars: 8000

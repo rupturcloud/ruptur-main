@@ -1,0 +1,44 @@
+---
+- name: Gerar inventário das Oracle
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    inventory_output_root: "{{ ansible_artifacts_root }}/oracle"
+    oracle_ssh_targets:
+      - name: oracle-prod
+        ssh_cmd: >-
+          ssh -i {{ hostvars['oracle-prod'].ansible_ssh_private_key_file }}
+          {{ hostvars['oracle-prod'].ansible_user }}@{{ hostvars['oracle-prod'].ansible_host }}
+      - name: oracle-test
+        ssh_cmd: >-
+          ssh -i {{ hostvars['oracle-test'].ansible_ssh_private_key_file }}
+          {{ hostvars['oracle-test'].ansible_user }}@{{ hostvars['oracle-test'].ansible_host }}
+  tasks:
+    - name: Garantir diretório local de artefatos Oracle
+      ansible.builtin.file:
+        path: "{{ inventory_output_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Coletar mounts e volumes de cada Oracle
+      ansible.builtin.shell: |
+        set -euo pipefail
+        {{ item.ssh_cmd }} 'printf "== HOST ==\n"; hostname; printf "\n== DISK ==\n"; df -h / /var/lib/docker 2>/dev/null; printf "\n== DOCKER VOLUMES ==\n"; docker volume ls --format "{{"{{.Name}}"}}" | sed -n "1,200p"; printf "\n== CONTAINER MOUNTS ==\n"; docker ps --format "{{"{{.Names}}"}}" | while read c; do echo "-- $c"; docker inspect -f "{{"{{range .Mounts}}{{.Type}} {{.Name}} {{.Source}} -> {{.Destination}}{{println}}{{end}}"}}" "$c"; done'
+      args:
+        executable: /bin/bash
+      register: oracle_inventory
+      changed_when: false
+      loop: "{{ oracle_ssh_targets }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Salvar inventários Oracle localmente
+      ansible.builtin.copy:
+        dest: "{{ inventory_output_root }}/{{ item.item.name }}.txt"
+        content: "{{ item.stdout }}\n"
+        mode: "0644"
+      loop: "{{ oracle_inventory.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+

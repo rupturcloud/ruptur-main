@@ -1,0 +1,1 @@
+redis_compose_file: "{{ shipyard_compose_dir }}/redis.yml"

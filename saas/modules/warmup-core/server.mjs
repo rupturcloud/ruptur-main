@@ -4,6 +4,10 @@ import http from "node:http";
 import path from "node:path";
 import crypto from "node:crypto";
 
+// Import new modules
+import { inboxManager } from '../inbox/index.js';
+import { campaignManager } from '../campaigns/index.js';
+
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
 const TICK_INTERVAL_MS = Number(process.env.WARMUP_TICK_INTERVAL_MS || 60_000);
@@ -2621,6 +2625,115 @@ function resolveManualActor(payload = {}) {
   return actor || "Operador local";
 }
 
+// Inbox Route Handler
+async function handleInboxRoute(req, res, url) {
+  try {
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // GET /api/inbox/summary
+    if (pathParts[2] === 'summary' && req.method === 'GET') {
+      const summary = await inboxManager.getInboxSummary();
+      return createResponse(res, 200, summary);
+    }
+    
+    // POST /api/inbox/initialize/:instanceId
+    if (pathParts[2] === 'initialize' && req.method === 'POST') {
+      const instanceId = pathParts[3];
+      const success = await inboxManager.initializeInstance(instanceId);
+      return createResponse(res, 200, { success, instanceId });
+    }
+    
+    // GET /api/inbox/messages/:instanceId
+    if (pathParts[2] === 'messages' && req.method === 'GET') {
+      const instanceId = pathParts[3];
+      const options = {
+        limit: parseInt(url.searchParams.get('limit') || '50'),
+        offset: parseInt(url.searchParams.get('offset') || '0'),
+        unreadOnly: url.searchParams.get('unreadOnly') === 'true',
+        since: url.searchParams.get('since')
+      };
+      const result = await inboxManager.getMessages(instanceId, options);
+      return createResponse(res, 200, result);
+    }
+    
+    // PUT /api/inbox/messages/:instanceId/:messageId/read
+    if (pathParts[2] === 'messages' && pathParts[4] === 'read' && req.method === 'PUT') {
+      const instanceId = pathParts[3];
+      const messageId = pathParts[4];
+      const success = await inboxManager.markAsRead(instanceId, messageId);
+      return createResponse(res, 200, { success });
+    }
+    
+    // POST /api/inbox/send/:instanceId
+    if (pathParts[2] === 'send' && req.method === 'POST') {
+      const instanceId = pathParts[3];
+      const body = await parseBody(req);
+      const result = await inboxManager.sendMessage(instanceId, body.recipient, body.content, body.type);
+      return createResponse(res, 200, result);
+    }
+    
+    createResponse(res, 404, { error: 'Inbox endpoint not found' });
+  } catch (error) {
+    console.error('[Inbox API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
+// Campaign Route Handler
+async function handleCampaignRoute(req, res, url) {
+  try {
+    console.log(`[Campaign API] ${req.method} ${url.pathname}`);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    console.log(`[Campaign API] Path parts:`, pathParts, `Length: ${pathParts.length}`);
+    
+    // POST /api/campaigns
+    if (pathParts.length === 2 && req.method === 'POST') {
+      const body = await parseBody(req);
+      const campaign = await campaignManager.createCampaign(body);
+      return createResponse(res, 200, campaign);
+    }
+    
+    // GET /api/campaigns
+    if (pathParts.length === 2 && req.method === 'GET') {
+      const options = {
+        status: url.searchParams.get('status'),
+        limit: parseInt(url.searchParams.get('limit') || '50'),
+        offset: parseInt(url.searchParams.get('offset') || '0')
+      };
+      const campaigns = await campaignManager.getAllCampaigns(options);
+      return createResponse(res, 200, campaigns);
+    }
+    
+    // GET /api/campaigns/:campaignId
+    if (pathParts.length === 3 && req.method === 'GET') {
+      const campaignId = pathParts[2];
+      const campaign = await campaignManager.getCampaign(campaignId);
+      if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      return createResponse(res, 200, campaign);
+    }
+    
+    // POST /api/campaigns/:campaignId/launch
+    if (pathParts.length === 4 && pathParts[3] === 'launch' && req.method === 'POST') {
+      const campaignId = pathParts[2];
+      const success = await campaignManager.launchCampaign(campaignId);
+      return createResponse(res, 200, { success, campaignId });
+    }
+    
+    // GET /api/campaigns/:campaignId/stats
+    if (pathParts.length === 4 && pathParts[3] === 'stats' && req.method === 'GET') {
+      const campaignId = pathParts[2];
+      const stats = await campaignManager.getCampaignStats(campaignId);
+      if (!stats) return createResponse(res, 404, { error: 'Campaign not found' });
+      return createResponse(res, 200, stats);
+    }
+    
+    createResponse(res, 404, { error: 'Campaign endpoint not found' });
+  } catch (error) {
+    console.error('[Campaign API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
 await bootstrapProtectedRoutine();
 
 const server = http.createServer(async (req, res) => {
@@ -2653,6 +2766,17 @@ const server = http.createServer(async (req, res) => {
       const payload = await parseBody(req);
       processWebhookPayload(payload);
       return createResponse(res, 200, { received: true });
+    }
+
+    // Inbox API Routes
+    if (normalizedPathname.startsWith("/api/inbox/")) {
+      return handleInboxRoute(req, res, url);
+    }
+
+    // Campaigns API Routes
+    if (normalizedPathname.startsWith("/api/campaigns")) {
+      console.log(`[Server] Routing to campaign handler: ${normalizedPathname}`);
+      return handleCampaignRoute(req, res, url);
     }
     if (normalizedPathname === "/api/local/uazapi/instance/all") {
       if (!state.config.settings.adminToken?.trim()) {

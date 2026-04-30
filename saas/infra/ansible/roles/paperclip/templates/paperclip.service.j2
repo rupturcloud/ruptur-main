@@ -1,0 +1,24 @@
+[Unit]
+Description=Paperclip control plane
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ paperclip_user }}
+Group={{ paperclip_group }}
+WorkingDirectory={{ paperclip_home }}
+Environment=HOME={{ paperclip_home }}
+Environment=PAPERCLIP_HOME={{ paperclip_home }}
+Environment=HOST={{ paperclip_host }}
+Environment=PORT={{ paperclip_port }}
+Environment=PAPERCLIP_DEPLOYMENT_MODE={{ paperclip_deployment_mode }}
+Environment=NODE_ENV={{ paperclip_node_env }}
+Environment=PROMPT_ENVELOPE_PATH={{ paperclip_prompt_envelope_path }}
+ExecStart={{ paperclip_cli_path.stdout | trim }} run --bind {{ paperclip_bind_mode }}
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

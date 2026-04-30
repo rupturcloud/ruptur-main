@@ -1,0 +1,12 @@
+---
+- name: Renderizar compose do Portainer
+  ansible.builtin.template:
+    src: docker-compose.portainer.yml.j2
+    dest: "{{ portainer_compose_file }}"
+    mode: "0644"
+
+- name: Subir Portainer quando autostart estiver habilitado
+  ansible.builtin.command:
+    cmd: docker compose -f {{ portainer_compose_file }} up -d
+  changed_when: shipyard_compose_autostart | bool
+  when: shipyard_compose_autostart | bool

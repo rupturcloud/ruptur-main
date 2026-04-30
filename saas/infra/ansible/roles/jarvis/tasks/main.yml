@@ -1,0 +1,216 @@
+---
+- name: Garantir diretórios dedicados do Jarvis ADK
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - path: "{{ jarvis_config_dir }}"
+      owner: "{{ jarvis_service_user }}"
+      group: "{{ jarvis_service_group }}"
+      mode: "0750"
+    - path: "{{ jarvis_logs_dir }}"
+      owner: "{{ jarvis_service_user }}"
+      group: "{{ jarvis_service_group }}"
+    - path: "{{ jarvis_session_postgres_runtime_dir }}"
+    - path: "{{ jarvis_session_postgres_data_dir }}"
+
+- name: Verificar runtime existente do Jarvis
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ jarvis_main_path }}"
+    - "{{ jarvis_agent_path }}"
+    - "{{ jarvis_python_bin }}"
+  register: jarvis_runtime_checks
+
+- name: Validar presença do runtime base do Jarvis no host
+  ansible.builtin.assert:
+    that:
+      - not jarvis_manage_existing_runtime_only or (jarvis_runtime_checks.results | map(attribute='stat.exists') | min)
+    fail_msg: >-
+      O role `jarvis` está no modo de reconciliação de runtime existente e
+      espera encontrar `{{ jarvis_runtime_dir }}` já materializado no host
+      com `main.py`, `agent.py` e o venv do Jarvis.
+
+- name: Renderizar env canônico do Jarvis
+  ansible.builtin.template:
+    src: jarvis.env.j2
+    dest: "{{ jarvis_config_dir }}/jarvis.env"
+    owner: "{{ jarvis_service_user }}"
+    group: "{{ jarvis_service_group }}"
+    mode: "0600"
+
+- name: Renderizar env do Postgres de sessão do Jarvis
+  ansible.builtin.template:
+    src: jarvis-postgres.env.j2
+    dest: "{{ jarvis_session_postgres_env_file }}"
+    mode: "0600"
+  no_log: true
+  when: jarvis_session_backend == 'postgres'
+
+- name: Renderizar compose do Postgres de sessão do Jarvis
+  ansible.builtin.template:
+    src: docker-compose.jarvis-postgres.yml.j2
+    dest: "{{ jarvis_session_postgres_compose_file }}"
+    mode: "0644"
+  when: jarvis_session_backend == 'postgres'
+
+- name: Subir Postgres de sessão do Jarvis
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ jarvis_session_postgres_runtime_dir }}"
+  changed_when: jarvis_autostart | bool
+  when:
+    - jarvis_session_backend == 'postgres'
+    - jarvis_autostart | bool
+
+- name: Aguardar Postgres de sessão aceitar conexões
+  ansible.builtin.command:
+    cmd: >-
+      docker exec jarvis-postgres
+      pg_isready -U {{ jarvis_session_postgres_user }} -d {{ jarvis_session_postgres_db }}
+  register: jarvis_postgres_ready_check
+  changed_when: false
+  retries: 15
+  delay: 2
+  until: jarvis_postgres_ready_check.rc == 0
+  when:
+    - jarvis_session_backend == 'postgres'
+    - jarvis_autostart | bool
+
+- name: Garantir dependências Python do Jarvis no venv
+  ansible.builtin.pip:
+    name: "{{ jarvis_python_packages }}"
+    executable: "{{ jarvis_pip_bin }}"
+    state: present
+
+- name: Renderizar entrypoint canônico do Jarvis
+  ansible.builtin.template:
+    src: jarvis-main.py.j2
+    dest: "{{ jarvis_main_path }}"
+    owner: "{{ jarvis_service_user }}"
+    group: "{{ jarvis_service_group }}"
+    mode: "0644"
+    backup: true
+
+- name: Renderizar agente canônico do Jarvis
+  ansible.builtin.template:
+    src: jarvis-agent.py.j2
+    dest: "{{ jarvis_agent_path }}"
+    owner: "{{ jarvis_service_user }}"
+    group: "{{ jarvis_service_group }}"
+    mode: "0644"
+    backup: true
+
+- name: Renderizar unidade systemd do Jarvis
+  ansible.builtin.template:
+    src: jarvis-agent.service.j2
+    dest: "{{ jarvis_service_unit }}"
+    mode: "0644"
+
+- name: Recarregar systemd para o Jarvis
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Habilitar e iniciar o Jarvis
+  ansible.builtin.systemd:
+    name: "{{ jarvis_service_name }}"
+    enabled: true
+    state: "{{ 'started' if jarvis_autostart | bool else 'stopped' }}"
+
+- name: Reiniciar o Jarvis após reconciliação
+  ansible.builtin.systemd:
+    name: "{{ jarvis_service_name }}"
+    state: restarted
+  when: jarvis_autostart | bool
+
+- name: Aguardar health do Jarvis
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ jarvis_port }}/health"
+    method: GET
+    return_content: true
+  register: jarvis_health_check
+  retries: 30
+  delay: 2
+  until:
+    - jarvis_health_check.status == 200
+    - "'ok' in jarvis_health_check.content"
+  when: jarvis_autostart | bool
+
+- name: Preparar ids de smoke para a persistência de sessão do Jarvis
+  ansible.builtin.set_fact:
+    jarvis_smoke_user_id: "smoke-user-{{ ansible_facts['date_time']['epoch'] }}"
+    jarvis_smoke_session_id: "smoke-session-{{ ansible_facts['date_time']['epoch'] }}"
+  when:
+    - jarvis_autostart | bool
+    - jarvis_validate_session_persistence | bool
+    - jarvis_session_backend == 'postgres'
+
+- name: Criar sessão smoke do Jarvis
+  ansible.builtin.uri:
+    url: >-
+      http://127.0.0.1:{{ jarvis_port }}/apps/agent/users/{{ jarvis_smoke_user_id }}/sessions/{{ jarvis_smoke_session_id }}
+    method: POST
+    body_format: json
+    body:
+      smoke_marker: persist-ok
+      storage: "{{ jarvis_session_backend }}"
+    return_content: true
+  register: jarvis_create_session_response
+  when:
+    - jarvis_autostart | bool
+    - jarvis_validate_session_persistence | bool
+    - jarvis_session_backend == 'postgres'
+
+- name: Reiniciar o Jarvis para validar persistência de sessão
+  ansible.builtin.systemd:
+    name: "{{ jarvis_service_name }}"
+    state: restarted
+  when:
+    - jarvis_autostart | bool
+    - jarvis_validate_session_persistence | bool
+    - jarvis_session_backend == 'postgres'
+
+- name: Aguardar health do Jarvis após restart de validação
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ jarvis_port }}/health"
+    method: GET
+    return_content: true
+  register: jarvis_health_check_after_restart
+  retries: 30
+  delay: 2
+  until:
+    - jarvis_health_check_after_restart.status == 200
+    - "'ok' in jarvis_health_check_after_restart.content"
+  when:
+    - jarvis_autostart | bool
+    - jarvis_validate_session_persistence | bool
+    - jarvis_session_backend == 'postgres'
+
+- name: Ler sessão smoke após restart do Jarvis
+  ansible.builtin.uri:
+    url: >-
+      http://127.0.0.1:{{ jarvis_port }}/apps/agent/users/{{ jarvis_smoke_user_id }}/sessions/{{ jarvis_smoke_session_id }}
+    method: GET
+    return_content: true
+  register: jarvis_session_after_restart
+  when:
+    - jarvis_autostart | bool
+    - jarvis_validate_session_persistence | bool
+    - jarvis_session_backend == 'postgres'
+
+- name: Validar persistência da sessão smoke do Jarvis
+  ansible.builtin.assert:
+    that:
+      - jarvis_session_after_restart.json.id == jarvis_smoke_session_id
+      - jarvis_session_after_restart.json.userId == jarvis_smoke_user_id
+      - jarvis_session_after_restart.json.state.smoke_marker == 'persist-ok'
+      - jarvis_session_after_restart.json.state.storage == jarvis_session_backend
+    fail_msg: "A sessão smoke do Jarvis não persistiu após o restart."
+  when:
+    - jarvis_autostart | bool
+    - jarvis_validate_session_persistence | bool
+    - jarvis_session_backend == 'postgres'

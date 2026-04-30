@@ -1,0 +1,24 @@
+---
+- name: Garantir storage do ACME do Traefik
+  ansible.builtin.file:
+    path: "{{ shipyard_data_dir }}/traefik/acme.json"
+    state: touch
+    mode: "0600"
+
+- name: Renderizar configuração estática do Traefik
+  ansible.builtin.template:
+    src: traefik.yml.j2
+    dest: "{{ traefik_config_file }}"
+    mode: "0644"
+
+- name: Renderizar compose do Traefik
+  ansible.builtin.template:
+    src: docker-compose.traefik.yml.j2
+    dest: "{{ traefik_compose_file }}"
+    mode: "0644"
+
+- name: Subir Traefik quando autostart estiver habilitado
+  ansible.builtin.command:
+    cmd: docker compose -f {{ traefik_compose_file }} up -d
+  changed_when: shipyard_compose_autostart | bool
+  when: shipyard_compose_autostart | bool

@@ -1,0 +1,17 @@
+FROM node:20-bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g aiox-core@{{ aiox_core_version }}
+
+WORKDIR /app
+
+COPY server.mjs /app/server.mjs
+
+EXPOSE {{ aiox_port }}
+
+ENTRYPOINT ["node", "/app/server.mjs"]

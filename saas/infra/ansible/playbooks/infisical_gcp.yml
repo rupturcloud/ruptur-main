@@ -1,0 +1,142 @@
+---
+- name: Instalar e publicar Infisical no GCP com SMTP opcional
+  hosts: shipyard
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Verificar se existe arquivo local de segredos do inventory
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      delegate_to: localhost
+      become: false
+      register: shipyard_local_secrets_file
+
+    - name: Carregar segredos locais do inventory quando disponíveis
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      when: shipyard_local_secrets_file.stat.exists
+
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian/Ubuntu."
+
+  tasks:
+    - name: Verificar estado do .env do Infisical
+      ansible.builtin.stat:
+        path: /opt/ruptur/runtime/infisical/.env
+      register: infisical_env
+
+    - name: Garantir diretório do runtime do Infisical
+      ansible.builtin.file:
+        path: /opt/ruptur/runtime/infisical
+        state: directory
+        mode: '0755'
+
+    - name: Garantir rede Docker externa do edge
+      ansible.builtin.shell: |
+        set -e
+        docker network inspect ruptur-edge >/dev/null 2>&1 || docker network create ruptur-edge
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Gerar segredos do Infisical se o .env ainda não existir
+      ansible.builtin.shell: |
+        set -euo pipefail
+        printf '%s\n%s\n%s\n' \
+          "$(openssl rand -hex 24)" \
+          "$(openssl rand -base64 32 | tr -d '\n')" \
+          "$(openssl rand -hex 16)"
+      args:
+        executable: /bin/bash
+      register: infisical_secrets
+      changed_when: false
+      when: not infisical_env.stat.exists
+
+    - name: Materializar .env do Infisical
+      ansible.builtin.copy:
+        dest: /opt/ruptur/runtime/infisical/.env
+        mode: '0600'
+        content: |
+          NODE_ENV=production
+          INFISICAL_PUBLIC_HOST=infisical.ruptur.cloud
+          SITE_URL=https://infisical.ruptur.cloud
+          HTTPS_ENABLED=false
+          INFISICAL_PORT=8081
+          POSTGRES_USER=infisical
+          POSTGRES_PASSWORD={{ shipyard_infisical_postgres_password | default(infisical_secrets.stdout_lines[0]) }}
+          POSTGRES_DB=infisical
+          DB_CONNECTION_URI=postgres://infisical:{{ shipyard_infisical_postgres_password | default(infisical_secrets.stdout_lines[0]) }}@db:5432/infisical
+          REDIS_URL=redis://redis:6379
+          AUTH_SECRET={{ shipyard_infisical_auth_secret | default(infisical_secrets.stdout_lines[1]) }}
+          ENCRYPTION_KEY={{ shipyard_infisical_encryption_key | default(infisical_secrets.stdout_lines[2]) }}
+          {% if shipyard_infisical_smtp_host is defined and shipyard_infisical_smtp_password is defined and shipyard_infisical_smtp_password is not search('PENDING|CHANGE_ME') %}
+          SMTP_HOST={{ shipyard_infisical_smtp_host }}
+          SMTP_PORT={{ shipyard_infisical_smtp_port | default('587') }}
+          SMTP_USERNAME={{ shipyard_infisical_smtp_username }}
+          SMTP_PASSWORD={{ shipyard_infisical_smtp_password }}
+          SMTP_FROM_ADDRESS={{ shipyard_infisical_smtp_from_address }}
+          SMTP_FROM_NAME={{ shipyard_infisical_smtp_from_name | default('Infisical') }}
+          SMTP_REQUIRE_TLS=true
+          SMTP_TLS_REJECT_UNAUTHORIZED=true
+          {% endif %}
+      no_log: true
+
+    - name: Renderizar docker-compose do Infisical
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/infisical-compose.yml.j2"
+        dest: /opt/ruptur/runtime/infisical/docker-compose.yml
+        mode: '0644'
+
+    - name: Renderizar vhost do Nginx para Infisical
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/infisical-proxy.conf.j2"
+        dest: /etc/nginx/sites-available/infisical-proxy
+        mode: '0644'
+
+    - name: Habilitar vhost do Infisical
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/infisical-proxy
+        dest: /etc/nginx/sites-enabled/infisical-proxy
+        state: link
+        force: true
+
+    - name: Validar configuração do Nginx
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Recarregar Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+    - name: Recriar stack do Infisical
+      ansible.builtin.shell: |
+        set -euo pipefail
+        cd /opt/ruptur/runtime/infisical
+        docker compose --env-file .env down -v
+        docker compose --env-file .env up -d
+      args:
+        executable: /bin/bash
+      register: infisical_up
+      changed_when: true
+
+    - name: Validar resposta local do Infisical
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8081
+        method: GET
+        status_code: [200, 301, 302]
+        timeout: 15
+      register: infisical_local_http
+      retries: 20
+      delay: 3
+      until: infisical_local_http.status in [200, 301, 302]
+
+    - name: Exibir resumo do deploy
+      ansible.builtin.debug:
+        msg:
+          - "Infisical publicado em infisical.ruptur.cloud"
+          - "SMTP configurado: {{ 'sim' if (shipyard_infisical_smtp_password is defined and shipyard_infisical_smtp_password is not search('PENDING|CHANGE_ME')) else 'nao' }}"

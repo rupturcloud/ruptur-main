@@ -1,0 +1,36 @@
+---
+# Diretório local do Terraform canônico do Estaleiro (casa nova)
+terraform_project_dir: /Users/diego/dev/ruptur-cloud/ruptur-main/shipyard/adapters/ruptur-forge/terraform
+
+# Estrutura de staging bruto nas Oracle
+oracle_archive_root: /srv/jarvis-archive
+oracle_archive_dirs:
+  - raw
+  - manifests
+  - checksums
+  - restore-kit
+  - incoming
+  - exports
+  - logs
+
+# Diretório local para artefatos gerados pelo Ansible
+ansible_artifacts_root: /Users/diego/dev/infrastructure-state/adapters/provisioning/ansible/artifacts
+
+# Exportações críticas da KVM2 identificadas até agora
+kvm2_export_paths:
+  - /var/lib/docker/volumes/kvm2_ruptur_db_data/_data
+  - /var/lib/docker/volumes/kvm2_baileys_data/_data
+  - /var/lib/docker/volumes/kvm2_traefik_letsencrypt/_data
+  - /var/lib/docker/volumes/kvm2_warmup_runtime_data/_data
+  - /var/lib/docker/volumes/kvm2_whisper_models/_data
+  - /var/lib/docker/volumes/n8n_n8n_data/_data
+  - /var/lib/docker/volumes/langfuse_langfuse_postgres_data/_data
+  - /var/lib/docker/volumes/langfuse_langfuse_clickhouse_data/_data
+  - /var/lib/docker/volumes/langfuse_langfuse_minio_data/_data
+  - /root/J.A.R.V.I.S./data
+
+# Guardrails destrutivos
+oracle_plan_enabled: false
+oracle_destroy_enabled: false
+oracle_apply_enabled: false
+oracle_destroy_confirmation: ""

@@ -1,0 +1,63 @@
+---
+# RTK Curator — Shipyard
+# Propósito: controlar, operar, manter e curar o RTK na workstation
+# Dono: shipyard | Execução: localhost
+#
+# Uso:
+#   ansible-playbook -i localhost, -c local playbooks/rtk_curator.yml
+#   ansible-playbook -i localhost, -c local playbooks/rtk_curator.yml --tags rtk_index
+#
+# Tags disponíveis:
+#   rtk_index   — só roda o indexador (atualiza o mapa de repos)
+#   rtk_curate  — indexador + curadoria de estado
+
+- name: RTK Curator — Controle e Curadoria via Shipyard
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    # Override de runtime (opcional): ansible-playbook ... -e rtk_dev_root=/outro/path
+    # rtk_dev_root: "{{ ansible_env.HOME }}/dev"
+
+  pre_tasks:
+    - name: Confirmar ambiente de execução
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "User: {{ ansible_env.USER }}"
+          - "HOME: {{ ansible_env.HOME }}"
+          - "RTK esperado em: {{ rtk_binary_path }}"
+          - "Dev root: {{ rtk_dev_root }}"
+          - "State root: {{ rtk_state_root }}"
+
+  roles:
+    - rtk
+
+  post_tasks:
+    - name: Exibir resumo do índice gerado
+      ansible.builtin.shell: |
+        wc -l {{ rtk_index_path }} | awk '{print "Linhas no índice: " $1}'
+        grep -c '^### ' {{ rtk_index_path }} | xargs -I{} echo "Repos mapeados: {}"
+      register: rtk_summary
+      changed_when: false
+      tags:
+        - rtk_index
+        - rtk_curate
+
+    - name: Exibir métricas RTK
+      ansible.builtin.command: "{{ rtk_binary_path }} gain"
+      register: rtk_gain
+      changed_when: false
+
+    - name: Resultado gain
+      ansible.builtin.debug:
+        msg: "{{ rtk_gain.stdout_lines }}"
+
+    - name: Resumo final
+      ansible.builtin.debug:
+        msg:
+          - "RTK Curator concluído em {{ ansible_date_time.iso8601 }}"
+          - "Índice: {{ rtk_index_path }}"
+          - "Cron: {{ rtk_cron_schedule }} → bash {{ rtk_scripts_dir }}/repo_indexer.sh"
+          - "Config: {{ rtk_config_path }}"

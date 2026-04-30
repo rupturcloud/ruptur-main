@@ -1,0 +1,34 @@
+---
+- name: Garantir diretórios-base do MagicRouteer
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ magicrouteer_runtime_dir }}"
+    - "{{ magicrouteer_config_dir }}"
+    - "{{ magicrouteer_logs_dir }}"
+    - "{{ magicrouteer_data_dir }}"
+  when: magicrouteer_enabled | bool
+
+- name: Materializar contrato operacional local do MagicRouteer
+  ansible.builtin.copy:
+    dest: "{{ magicrouteer_notes_file }}"
+    mode: "0644"
+    content: |
+      # MagicRouteer — contrato operacional local
+      - service: {{ magicrouteer_name }}
+      - runtime_alvo: GCP / Ruptur Cloud Lab
+      - estrategia: {{ magicrouteer_runtime_strategy }}
+      - llm_provider: {{ magicrouteer_llm_provider }}
+      - ollama_base_url: {{ magicrouteer_ollama_base_url }}
+      - ollama_model: {{ magicrouteer_ollama_model }}
+      - segredos: {{ magicrouteer_secret_policy }}
+      - governanca: State
+      - executor: Shipyard
+      - maestro: Jarvis
+      - operador: Diego
+      - gcp_project_id: {{ magicrouteer_gcp_project_id }}
+      - gcp_region: {{ magicrouteer_gcp_region }}
+      - gcp_zone: {{ magicrouteer_gcp_zone }}
+  when: magicrouteer_enabled | bool

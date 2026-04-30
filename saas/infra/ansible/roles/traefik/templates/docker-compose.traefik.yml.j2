@@ -1,0 +1,31 @@
+services:
+  traefik:
+    image: {{ shipyard_images.traefik }}
+    container_name: ruptur-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOCKER_API_VERSION: "1.41"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - {{ traefik_config_file }}:/etc/traefik/traefik.yml:ro
+      - {{ traefik_dynamic_dir }}:/etc/traefik/dynamic:ro
+      - {{ shipyard_data_dir }}/traefik:/data
+    networks:
+      - edge
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.traefik-dashboard.rule: Host(`{{ shipyard_domains.traefik }}`)
+      traefik.http.routers.traefik-dashboard.entrypoints: websecure
+      traefik.http.routers.traefik-dashboard.tls: "true"
+      traefik.http.routers.traefik-dashboard.tls.certresolver: letsencrypt
+      traefik.http.routers.traefik-dashboard.service: api@internal
+      traefik.http.routers.traefik-dashboard.middlewares: traefik-auth
+      traefik.http.middlewares.traefik-auth.basicauth.users: {{ shipyard_traefik_dashboard_basicauth | quote }}
+
+networks:
+  edge:
+    external: true
+    name: ruptur-edge

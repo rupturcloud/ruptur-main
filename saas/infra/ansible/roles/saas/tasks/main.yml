@@ -1,0 +1,105 @@
+---
+- name: Verificar se SaaS está habilitado
+  ansible.builtin.assert:
+    that:
+      - saas_enabled | bool
+    fail_msg: "SaaS não está habilitado. Defina saas_enabled: true em group_vars/all.yml"
+    quiet: true
+
+- name: Criar diretórios de deploy
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ shipyard_admin_user }}"
+    group: "{{ shipyard_admin_user }}"
+    mode: '0755'
+  loop:
+    - "{{ saas_deploy_dir }}"
+    - "{{ saas_data_dir }}"
+    - "{{ saas_logs_dir }}"
+
+- name: Verificar se o código SaaS já existe no host
+  ansible.builtin.stat:
+    path: "{{ saas_deploy_dir }}/package.json"
+  register: saas_code_exists
+
+- name: Copiar código SaaS do local para o host (archive)
+  community.general.archive:
+    path: /Users/diego/dev/ruptur-cloud/ruptur-main/saas/
+    dest: /tmp/saas-deploy.tar.gz
+    exclude:
+      - node_modules
+      - .git
+      - runtime-data
+      - tmp
+      - web/dist
+      - web/manager-dist
+      - web/dashboard-dist
+  when: not saas_code_exists.stat.exists
+  delegate_to: localhost
+
+- name: Criar diretório temporário no host
+  ansible.builtin.file:
+    path: /tmp/saas-deploy
+    state: directory
+    mode: '0755'
+  when: not saas_code_exists.stat.exists
+
+- name: Copiar archive para o host
+  ansible.builtin.copy:
+    src: /tmp/saas-deploy.tar.gz
+    dest: /tmp/saas-deploy.tar.gz
+    mode: '0644'
+  when: not saas_code_exists.stat.exists
+  delegate_to: localhost
+
+- name: Extrair archive no host
+  ansible.builtin.unarchive:
+    src: /tmp/saas-deploy.tar.gz
+    dest: "{{ saas_deploy_dir }}"
+    remote_src: true
+  when: not saas_code_exists.stat.exists
+
+- name: Copiar arquivo .env para o host
+  ansible.builtin.copy:
+    src: /Users/diego/dev/ruptur-cloud/ruptur-main/saas/.env
+    dest: "{{ saas_deploy_dir }}/.env"
+    owner: "{{ shipyard_admin_user }}"
+    group: "{{ shipyard_admin_user }}"
+    mode: '0600'
+  when: not saas_code_exists.stat.exists
+  delegate_to: localhost
+
+- name: Garantir que network Docker existe
+  community.docker.docker_network:
+    name: "{{ saas_network }}"
+    state: present
+  when: saas_network is defined
+
+- name: Deploy docker-compose do SaaS
+  community.docker.docker_compose_v2:
+    project_src: "{{ saas_deploy_dir }}"
+    state: present
+    pull: false
+    build: true
+    recreate: always
+  environment:
+    WARMUP_RUNTIME_HOST: "{{ saas_runtime_host }}"
+    WARMUP_RUNTIME_PORT: "{{ saas_port }}"
+
+- name: Aguardar container estar rodando
+  ansible.builtin.wait_for:
+    host: localhost
+    port: "{{ saas_port }}"
+    delay: 5
+    timeout: 60
+    state: started
+
+- name: Verificar status do container
+  community.docker.docker_container_info:
+    name: "{{ saas_container_name }}"
+  register: saas_container
+
+- name: Exibir status do container
+  ansible.builtin.debug:
+    msg: "Container {{ saas_container_name }} está {{ saas_container.container.State.Status }}"

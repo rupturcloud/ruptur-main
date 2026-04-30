@@ -1,0 +1,11 @@
+---
+- name: validar rtk config
+  ansible.builtin.command:
+    cmd: "{{ rtk_binary_path }} config"
+  register: rtk_config_check
+  changed_when: false
+  failed_when: rtk_config_check.rc != 0
+
+- name: exibir config validada
+  ansible.builtin.debug:
+    msg: "RTK config validada: {{ rtk_config_check.stdout_lines | first | default('ok') }}"

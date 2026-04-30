@@ -1,0 +1,42 @@
+---
+- name: Garantir diretórios do AIOX
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ aiox_runtime_dir }}"
+    - "{{ aiox_runtime_home_dir }}"
+    - "{{ aiox_config_dir }}"
+    - "{{ aiox_data_dir }}"
+    - "{{ aiox_data_dir }}/workspace"
+    - "{{ aiox_data_dir }}/workspace/{{ aiox_project_name }}"
+    - "{{ aiox_data_dir }}/workspace/.aiox-home"
+
+- name: Garantir rede Docker do estaleiro para o AIOX
+  community.docker.docker_network:
+    name: ruptur-edge
+    state: present
+
+- name: Renderizar Dockerfile do AIOX
+  ansible.builtin.template:
+    src: Dockerfile.j2
+    dest: "{{ aiox_runtime_dir }}/Dockerfile"
+    mode: "0644"
+
+- name: Renderizar bridge HTTP do AIOX
+  ansible.builtin.template:
+    src: server.mjs.j2
+    dest: "{{ aiox_runtime_dir }}/server.mjs"
+    mode: "0644"
+
+- name: Renderizar compose do AIOX
+  ansible.builtin.template:
+    src: docker-compose.aiox.yml.j2
+    dest: "{{ aiox_compose_file }}"
+    mode: "0644"
+
+- name: Subir AIOX com build local
+  ansible.builtin.command:
+    cmd: docker compose -f {{ aiox_compose_file }} up -d --build
+  changed_when: true

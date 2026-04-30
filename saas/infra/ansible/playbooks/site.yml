@@ -1,0 +1,107 @@
+---
+- name: Preparar o host do estaleiro Ruptur
+  hosts: shipyard
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Verificar se existe arquivo local de segredos do inventory
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      delegate_to: localhost
+      become: false
+      register: shipyard_local_secrets_file
+
+    - name: Carregar segredos locais do inventory quando disponíveis
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      when: shipyard_local_secrets_file.stat.exists
+
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian."
+
+    - name: Validar versão major esperada do Debian
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution_major_version == shipyard_expected_debian_major_version
+        fail_msg: >-
+          Host fora do baseline desta fase. Esperado Debian {{ shipyard_expected_debian_major_version }},
+          encontrado {{ ansible_facts.distribution_major_version }}.
+
+    - name: Validar existência do arquivo local de segredos
+      ansible.builtin.assert:
+        that:
+          - shipyard_local_secrets_file.stat.exists
+        fail_msg: >-
+          Arquivo local de segredos ausente. Gere ou copie
+          `infra/ansible/inventories/production/group_vars/secrets.yml`
+          antes de executar o playbook.
+
+    - name: Validar placeholders de segredos quando o autostart estiver habilitado
+      ansible.builtin.assert:
+        that:
+          - shipyard_traefik_dashboard_basicauth is not search('CHANGE_ME|PENDING_')
+          - shipyard_portainer_admin_password_hash is not search('CHANGE_ME|PENDING_')
+          - shipyard_postgres_password is not search('CHANGE_ME|PENDING_')
+          - shipyard_redis_password is not search('CHANGE_ME|PENDING_')
+          - shipyard_n8n_password is not search('CHANGE_ME|PENDING_')
+          - shipyard_n8n_encryption_key is not search('CHANGE_ME|PENDING_')
+          - shipyard_minio_root_password is not search('CHANGE_ME|PENDING_')
+        fail_msg: >-
+          Existem placeholders de segredos ainda não substituídos.
+          Preencha `infra/ansible/inventories/production/group_vars/secrets.yml`
+          ou injete overrides externos antes de subir o runtime.
+      when: shipyard_compose_autostart | bool
+
+    - name: Validar contrato mínimo do Jarvis quando habilitado no autostart
+      ansible.builtin.assert:
+        that:
+          - shipyard_jarvis_uazapi_admin_token is not search('CHANGE_ME|PENDING_')
+          - shipyard_jarvis_uazapi_instance_token is not search('CHANGE_ME|PENDING_')
+          - shipyard_jarvis_allowed_user_ids | default('') | trim | length > 0
+          - >-
+            (
+              shipyard_jarvis_session_backend | default('postgres')
+            ) != 'postgres' or (
+              shipyard_jarvis_session_postgres_password | default('PENDING_') is not search('CHANGE_ME|PENDING_')
+            )
+          - >-
+            (
+              shipyard_jarvis_core_provider == 'ollama'
+            ) or (
+              shipyard_jarvis_core_provider == 'gemini' and
+              shipyard_jarvis_gemini_api_key is not search('CHANGE_ME|PENDING_')
+            ) or (
+              shipyard_jarvis_core_provider == 'openrouter' and
+              shipyard_jarvis_openrouter_api_key is not search('CHANGE_ME|PENDING_')
+            ) or (
+              shipyard_jarvis_core_provider == 'groq' and
+              shipyard_jarvis_groq_api_key is not search('CHANGE_ME|PENDING_')
+            ) or (
+              shipyard_jarvis_core_provider == 'deepseek' and
+              shipyard_jarvis_deepseek_api_key is not search('CHANGE_ME|PENDING_')
+            )
+        fail_msg: >-
+          O Jarvis foi habilitado, mas o contrato mínimo de operação ainda não
+          foi preenchido no arquivo local de segredos.
+      when:
+        - shipyard_compose_autostart | bool
+        - shipyard_jarvis_enabled | bool
+
+  roles:
+    - role: base
+    - role: docker
+    - role: shipyard_dirs
+    - role: traefik
+    - role: portainer
+    - role: postgres
+    - role: redis
+    - role: n8n
+    - role: minio
+    - role: jarvis
+      when: shipyard_jarvis_enabled | bool
+    - role: aiox
+      when: shipyard_aiox_enabled | bool

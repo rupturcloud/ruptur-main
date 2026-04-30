@@ -1,0 +1,46 @@
+# RTK config — gerenciado pelo Ansible/Shipyard
+# Editar via: adapters/provisioning/ansible/roles/rtk/defaults/main.yml
+# NÃO editar manualmente — será sobrescrito pelo playbook rtk_curator.yml
+
+[tracking]
+enabled = {{ rtk_config.tracking.enabled | lower }}
+history_days = {{ rtk_config.tracking.history_days }}
+
+[display]
+colors = {{ rtk_config.display.colors | lower }}
+emoji = {{ rtk_config.display.emoji | lower }}
+max_width = {{ rtk_config.display.max_width }}
+
+[filters]
+ignore_dirs = [
+{% for d in rtk_config.filters.ignore_dirs %}
+    "{{ d }}",
+{% endfor %}
+]
+ignore_files = [
+{% for f in rtk_config.filters.ignore_files %}
+    "{{ f }}",
+{% endfor %}
+]
+
+[tee]
+enabled = {{ rtk_config.tee.enabled | lower }}
+mode = "{{ rtk_config.tee.mode }}"
+max_files = {{ rtk_config.tee.max_files }}
+max_file_size = {{ rtk_config.tee.max_file_size }}
+
+[telemetry]
+enabled = {{ rtk_config.telemetry.enabled | lower }}
+consent_given = false
+
+[hooks]
+# ls e find são excluídos: Claude Code usa Glob/Grep nativos que são mais precisos
+# tree também: retorno grande sem ganho real no contexto do LLM
+exclude_commands = [{% for c in rtk_config.hooks.exclude_commands %}"{{ c }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+
+[limits]
+grep_max_results = {{ rtk_config.limits.grep_max_results }}
+grep_max_per_file = {{ rtk_config.limits.grep_max_per_file }}
+status_max_files = {{ rtk_config.limits.status_max_files }}
+status_max_untracked = {{ rtk_config.limits.status_max_untracked }}
+passthrough_max_chars = {{ rtk_config.limits.passthrough_max_chars }}

@@ -1,0 +1,1 @@
+portainer_compose_file: "{{ shipyard_compose_dir }}/portainer.yml"

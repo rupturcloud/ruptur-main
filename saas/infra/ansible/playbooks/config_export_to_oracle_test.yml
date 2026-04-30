@@ -1,0 +1,51 @@
+---
+- name: Exportar restore-kit de configs sensíveis para a oracle-test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    export_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+    restore_kit_specs:
+      - source_host: hostinger-kvm2
+        name: kvm2_jarvis_env_bundle
+        base_dir: /root/J.A.R.V.I.S.
+        paths:
+          - .env
+          - .env.example
+      - source_host: oracle-prod
+        name: oracle_prod_runtime_bundle
+        base_dir: /home/ubuntu/apps/ruptur-backend
+        paths:
+          - backend/.env
+          - backend/.env.example
+          - deploy/host2/.env
+          - deploy/host2/.env.example
+          - deploy/host2/traefik_dynamic.yml
+          - deploy/host2/redirect/nginx.conf
+          - deploy/kvm2/.env.example
+          - deploy/kvm2/traefik_dynamic.yml
+    target_ssh_cmd: >-
+      ssh -i {{ hostvars['oracle-test'].ansible_ssh_private_key_file }}
+      {{ hostvars['oracle-test'].ansible_user }}@{{ hostvars['oracle-test'].ansible_host }}
+  tasks:
+    - name: Garantir diretório local de artefatos restore-kit
+      ansible.builtin.file:
+        path: "{{ ansible_artifacts_root }}/restore-kit"
+        state: directory
+        mode: "0755"
+
+    - name: Exportar cada bundle de configuração para o restore-kit
+      ansible.builtin.shell: |
+        set -euo pipefail
+        source_ssh_cmd="ssh -i {{ hostvars[item.source_host].ansible_ssh_private_key_file }} {{ hostvars[item.source_host].ansible_user }}@{{ hostvars[item.source_host].ansible_host }}"
+        target_file="{{ oracle_archive_root }}/restore-kit/{{ export_timestamp }}_{{ item.name }}.tar.gz"
+        ${source_ssh_cmd} "tar -C '{{ item.base_dir }}' -czf - {{ item.paths | map('quote') | join(' ') }}" \
+          | {{ target_ssh_cmd }} "cat > '${target_file}'"
+        sha256_remote="$({{ target_ssh_cmd }} "sha256sum '${target_file}' | awk '{print \$1}'")"
+        printf '%s,%s,%s,%s\n' "{{ export_timestamp }}" "{{ item.name }}" "oracle-test" "${sha256_remote}" \
+          >> "{{ ansible_artifacts_root }}/restore-kit/export_manifest.csv"
+      args:
+        executable: /bin/bash
+      loop: "{{ restore_kit_specs }}"
+      loop_control:
+        label: "{{ item.name }}"

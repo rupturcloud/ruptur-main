@@ -1,0 +1,12 @@
+---
+- name: Renderizar compose do Redis
+  ansible.builtin.template:
+    src: docker-compose.redis.yml.j2
+    dest: "{{ redis_compose_file }}"
+    mode: "0644"
+
+- name: Subir Redis quando autostart estiver habilitado
+  ansible.builtin.command:
+    cmd: docker compose -f {{ redis_compose_file }} up -d
+  changed_when: shipyard_compose_autostart | bool
+  when: shipyard_compose_autostart | bool

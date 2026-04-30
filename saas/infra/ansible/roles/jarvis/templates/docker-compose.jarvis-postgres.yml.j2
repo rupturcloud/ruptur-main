@@ -1,0 +1,16 @@
+services:
+  jarvis-postgres:
+    image: {{ jarvis_session_postgres_image }}
+    container_name: jarvis-postgres
+    restart: unless-stopped
+    env_file:
+      - {{ jarvis_session_postgres_env_file | quote }}
+    ports:
+      - "{{ jarvis_session_postgres_host }}:{{ jarvis_session_postgres_port }}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - {{ jarvis_session_postgres_data_dir | quote }}:/var/lib/postgresql/data

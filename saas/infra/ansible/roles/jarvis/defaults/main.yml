@@ -1,0 +1,60 @@
+jarvis_runtime_dir: "{{ shipyard_base_dir }}/jarvis-v1"
+jarvis_state_dir: "{{ jarvis_runtime_dir }}/apps/state"
+jarvis_config_dir: "{{ shipyard_config_dir }}/jarvis"
+jarvis_logs_dir: "{{ jarvis_runtime_dir }}/logs"
+
+jarvis_public_domain: "{{ shipyard_domains.ops }}"
+jarvis_public_base_url: "https://{{ jarvis_public_domain }}"
+jarvis_port: "{{ shipyard_jarvis_port }}"
+jarvis_core_provider: "{{ shipyard_jarvis_core_provider }}"
+jarvis_router_provider: "{{ shipyard_jarvis_router_provider }}"
+jarvis_ollama_base_url: "{{ shipyard_jarvis_ollama_base_url }}"
+jarvis_ollama_model: "{{ shipyard_jarvis_ollama_model }}"
+jarvis_uazapi_base_url: "{{ shipyard_jarvis_uazapi_base_url }}"
+
+jarvis_service_name: "{{ shipyard_jarvis_service_name | default('jarvis-agent') }}"
+jarvis_service_unit: "/etc/systemd/system/{{ jarvis_service_name }}.service"
+jarvis_service_workdir: "{{ jarvis_runtime_dir }}/apps/jarvis/agent"
+jarvis_service_user: "{{ shipyard_admin_user }}"
+jarvis_service_group: "{{ shipyard_admin_user }}"
+jarvis_python_bin: "{{ jarvis_runtime_dir }}/venv/bin/python"
+jarvis_pip_bin: "{{ jarvis_runtime_dir }}/venv/bin/pip"
+jarvis_main_path: "{{ jarvis_service_workdir }}/main.py"
+jarvis_agent_path: "{{ jarvis_service_workdir }}/agent.py"
+jarvis_py_path: >-
+  {{ jarvis_runtime_dir }}/packages/shared-config:{{ jarvis_runtime_dir }}/packages/shared-types
+
+jarvis_google_project_id: "{{ gcp_project_id }}"
+jarvis_google_region: "{{ gcp_region }}"
+jarvis_google_credentials_path: "{{ gcp_sa_key_path }}"
+
+jarvis_manage_existing_runtime_only: "{{ shipyard_jarvis_manage_existing_runtime_only | default(true) }}"
+jarvis_autostart: "{{ shipyard_jarvis_autostart | default(shipyard_compose_autostart) }}"
+jarvis_validate_session_persistence: "{{ shipyard_jarvis_validate_session_persistence | default(false) }}"
+
+jarvis_python_packages:
+  - "litellm>=1.75.5"
+  - "asyncpg"
+
+jarvis_session_backend: "{{ shipyard_jarvis_session_backend | default('postgres') }}"
+jarvis_session_postgres_image: "{{ shipyard_jarvis_session_postgres_image | default('postgres:16-alpine') }}"
+jarvis_session_postgres_runtime_dir: "{{ shipyard_runtime_dir }}/jarvis-postgres"
+jarvis_session_postgres_data_dir: "{{ jarvis_session_postgres_runtime_dir }}/data"
+jarvis_session_postgres_compose_file: "{{ jarvis_session_postgres_runtime_dir }}/docker-compose.yml"
+jarvis_session_postgres_env_file: "{{ jarvis_session_postgres_runtime_dir }}/.env"
+jarvis_session_postgres_host: "{{ shipyard_jarvis_session_postgres_host | default('127.0.0.1') }}"
+jarvis_session_postgres_port: "{{ shipyard_jarvis_session_postgres_port | default(5433) }}"
+jarvis_session_postgres_db: "{{ shipyard_jarvis_session_postgres_db | default('jarvis_adk') }}"
+jarvis_session_postgres_user: "{{ shipyard_jarvis_session_postgres_user | default('jarvis_adk') }}"
+jarvis_session_postgres_password: "{{ shipyard_jarvis_session_postgres_password | default('') }}"
+jarvis_session_service_uri: >-
+  {{
+    'postgresql+asyncpg://' ~
+    jarvis_session_postgres_user ~ ':' ~
+    jarvis_session_postgres_password ~ '@' ~
+    jarvis_session_postgres_host ~ ':' ~
+    (jarvis_session_postgres_port | string) ~ '/' ~
+    jarvis_session_postgres_db
+    if jarvis_session_backend == 'postgres' and (jarvis_session_postgres_password | length > 0)
+    else ''
+  }}

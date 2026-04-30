@@ -1,0 +1,1 @@
+n8n_compose_file: "{{ shipyard_compose_dir }}/n8n.yml"

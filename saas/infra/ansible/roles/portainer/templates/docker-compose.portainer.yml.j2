@@ -1,0 +1,24 @@
+services:
+  portainer:
+    image: {{ shipyard_images.portainer }}
+    container_name: ruptur-portainer
+    restart: unless-stopped
+    command:
+      - --admin-password={{ shipyard_portainer_admin_password_hash }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ shipyard_data_dir }}/portainer:/data
+    networks:
+      - edge
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.portainer.rule: Host(`{{ shipyard_domains.portainer }}`)
+      traefik.http.routers.portainer.entrypoints: websecure
+      traefik.http.routers.portainer.tls: "true"
+      traefik.http.routers.portainer.tls.certresolver: letsencrypt
+      traefik.http.services.portainer.loadbalancer.server.port: "9000"
+
+networks:
+  edge:
+    external: true
+    name: ruptur-edge

@@ -1,0 +1,20 @@
+---
+- name: Preparar o scaffold do MagicRouteer no GCP
+  hosts: shipyard
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian/Ubuntu."
+
+  vars:
+    magicrouteer_enabled: true
+
+  roles:
+    - role: base
+    - role: shipyard_dirs
+    - role: magicrouteer

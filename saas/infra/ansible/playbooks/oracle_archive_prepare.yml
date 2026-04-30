@@ -1,0 +1,13 @@
+---
+- name: Preparar estrutura de staging bruto nas Oracle sem depender de Python do alvo
+  hosts: oracle_staging
+  gather_facts: false
+  tasks:
+    - name: Criar raiz e subdiretórios via raw
+      ansible.builtin.raw: |
+        sudo mkdir -p {{ oracle_archive_root }}
+        {% for item in oracle_archive_dirs %}
+        sudo mkdir -p {{ oracle_archive_root }}/{{ item }}
+        {% endfor %}
+        sudo chown -R {{ ansible_user }}:{{ ansible_user }} {{ oracle_archive_root }}
+      changed_when: true

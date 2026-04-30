@@ -1,0 +1,26 @@
+---
+- name: Verificar se existe arquivo de config persistido do n8n
+  ansible.builtin.stat:
+    path: "{{ shipyard_data_dir }}/n8n/config"
+  register: n8n_config_file
+
+- name: Corrigir permissões do config persistido do n8n
+  ansible.builtin.file:
+    path: "{{ shipyard_data_dir }}/n8n/config"
+    state: file
+    owner: "1000"
+    group: "1000"
+    mode: "0600"
+  when: n8n_config_file.stat.exists
+
+- name: Renderizar compose do n8n
+  ansible.builtin.template:
+    src: docker-compose.n8n.yml.j2
+    dest: "{{ n8n_compose_file }}"
+    mode: "0644"
+
+- name: Subir n8n quando autostart estiver habilitado
+  ansible.builtin.command:
+    cmd: docker compose -f {{ n8n_compose_file }} up -d
+  changed_when: shipyard_compose_autostart | bool
+  when: shipyard_compose_autostart | bool

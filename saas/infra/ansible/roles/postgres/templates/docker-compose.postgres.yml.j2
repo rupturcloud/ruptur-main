@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: {{ shipyard_images.postgres }}
+    container_name: ruptur-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: {{ shipyard_postgres_db | quote }}
+      POSTGRES_USER: {{ shipyard_postgres_user | quote }}
+      POSTGRES_PASSWORD: {{ shipyard_postgres_password | quote }}
+    volumes:
+      - {{ shipyard_data_dir }}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ shipyard_postgres_user }} -d {{ shipyard_postgres_db }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - data
+
+networks:
+  data:
+    external: true
+    name: ruptur-data

@@ -1,0 +1,43 @@
+---
+- name: Reconciliar o Jarvis ADK no GCP com sessão persistente
+  hosts: shipyard
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Verificar se existe arquivo local de segredos do inventory
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      delegate_to: localhost
+      become: false
+      register: shipyard_local_secrets_file
+
+    - name: Carregar segredos locais do inventory quando disponíveis
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      when: shipyard_local_secrets_file.stat.exists
+
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian/Ubuntu."
+
+    - name: Validar segredo do Postgres de sessão do Jarvis
+      ansible.builtin.assert:
+        that:
+          - shipyard_jarvis_session_postgres_password | default('PENDING_') is not search('CHANGE_ME|PENDING_')
+        fail_msg: >-
+          Preencha `shipyard_jarvis_session_postgres_password` no arquivo local
+          de segredos antes de reconciliar a sessão persistente do Jarvis.
+
+  vars:
+    shipyard_jarvis_enabled: true
+    shipyard_jarvis_autostart: true
+    shipyard_jarvis_validate_session_persistence: true
+
+  roles:
+    - role: base
+    - role: docker
+    - role: shipyard_dirs
+    - role: jarvis

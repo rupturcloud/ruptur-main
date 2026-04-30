@@ -1,0 +1,99 @@
+---
+- name: Garantir diretório de keyrings do apt
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Remover definição conflitante antiga do NodeSource
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/nodesource.sources
+    state: absent
+
+- name: Baixar a chave GPG do NodeSource
+  ansible.builtin.get_url:
+    url: "{{ paperclip_nodesource_key_url }}"
+    dest: "{{ paperclip_nodesource_key_tmp }}"
+    mode: "0644"
+
+- name: Converter chave do NodeSource para keyring binário
+  ansible.builtin.command:
+    cmd: "gpg --dearmor --yes --output {{ paperclip_nodesource_keyring_path }} {{ paperclip_nodesource_key_tmp }}"
+  changed_when: true
+
+- name: Adicionar repositório NodeSource para Node.js 20
+  ansible.builtin.apt_repository:
+    repo: "{{ paperclip_nodesource_repo }}"
+    state: present
+    filename: nodesource
+
+- name: Instalar Node.js e dependências de runtime do Paperclip
+  ansible.builtin.apt:
+    name:
+      - nodejs
+      - git
+    state: present
+    update_cache: true
+
+- name: Garantir grupo do Paperclip
+  ansible.builtin.group:
+    name: "{{ paperclip_group }}"
+    system: true
+
+- name: Garantir usuário do Paperclip
+  ansible.builtin.user:
+    name: "{{ paperclip_user }}"
+    group: "{{ paperclip_group }}"
+    home: "{{ paperclip_home }}"
+    shell: /bin/bash
+    system: true
+    create_home: true
+
+- name: Garantir diretórios persistentes do Paperclip
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ paperclip_user }}"
+    group: "{{ paperclip_group }}"
+    mode: "0755"
+  loop:
+    - "{{ paperclip_home }}"
+    - "{{ paperclip_home }}/.paperclip"
+    - "{{ paperclip_home }}/paperclip-data"
+    - "{{ paperclip_home }}/paperclip-logs"
+
+- name: Verificar versão atual do Paperclip CLI
+  ansible.builtin.command:
+    cmd: paperclipai --version
+  register: paperclip_cli_version
+  changed_when: false
+  failed_when: false
+
+- name: Instalar Paperclip CLI globalmente na versão travada
+  ansible.builtin.command:
+    cmd: npm install -g paperclipai@{{ paperclip_version }}
+  when: >
+    paperclip_cli_version.rc != 0 or
+    (paperclip_cli_version.stdout | trim | regex_replace('^v', '')) != paperclip_version
+
+- name: Descobrir caminho do binário do Paperclip
+  ansible.builtin.shell:
+    cmd: command -v paperclipai
+  register: paperclip_cli_path
+  changed_when: false
+
+- name: Renderizar unidade systemd do Paperclip
+  ansible.builtin.template:
+    src: paperclip.service.j2
+    dest: "{{ paperclip_service_unit }}"
+    mode: "0644"
+  notify:
+    - Recarregar systemd
+    - Reiniciar Paperclip
+
+- name: Ativar o serviço do Paperclip
+  ansible.builtin.systemd:
+    name: "{{ paperclip_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true

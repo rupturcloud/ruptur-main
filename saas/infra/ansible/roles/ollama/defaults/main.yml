@@ -1,0 +1,15 @@
+ollama_install_script_url: "https://ollama.com/install.sh"
+ollama_service_name: ollama
+ollama_binary_path: /usr/bin/ollama
+ollama_host: "0.0.0.0"
+ollama_port: 11434
+ollama_models_dir: /opt/ruptur/data/ollama/models
+ollama_systemd_override_dir: /etc/systemd/system/ollama.service.d
+
+# Lista de modelos a serem puxados após a instalação.
+# Exemplo: ["qwen3:8b", "qwen2.5-coder:7b", "qwen3:4b"]
+ollama_models: []
+
+# Timeout (segundos) para o pull de cada modelo via async.
+# Modelos 7B/8B podem levar mais de 10 min em links modestos; 1800s dá folga.
+ollama_pull_timeout: 1800

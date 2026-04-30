@@ -1,0 +1,130 @@
+---
+- name: Deploy Ruptur SaaS em Produção (Instância Nova)
+  hosts: shipyard
+  become: true
+  vars_files:
+    - ../inventories/production/group_vars/all.yml
+    - ../inventories/production/group_vars/secrets.yml
+  
+  tasks:
+    - name: Validar sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+          - ansible_facts.distribution_major_version in ['11', '12']
+        fail_msg: "Este playbook requer Debian 11 ou 12"
+    
+    - name: Atualizar apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    
+    - name: Instalar dependências básicas
+      ansible.builtin.apt:
+        name:
+          - curl
+          - wget
+          - git
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+        state: present
+    
+    - name: Adicionar chave GPG do Docker
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+    
+    - name: Adicionar repositório Docker
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+    
+    - name: Instalar Docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+    
+    - name: Adicionar usuário ao grupo docker
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+    
+    - name: Iniciar e habilitar Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+    
+    - name: Criar diretórios necessários
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+      loop:
+        - "/opt/ruptur"
+        - "/opt/ruptur/saas"
+        - "/opt/ruptur/saas/runtime-data"
+    
+    - name: Criar rede Docker ruptur-edge
+      community.docker.docker_network:
+        name: ruptur-edge
+        state: present
+    
+    - name: Copiar código do SaaS para servidor
+      ansible.builtin.copy:
+        src: /Users/diego/dev/ruptur-cloud/ruptur-main/saas/
+        dest: /opt/ruptur/saas/
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: preserve
+    
+        
+    - name: Instalar Docker Compose
+      ansible.builtin.get_url:
+        url: https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+    
+    - name: Deploy SaaS com Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: /opt/ruptur/saas
+        state: present
+        pull: yes
+    
+    - name: Verificar status dos containers
+      community.docker.docker_container_info:
+        name: saas-web-1
+      register: container_info
+    
+    - name: Mostrar status do deploy
+      ansible.builtin.debug:
+        msg: |
+          Deploy SaaS concluído!
+          Container saas-web-1 status: {{ container_info.container.State.Status }}
+          IP Externo: {{ ansible_host }}
+          Domínios configurados: {{ shipyard_domains | join(', ') }}
+    
+    - name: Aguardar containers estabilizarem
+      ansible.builtin.pause:
+        seconds: 30
+    
+    - name: Verificar logs do container
+      community.docker.docker_container_exec:
+        container: saas-web-1
+        command: tail -20 /app/logs/app.log
+      register: app_logs
+    
+    - name: Mostrar logs da aplicação
+      ansible.builtin.debug:
+        msg: |
+          Logs da aplicação:
+          {{ app_logs.stdout_lines | join('\n') }}

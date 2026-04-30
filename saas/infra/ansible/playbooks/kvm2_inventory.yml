@@ -1,0 +1,58 @@
+---
+- name: Gerar inventário e manifesto de export da KVM2
+  hosts: hostinger-kvm2
+  gather_facts: false
+  tasks:
+    - name: Garantir diretório local de artefatos
+      ansible.builtin.file:
+        path: "{{ ansible_artifacts_root }}/kvm2"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Coletar lista de volumes Docker
+      ansible.builtin.shell: docker volume ls --format '{{"{{.Name}}"}}'
+      register: kvm2_docker_volumes
+      changed_when: false
+
+    - name: Coletar mounts dos containers
+      ansible.builtin.shell: |
+        docker ps --format '{{"{{.Names}}"}}' | while read c; do
+          echo "-- ${c}"
+          docker inspect -f '{{"{{range .Mounts}}{{.Type}} {{.Name}} {{.Source}} -> {{.Destination}}{{println}}{{end}}"}}' "$c"
+        done
+      register: kvm2_container_mounts
+      changed_when: false
+
+    - name: Coletar tamanhos dos caminhos críticos
+      ansible.builtin.shell: |
+        for p in {{ kvm2_export_paths | join(' ') }}; do
+          if [ -e "$p" ]; then
+            du -sh "$p"
+          else
+            echo "MISSING $p"
+          fi
+        done
+      register: kvm2_export_sizes
+      changed_when: false
+
+    - name: Salvar volumes localmente
+      ansible.builtin.copy:
+        dest: "{{ ansible_artifacts_root }}/kvm2/docker_volumes.txt"
+        content: "{{ kvm2_docker_volumes.stdout }}\n"
+        mode: "0644"
+      delegate_to: localhost
+
+    - name: Salvar mounts localmente
+      ansible.builtin.copy:
+        dest: "{{ ansible_artifacts_root }}/kvm2/container_mounts.txt"
+        content: "{{ kvm2_container_mounts.stdout }}\n"
+        mode: "0644"
+      delegate_to: localhost
+
+    - name: Salvar tamanhos localmente
+      ansible.builtin.copy:
+        dest: "{{ ansible_artifacts_root }}/kvm2/export_sizes.txt"
+        content: "{{ kvm2_export_sizes.stdout }}\n"
+        mode: "0644"
+      delegate_to: localhost

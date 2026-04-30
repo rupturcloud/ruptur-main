@@ -1,0 +1,48 @@
+---
+- name: Exportar estado útil das Oracle para a oracle-test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    export_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+    oracle_export_specs:
+      - source_host: oracle-prod
+        name: host2_ruptur_db_data
+        path: /var/lib/docker/volumes/host2_ruptur_db_data/_data
+      - source_host: oracle-prod
+        name: host2_baileys_data
+        path: /var/lib/docker/volumes/host2_baileys_data/_data
+      - source_host: oracle-prod
+        name: host2_traefik_letsencrypt
+        path: /var/lib/docker/volumes/host2_traefik_letsencrypt/_data
+      - source_host: oracle-prod
+        name: host2_whisper_models
+        path: /var/lib/docker/volumes/host2_whisper_models/_data
+      - source_host: oracle-test
+        name: host1_letsencrypt
+        path: /var/lib/docker/volumes/host1_letsencrypt/_data
+    target_ssh_cmd: >-
+      ssh -i {{ hostvars['oracle-test'].ansible_ssh_private_key_file }}
+      {{ hostvars['oracle-test'].ansible_user }}@{{ hostvars['oracle-test'].ansible_host }}
+  tasks:
+    - name: Garantir diretório local de artefatos Oracle
+      ansible.builtin.file:
+        path: "{{ ansible_artifacts_root }}/oracle"
+        state: directory
+        mode: "0755"
+
+    - name: Exportar cada item Oracle para a oracle-test
+      ansible.builtin.shell: |
+        set -euo pipefail
+        source_ssh_cmd="ssh -i {{ hostvars[item.source_host].ansible_ssh_private_key_file }} {{ hostvars[item.source_host].ansible_user }}@{{ hostvars[item.source_host].ansible_host }}"
+        target_file="{{ oracle_archive_root }}/raw/{{ export_timestamp }}_{{ item.name }}.tar.gz"
+        ${source_ssh_cmd} "sudo tar -C '{{ item.path | dirname }}' -czf - '{{ item.path | basename }}'" \
+          | {{ target_ssh_cmd }} "cat > '${target_file}'"
+        sha256_remote="$({{ target_ssh_cmd }} "sha256sum '${target_file}' | awk '{print \$1}'")"
+        printf '%s,%s,%s,%s\n' "{{ export_timestamp }}" "{{ item.name }}" "oracle-test" "${sha256_remote}" \
+          >> "{{ ansible_artifacts_root }}/oracle/export_manifest.csv"
+      args:
+        executable: /bin/bash
+      loop: "{{ oracle_export_specs }}"
+      loop_control:
+        label: "{{ item.name }}"

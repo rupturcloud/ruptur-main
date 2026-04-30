@@ -1,0 +1,25 @@
+---
+# Ruptur SaaS - Variáveis padrão
+saas_enabled: true
+saas_deploy_dir: /opt/ruptur/saas
+saas_container_name: saas-web
+saas_port: 4173
+saas_domains:
+  - app.ruptur.cloud
+  - ruptur.cloud
+  - saas.ruptur.cloud
+saas_network: ruptur-edge
+saas_restart_policy: unless-stopped
+
+# Repositório (opcional - se usar git clone)
+saas_repo_url: https://github.com/tiatendeai/ruptur-cloud.git
+saas_repo_version: main
+saas_repo_path: ruptur-main/saas
+
+# Runtime
+saas_runtime_host: 0.0.0.0
+saas_node_env: production
+
+# Volumes
+saas_data_dir: /opt/ruptur/data/saas
+saas_logs_dir: /opt/ruptur/logs/saas

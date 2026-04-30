@@ -1,0 +1,24 @@
+---
+- name: Instalar e configurar Paperclip no GCP
+  hosts: shipyard
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Remover definição conflitante antiga do NodeSource
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/nodesource.sources
+        - /etc/apt/sources.list.d/nodesource.list
+
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian/Ubuntu."
+
+  roles:
+    - role: base
+    - role: paperclip

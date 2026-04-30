@@ -1,0 +1,111 @@
+# GCP — atualizado 2026-04-23
+# Projeto: ruptur-jarvis-v1-68358 | IP real: 34.39.196.137
+# ATENÇÃO: IP antigo (34.95.234.227) estava incorreto em todos os configs
+gcp_project_id: "ruptur-jarvis-v1-68358"
+gcp_zone: "southamerica-east1-b"
+gcp_region: "southamerica-east1"
+gcp_instance_name: "ruptur-shipyard-01"
+gcp_sa_key_path: "/opt/ruptur/jarvis-v1/jarvis-sa-key.json"
+
+shipyard_project_name: ruptur-jarvis-v1
+shipyard_environment: production
+shipyard_expected_debian_major_version: "11"
+shipyard_compose_autostart: false
+shipyard_jarvis_enabled: false
+shipyard_admin_user: diego
+shipyard_timezone: America/Sao_Paulo
+shipyard_tls_acme_email: ruptur.cloud@gmail.com
+
+shipyard_base_dir: /opt/ruptur
+shipyard_compose_dir: "{{ shipyard_base_dir }}/compose"
+shipyard_config_dir: "{{ shipyard_base_dir }}/config"
+shipyard_data_dir: "{{ shipyard_base_dir }}/data"
+shipyard_logs_dir: "{{ shipyard_base_dir }}/logs"
+shipyard_runtime_dir: "{{ shipyard_base_dir }}/runtime"
+shipyard_backup_dir: "{{ shipyard_base_dir }}/backups"
+
+shipyard_external_networks:
+  - ruptur-edge
+  - ruptur-data
+
+shipyard_domains:
+  hitl: hitl.ruptur.cloud
+  paperclip: paperclip.ruptur.cloud
+  api: api.ruptur.cloud
+  hermes: hermes.ruptur.cloud
+  aiox: aiox.ruptur.cloud
+  n8n: n8n.ruptur.cloud
+  portainer: portainer.ruptur.cloud
+  traefik: traefik.ruptur.cloud
+  ops: ops.ruptur.cloud
+  ollama: ollama.ruptur.cloud
+  saas: app.ruptur.cloud
+  saas_alt: saas.ruptur.cloud
+
+shipyard_uazapi_events:
+  - messages
+  - connection
+shipyard_uazapi_optional_events:
+  - messages_update
+shipyard_uazapi_exclude_messages:
+  - wasSentByApi
+
+# Repos — migração tiatendeai → ruptur-cloud já está em curso; manter aqui apenas como ponte de compatibilidade até a consolidação final
+shipyard_jarvis_repo_url: https://github.com/tiatendeai/J.A.R.V.I.S.
+shipyard_jarvis_repo_version: main
+shipyard_jarvis_state_repo_url: https://github.com/tiatendeai/state.git
+shipyard_jarvis_state_repo_version: main
+shipyard_jarvis_core_provider: ollama
+shipyard_jarvis_router_provider: ollama
+shipyard_jarvis_ollama_base_url: "{{ ai_host_ollama_base_url }}"
+shipyard_jarvis_ollama_model: "{{ shipyard_ollama_default_model }}"
+shipyard_jarvis_port: 5000
+shipyard_jarvis_uazapi_base_url: https://api.uazapi.com
+shipyard_jarvis_service_name: jarvis-agent
+shipyard_jarvis_session_backend: postgres
+shipyard_jarvis_session_postgres_host: 127.0.0.1
+shipyard_jarvis_session_postgres_port: 5433
+shipyard_jarvis_session_postgres_db: jarvis_adk
+shipyard_jarvis_session_postgres_user: jarvis_adk
+shipyard_jarvis_manage_existing_runtime_only: true
+shipyard_jarvis_autostart: false
+shipyard_jarvis_validate_session_persistence: false
+
+# -----------------------------------------------------------------------
+# AI Host dedicado ao Ollama
+# Após `terraform apply` em adapters/ruptur-forge/terraform/projects/ai-host:
+#   1. Copie `ai_host_internal_ip` para ai_host_ip abaixo
+#   2. Copie `ai_host_external_ip` para ansible_host do grupo ai_host
+#   3. Aguarde o bootstrap de GPU estabilizar o host (startup-script + reboot)
+#   4. Execute: ansible-playbook playbooks/ai_host_gcp.yml
+#   5. Re-execute: ansible-playbook playbooks/jarvis_gcp.yml
+#   6. Re-execute: ansible-playbook playbooks/aiox_gcp.yml
+# -----------------------------------------------------------------------
+ai_host_ip: "PENDING_TERRAFORM_APPLY"
+ai_host_ollama_port: 11434
+ai_host_ollama_base_url: "http://{{ ai_host_ip }}:{{ ai_host_ollama_port }}/v1"
+shipyard_ai_host_expected_debian_major_version: "12"
+shipyard_ai_host_gpu_enabled: true
+shipyard_ollama_default_model: "qwen3:8b"
+shipyard_ollama_boot_models:
+  - "qwen3:8b"
+  - "qwen2.5-coder:7b"
+  - "qwen3:4b"
+
+shipyard_aiox_enabled: true
+shipyard_aiox_model_profile: qwen
+shipyard_aiox_hermes_base_url: "{{ ai_host_ollama_base_url }}"
+shipyard_aiox_hermes_model: hermes
+shipyard_aiox_gemma4_model: gemma4:latest
+shipyard_aiox_qwen_model: "{{ shipyard_ollama_default_model }}"
+
+# Diretório canônico do Terraform dentro do Estaleiro
+terraform_project_dir: /Users/diego/dev/ruptur-cloud/ruptur-main/shipyard/adapters/ruptur-forge/terraform
+
+shipyard_images:
+  traefik: traefik:v3.1
+  portainer: portainer/portainer-ce:lts
+  postgres: postgres:16
+  redis: redis:7
+  n8n: docker.n8n.io/n8nio/n8n:1
+  minio: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1

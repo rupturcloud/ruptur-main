@@ -1,0 +1,52 @@
+---
+- name: Preflight local do Mac
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tasks:
+    - name: Exibir resumo do host local
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          os: "{{ ansible_distribution | default('n/a') }} {{ ansible_distribution_version | default('n/a') }}"
+          kernel: "{{ ansible_kernel | default('n/a') }}"
+          cpu_vcpus: "{{ ansible_processor_vcpus | default('n/a') }}"
+          memory_mb: "{{ ansible_memtotal_mb | default('n/a') }}"
+
+    - name: Verificar presença do Docker local
+      ansible.builtin.shell: command -v docker || true
+      register: docker_check_local
+      changed_when: false
+
+    - name: Informar status do Docker local
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          docker_available: "{{ docker_check_local.stdout | trim | length > 0 }}"
+          docker_bin: "{{ docker_check_local.stdout | default('ausente') }}"
+
+- name: Preflight remoto sem depender de Python do alvo
+  hosts: hostinger-kvm2,oracle_staging
+  gather_facts: false
+  tasks:
+    - name: Coletar resumo remoto com raw
+      ansible.builtin.raw: |
+        printf "HOST=%s\n" "$(hostname)"
+        printf "KERNEL=%s\n" "$(uname -r)"
+        printf "CPU=%s\n" "$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo n/a)"
+        if [ -r /proc/meminfo ]; then
+          awk '/MemTotal/ {printf "MEM_MB=%d\n", $2/1024}' /proc/meminfo
+        else
+          echo "MEM_MB=n/a"
+        fi
+        if command -v docker >/dev/null 2>&1; then
+          printf "DOCKER=%s\n" "$(command -v docker)"
+        else
+          echo "DOCKER=absent"
+        fi
+      register: remote_summary
+      changed_when: false
+
+    - name: Exibir resumo remoto
+      ansible.builtin.debug:
+        msg: "{{ remote_summary.stdout_lines }}"

@@ -1,0 +1,18 @@
+# Operational Profile — RTK / Shipyard
+
+> Gerado e mantido pelo Ansible para manter Mac local e VPS coerentes.
+
+- residency: {{ rtk_operational_profile.residency }}
+- scope: {{ rtk_operational_profile.scope }}
+- primary_runtime: {{ rtk_operational_profile.primary_runtime }}
+- primary_model: {{ rtk_operational_profile.primary_model }}
+- autonomy: {{ rtk_operational_profile.autonomy }}
+- secret_source: {{ rtk_operational_profile.secret_source }}
+- observability: {{ rtk_operational_profile.observability }}
+
+## Regras
+
+- Não assumir contexto fora do que o State e o Shipyard declararam.
+- Preferir diffs, whitelists e mapas estáticos antes de redescobrir o repositório.
+- Tratar Mac local e VPS com a mesma configuração canônica.
+- Não ampliar o contexto sem necessidade explícita.

@@ -1,0 +1,42 @@
+services:
+  aiox:
+    build:
+      context: {{ aiox_runtime_dir | quote }}
+    image: ruptur/aiox-bridge:local
+    container_name: ruptur-aiox
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ aiox_port }}:{{ aiox_port }}"
+    environment:
+      PORT: "{{ aiox_port }}"
+      AIOX_CORE_VERSION: "{{ aiox_core_version }}"
+      AIOX_PROJECT_DIR: "{{ aiox_project_dir }}"
+      AIOX_HOME: "{{ aiox_home_dir }}"
+      AIOX_MODEL_PROFILE: "{{ aiox_model_profile }}"
+      AIOX_MODEL: "{{ aiox_model }}"
+      HERMES_BASE_URL: "{{ aiox_hermes_base_url }}"
+      HERMES_CHAT_PATH: "{{ aiox_hermes_chat_path }}"
+      HERMES_MODEL: "{{ aiox_model }}"
+      HERMES_TIMEOUT_MS: "{{ aiox_hermes_timeout_ms }}"
+      PUBLIC_BASE_URL: "{{ aiox_public_base_url }}"
+      PROMPT_ENVELOPE_PATH: "{{ aiox_prompt_envelope_path }}"
+    volumes:
+      - {{ aiox_data_dir }}/workspace:/workspace
+      - {{ aiox_runtime_home_dir }}:/workspace/.aiox-home
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - edge
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "ruptur-edge"
+      traefik.http.routers.aiox.rule: Host(`{{ aiox_public_domain }}`)
+      traefik.http.routers.aiox.entrypoints: websecure
+      traefik.http.routers.aiox.tls: "true"
+      traefik.http.routers.aiox.tls.certresolver: letsencrypt
+      traefik.http.services.aiox.loadbalancer.server.port: "{{ aiox_port }}"
+
+networks:
+  edge:
+    external: true
+    name: ruptur-edge

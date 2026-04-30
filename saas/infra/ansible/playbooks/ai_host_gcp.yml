@@ -1,0 +1,58 @@
+---
+- name: Materializar host de IA dedicado (Ollama) no GCP
+  hosts: ai_host
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Verificar se existe arquivo local de segredos do inventory
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      delegate_to: localhost
+      become: false
+      register: shipyard_local_secrets_file
+
+    - name: Carregar segredos locais do inventory quando disponíveis
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      when: shipyard_local_secrets_file.stat.exists
+
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian/Ubuntu."
+
+    - name: Validar major version esperada do Debian no AI host
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution_major_version == (shipyard_ai_host_expected_debian_major_version | default('12'))
+        fail_msg: >-
+          AI host fora do baseline esperado. Esperado Debian {{ shipyard_ai_host_expected_debian_major_version | default('12') }},
+          encontrado {{ ansible_facts.distribution_major_version }}.
+
+    - name: Validar que ai_host_ip foi preenchido (não é placeholder)
+      ansible.builtin.assert:
+        that:
+          - ai_host_ip | default('PENDING') is not search('PENDING')
+        fail_msg: >-
+          Execute `terraform apply` em adapters/ruptur-forge/terraform/projects/ai-host,
+          copie o valor de `ai_host_internal_ip` para a variável `ai_host_ip`
+          em inventories/production/group_vars/all.yml e tente novamente.
+
+    - name: Aguardar bootstrap da GPU estabilizar quando habilitado
+      ansible.builtin.stat:
+        path: /opt/google/cuda-installer/cuda_installation
+      register: ai_host_gpu_bootstrap
+      retries: 30
+      delay: 20
+      until: ai_host_gpu_bootstrap.stat.exists
+      when: shipyard_ai_host_gpu_enabled | default(false) | bool
+
+  vars:
+    ollama_models: "{{ shipyard_ollama_boot_models | default([shipyard_ollama_default_model | default('qwen3:8b')], true) }}"
+
+  roles:
+    - role: base
+    - role: docker
+    - role: ollama

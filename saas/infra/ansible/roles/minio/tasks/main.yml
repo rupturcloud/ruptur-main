@@ -1,0 +1,12 @@
+---
+- name: Renderizar compose do MinIO
+  ansible.builtin.template:
+    src: docker-compose.minio.yml.j2
+    dest: "{{ minio_compose_file }}"
+    mode: "0644"
+
+- name: Subir MinIO quando autostart estiver habilitado
+  ansible.builtin.command:
+    cmd: docker compose -f {{ minio_compose_file }} up -d
+  changed_when: shipyard_compose_autostart | bool
+  when: shipyard_compose_autostart | bool

@@ -1,0 +1,26 @@
+services:
+  jarvis:
+    build:
+      context: {{ jarvis_runtime_dir | quote }}
+    image: ruptur/jarvis-agent:local
+    container_name: ruptur-jarvis
+    restart: unless-stopped
+    env_file:
+      - {{ (jarvis_config_dir ~ '/jarvis.env') | quote }}
+    volumes:
+      - {{ jarvis_data_dir | quote }}:/app/data
+      - {{ jarvis_state_dir | quote }}:/state:ro
+    networks:
+      - edge
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.jarvis.rule: Host(`{{ jarvis_public_domain }}`)
+      traefik.http.routers.jarvis.entrypoints: websecure
+      traefik.http.routers.jarvis.tls: "true"
+      traefik.http.routers.jarvis.tls.certresolver: letsencrypt
+      traefik.http.services.jarvis.loadbalancer.server.port: "{{ jarvis_port }}"
+
+networks:
+  edge:
+    external: true
+    name: ruptur-edge

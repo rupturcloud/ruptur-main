@@ -1,0 +1,11 @@
+# Context Budget — RTK / Shipyard
+
+max_files: {{ rtk_context_budget.max_files }}
+max_chars: {{ rtk_context_budget.max_chars }}
+prefer_diffs: {{ rtk_context_budget.prefer_diffs | lower }}
+prefer_whitelist: {{ rtk_context_budget.prefer_whitelist | lower }}
+heartbeat_seconds_min: {{ rtk_context_budget.heartbeat_seconds_min }}
+allow_repo_rediscovery: {{ rtk_context_budget.allow_repo_rediscovery | lower }}
+
+## Notes
+# Este arquivo serve como referência canônica para preflight, triagem e compressão de contexto.

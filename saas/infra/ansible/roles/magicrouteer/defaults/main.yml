@@ -1,0 +1,19 @@
+magicrouteer_enabled: false
+magicrouteer_name: magicrouteer
+
+magicrouteer_runtime_dir: "{{ shipyard_runtime_dir }}/magicrouteer"
+magicrouteer_config_dir: "{{ shipyard_config_dir }}/magicrouteer"
+magicrouteer_logs_dir: "{{ shipyard_logs_dir }}/magicrouteer"
+magicrouteer_data_dir: "{{ shipyard_data_dir }}/magicrouteer"
+
+magicrouteer_runtime_strategy: "terraform_provisions_ansible_converges"
+magicrouteer_llm_provider: "ollama"
+magicrouteer_ollama_base_url: "{{ shipyard_jarvis_ollama_base_url }}"
+magicrouteer_ollama_model: "{{ shipyard_aiox_qwen_model | default(shipyard_jarvis_ollama_model) }}"
+
+magicrouteer_gcp_project_id: "{{ gcp_project_id }}"
+magicrouteer_gcp_region: "{{ gcp_region }}"
+magicrouteer_gcp_zone: "{{ gcp_zone }}"
+
+magicrouteer_secret_policy: "infisical_or_gcp_secret_manager"
+magicrouteer_notes_file: "{{ magicrouteer_config_dir }}/OPERATING_MODEL.md"

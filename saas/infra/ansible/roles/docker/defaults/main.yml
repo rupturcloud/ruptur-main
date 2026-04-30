@@ -1,0 +1,12 @@
+docker_apt_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+docker_arch_map:
+  x86_64: amd64
+  aarch64: arm64
+
+docker_min_api_version: "1.24"

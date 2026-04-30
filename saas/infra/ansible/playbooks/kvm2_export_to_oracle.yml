@@ -1,0 +1,32 @@
+---
+- name: Exportar estado crítico da KVM2 para staging Oracle
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    export_timestamp: "{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}"
+    kvm2_ssh_cmd: >-
+      ssh -i {{ hostvars['hostinger-kvm2'].ansible_ssh_private_key_file }}
+      {{ hostvars['hostinger-kvm2'].ansible_user }}@{{ hostvars['hostinger-kvm2'].ansible_host }}
+  tasks:
+    - name: Garantir diretório local de artefatos
+      ansible.builtin.file:
+        path: "{{ ansible_artifacts_root }}/kvm2"
+        state: directory
+        mode: "0755"
+
+    - name: Exportar cada item crítico em tar.gz para a Oracle
+      ansible.builtin.shell: |
+        set -euo pipefail
+        target_ssh_cmd="ssh -i {{ hostvars[item.target_host].ansible_ssh_private_key_file }} {{ hostvars[item.target_host].ansible_user }}@{{ hostvars[item.target_host].ansible_host }}"
+        target_file="{{ oracle_archive_root }}/raw/{{ export_timestamp }}_{{ item.name }}.tar.gz"
+        {{ kvm2_ssh_cmd }} "tar -C '{{ item.path | dirname }}' -czf - '{{ item.path | basename }}'" \
+          | ${target_ssh_cmd} "cat > '${target_file}'"
+        sha256_local="$(${target_ssh_cmd} "sha256sum '${target_file}' | awk '{print \$1}'")"
+        printf '%s,%s,%s,%s\n' "{{ export_timestamp }}" "{{ item.name }}" "{{ item.target_host }}" "${sha256_local}" \
+          >> "{{ ansible_artifacts_root }}/kvm2/export_manifest.csv"
+      args:
+        executable: /bin/bash
+      loop: "{{ kvm2_export_specs }}"
+      loop_control:
+        label: "{{ item.name }}"

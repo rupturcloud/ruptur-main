@@ -1,0 +1,18 @@
+paperclip_version: "2026.416.0"
+paperclip_user: paperclip
+paperclip_group: paperclip
+paperclip_home: /var/lib/paperclip
+paperclip_port: 3100
+paperclip_host: 0.0.0.0
+paperclip_bind_mode: lan
+paperclip_deployment_mode: authenticated
+paperclip_node_env: development
+paperclip_nodesource_key_url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+paperclip_nodesource_key_tmp: /tmp/nodesource-repo.gpg.key
+paperclip_nodesource_keyring_path: /usr/share/keyrings/nodesource.gpg
+paperclip_nodesource_repo: >-
+  deb [signed-by=/usr/share/keyrings/nodesource.gpg]
+  https://deb.nodesource.com/node_20.x nodistro main
+paperclip_service_name: paperclip
+paperclip_service_unit: /etc/systemd/system/paperclip.service
+paperclip_prompt_envelope_path: "{{ paperclip_home }}/prompt-envelope.json"

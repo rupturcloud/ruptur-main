@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# repo_indexer.sh — Indexador de repos do ecossistema Ruptur
+# Dono: shipyard | Gerenciado via: Ansible role rtk
+# Output global: {{ rtk_index_path }}
+# Cron: {{ rtk_cron_schedule }}
+
+set -euo pipefail
+
+DEV_ROOT="{{ rtk_dev_root }}"
+STATE_ROOT="{{ rtk_state_root }}"
+OUTPUT="{{ rtk_index_path }}"
+INDEX_DIR="{{ rtk_index_dir }}"
+DATE=$(date '+%Y-%m-%d %H:%M')
+
+mkdir -p "$INDEX_DIR"
+
+echo "[RTK Indexer] Iniciando em $DATE"
+echo "[RTK Indexer] DEV_ROOT: $DEV_ROOT"
+
+{
+cat <<HEADER
+---
+name: Índice Global de Repositórios Ruptur
+description: Mapa atualizado de todos os repos em ~/dev com stack, commits e estrutura — gerado por RTK/Shipyard
+type: reference
+updated: $DATE
+owner: shipyard
+---
+
+# Ruptur Ecosystem — Índice de Repos
+
+> Gerado automaticamente em **$DATE**
+> Script: \`~/.claude/scripts/repo_indexer.sh\` (gerenciado pelo Ansible/Shipyard)
+> Para atualizar: \`bash ~/.claude/scripts/repo_indexer.sh\`
+
+HEADER
+
+echo "## Repositórios em ~/dev"
+echo ""
+
+find "$DEV_ROOT" -maxdepth 4 -type d -name ".git" 2>/dev/null \
+  | grep -v "node_modules" \
+  | grep -v "/.git/.git" \
+  | sed 's|/.git||' \
+  | sort \
+  | while read -r repo; do
+
+    name=$(basename "$repo")
+    rel="${repo#$HOME/}"
+
+    echo "### $name"
+    echo "_Path: \`~/$rel\`_"
+    echo ""
+
+    # Stack detection
+    techs=()
+    [ -f "$repo/package.json" ] && techs+=("Node/JS")
+    { [ -f "$repo/pyproject.toml" ] || [ -f "$repo/requirements.txt" ] || [ -f "$repo/setup.py" ]; } && techs+=("Python")
+    [ -f "$repo/Cargo.toml" ] && techs+=("Rust")
+    [ -f "$repo/go.mod" ] && techs+=("Go")
+    [ -f "$repo/CLAUDE.md" ] && techs+=("Claude Code")
+    [ -f "$repo/AGENTS.md" ] && techs+=("Multi-Agent")
+    [ -d "$repo/adapters/provisioning/ansible" ] && techs+=("Ansible")
+
+    if [ ${#techs[@]} -gt 0 ]; then
+        IFS=' ' echo "**Stack:** ${techs[*]}"
+    fi
+
+    # Último commit
+    last_commit=$(git -C "$repo" log -1 --format="%cr — %s" 2>/dev/null || echo "sem commits")
+    echo "**Último commit:** $last_commit"
+
+    # Branch atual
+    branch=$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+    echo "**Branch:** \`$branch\`"
+
+    # Top-level estrutura (excluindo dirs de build/deps)
+    echo "**Estrutura raiz:**"
+    find "$repo" -maxdepth 1 \
+        -not -path "$repo/.git*" \
+        -not -name "node_modules" \
+        -not -name ".venv" \
+        -not -name ".venv-ansible" \
+        -not -name "target" \
+        -not -name "$repo" \
+        2>/dev/null \
+      | sed "s|$repo/||" \
+      | sort \
+      | head -15 \
+      | sed 's/^/- `/' | sed 's/$/`/'
+
+    echo ""
+done
+
+# Seção: State Maps
+echo "---"
+echo ""
+echo "## State Maps (ruptur-main/state)"
+echo ""
+
+if [ -d "$STATE_ROOT" ]; then
+    echo "_Path: \`$STATE_ROOT\`_"
+    echo ""
+    echo "**Estrutura do state:**"
+    find "$STATE_ROOT" -maxdepth 1 \
+        -not -name ".git" \
+        -not -path "$STATE_ROOT" \
+        2>/dev/null \
+      | sed "s|$STATE_ROOT/||" \
+      | sort \
+      | sed 's/^/- `/' | sed 's/$/`/'
+    echo ""
+
+    # Listar arquivos de mapa/índice relevantes
+    if [ -f "$STATE_ROOT/index.yaml" ]; then
+        echo "**index.yaml (resumo):**"
+        head -30 "$STATE_ROOT/index.yaml" | sed 's/^/    /'
+        echo ""
+    fi
+
+    if [ -f "$STATE_ROOT/AGENTS.md" ]; then
+        echo "**AGENTS.md (primeiras linhas):**"
+        head -15 "$STATE_ROOT/AGENTS.md" | sed 's/^/> /'
+        echo ""
+    fi
+else
+    echo "> State root não encontrado em: $STATE_ROOT"
+    echo ""
+fi
+
+# Rodapé
+echo "---"
+echo ""
+REPO_COUNT=$(find "$DEV_ROOT" -maxdepth 4 -type d -name ".git" 2>/dev/null | grep -v "node_modules" | wc -l | tr -d ' ')
+echo "_Total de repos: **${REPO_COUNT}** | Atualizado: ${DATE}_"
+
+} > "$OUTPUT"
+
+echo "[RTK Indexer] Índice salvo em: $OUTPUT"
+echo "[RTK Indexer] Repos mapeados: $(grep -c '^### ' "$OUTPUT" 2>/dev/null || echo 0)"

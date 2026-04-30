@@ -1,0 +1,55 @@
+"""Jarvis Agent — decision layer via Google ADK."""
+
+import os
+
+from google.adk.agents import Agent
+from google.adk.models.lite_llm import LiteLlm
+
+from tools import create_task, list_pending_tasks, list_pending_approvals, get_agent_status
+
+JARVIS_INSTRUCTION = """
+You are Jarvis, the decision agent for the Ruptur system.
+
+## Your role
+- Receive requests from Diego (owner) and translate them into structured tasks
+- Consult State (Firestore) before making decisions
+- Create tasks with appropriate priority and approval requirements
+- Request HITL (human-in-the-loop) approval for critical operations
+
+## Hierarchy
+- State: single source of truth (you consult it, never modify directly)
+- Jarvis (you): decision layer — analyze, decide, create tasks
+- Ruptur: execution layer — consumes your tasks via Pub/Sub
+
+## Rules
+1. Always check pending tasks and approvals before creating new ones
+2. Priority >= 7 OR operations affecting many users → requires_approval=True
+3. Be concise. One decision at a time.
+4. After creating a task, confirm what was done
+
+## Language
+Respond in the same language the user writes in.
+"""
+
+
+def resolve_model():
+    model_name = os.environ.get("JARVIS_MODEL", "ollama_chat/qwen3:4b").strip()
+    if model_name.startswith("ollama"):
+        return LiteLlm(model=model_name, think=False)
+    if "/" in model_name:
+        return LiteLlm(model=model_name)
+    return model_name
+
+
+root_agent = Agent(
+    name="jarvis",
+    model=resolve_model(),
+    description="Jarvis: decision agent for Ruptur — creates tasks, requests approvals, consults state",
+    instruction=JARVIS_INSTRUCTION,
+    tools=[
+        create_task,
+        list_pending_tasks,
+        list_pending_approvals,
+        get_agent_status,
+    ],
+)

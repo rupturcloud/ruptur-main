@@ -1,0 +1,83 @@
+---
+- name: Deploy Ruptur SaaS no GCP (ruptur-shipyard-01)
+  hosts: shipyard
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Verificar se existe arquivo local de segredos do inventory
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      delegate_to: localhost
+      become: false
+      register: shipyard_local_secrets_file
+
+    - name: Carregar segredos locais do inventory quando disponíveis
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../inventories/production/group_vars/secrets.yml"
+      when: shipyard_local_secrets_file.stat.exists
+
+    - name: Validar família do sistema operacional
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "Este playbook assume hosts da família Debian/Ubuntu."
+
+    - name: Validar major version esperada do Debian
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution_major_version in ['11', '12']
+        success_msg: "Versão Debian {{ ansible_facts.distribution_major_version }} compatível"
+        fail_msg: "Host fora do baseline esperado. Esperado Debian 11 ou 12, encontrado {{ ansible_facts.distribution_major_version }}."
+
+    - name: Verificar se Docker está instalado
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+      ignore_errors: true
+
+    - name: Verificar se network ruptur-edge existe
+      community.docker.docker_network_info:
+        name: "{{ saas_network }}"
+      register: network_info
+      ignore_errors: true
+
+    - name: Criar network ruptur-edge se não existir
+      community.docker.docker_network:
+        name: "{{ saas_network }}"
+        state: present
+      when: network_info.failed
+
+  roles:
+    - role: base
+    - role: docker
+    - role: traefik
+    - role: saas
+
+  post_tasks:
+    - name: Aguardar serviço responder
+      ansible.builtin.wait_for:
+        host: localhost
+        port: "{{ saas_port }}"
+        delay: 10
+        timeout: 120
+        state: started
+
+    - name: Verificar logs do container
+      community.docker.docker_container_info:
+        name: "{{ saas_container_name }}"
+      register: saas_container_info
+
+    - name: Exibir informações do container
+      ansible.builtin.debug:
+        msg:
+          - "Container: {{ saas_container_name }}"
+          - "Status: {{ saas_container_info.container.State.Status }}"
+          - "Image: {{ saas_container_info.container.Config.Image }}"
+          - "Porta: {{ saas_port }}"
+
+    - name: Exibir URLs de acesso
+      ansible.builtin.debug:
+        msg:
+          - "SaaS disponível em:"
+          - "{% for domain in saas_domains %}https://{{ domain }}{% if not loop.last %}, {% endif %}{% endfor %}"

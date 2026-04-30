@@ -1,0 +1,60 @@
+services:
+  backend:
+    container_name: infisical-backend
+    image: infisical/infisical:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    ports:
+      - 127.0.0.1:${INFISICAL_PORT:-8081}:8080
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.infisical.rule=Host(`${INFISICAL_PUBLIC_HOST:-infisical.ruptur.cloud}`)
+      - traefik.http.routers.infisical.entrypoints=websecure
+      - traefik.http.routers.infisical.tls.certresolver=le
+      - traefik.http.services.infisical.loadbalancer.server.port=8080
+    networks:
+      - ruptur-edge
+
+  redis:
+    container_name: infisical-redis
+    image: redis:7
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    volumes:
+      - infisical_redis_data:/data
+    networks:
+      - ruptur-edge
+
+  db:
+    container_name: infisical-db
+    image: postgres:14-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username=${POSTGRES_USER} --dbname=${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - infisical_pg_data:/var/lib/postgresql/data
+    networks:
+      - ruptur-edge
+
+volumes:
+  infisical_pg_data:
+  infisical_redis_data:
+
+networks:
+  ruptur-edge:
+    external: true
+    name: ruptur-edge

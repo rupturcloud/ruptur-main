@@ -1,0 +1,27 @@
+aiox_compose_file: "{{ shipyard_compose_dir }}/aiox.yml"
+aiox_runtime_dir: "{{ shipyard_runtime_dir }}/aiox"
+aiox_config_dir: "{{ shipyard_config_dir }}/aiox"
+aiox_data_dir: "{{ shipyard_data_dir }}/aiox"
+aiox_public_domain: "{{ shipyard_domains.aiox }}"
+aiox_public_base_url: "https://{{ aiox_public_domain }}"
+aiox_port: 3211
+
+# AIOX é CLI-first; este serviço apenas expõe observabilidade e um teste
+# prático para a integração com Hermes/Ollama.
+aiox_core_version: "latest"
+aiox_project_name: "aiox-lab"
+aiox_project_dir: "/workspace/{{ aiox_project_name }}"
+aiox_home_dir: "/workspace/.aiox-home"
+aiox_runtime_home_dir: "{{ aiox_runtime_dir }}/home"
+
+# Motor Ollama no GCP.
+# O AIOX pode operar com o perfil Hermes, Gemma4 ou Qwen.
+aiox_model_profile: "{{ shipyard_aiox_model_profile | default('hermes') }}"
+aiox_hermes_base_url: "{{ shipyard_aiox_hermes_base_url }}"
+aiox_hermes_chat_path: "/chat/completions"
+aiox_hermes_model: "{{ shipyard_aiox_hermes_model }}"
+aiox_hermes_timeout_ms: 15000
+aiox_gemma4_model: "{{ shipyard_aiox_gemma4_model | default('gemma4:latest') }}"
+aiox_qwen_model: "{{ shipyard_aiox_qwen_model | default('qwen3:4b') }}"
+aiox_model: "{{ aiox_gemma4_model if aiox_model_profile == 'gemma4' else (aiox_qwen_model if aiox_model_profile == 'qwen' else aiox_hermes_model) }}"
+aiox_prompt_envelope_path: "{{ aiox_home_dir }}/prompt-envelope.json"

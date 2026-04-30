@@ -1,0 +1,39 @@
+"""Jarvis Agent entrypoint — ADK web server."""
+
+import os
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+repo_root = Path(__file__).resolve().parents[3]
+agent_root = Path(__file__).resolve().parent.parent
+load_dotenv(repo_root / ".env")
+
+os.environ.setdefault("GOOGLE_CLOUD_PROJECT", os.environ.get("GCP_PROJECT_ID", ""))
+os.environ.setdefault(
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    str(repo_root / "jarvis-sa-key.json"),
+)
+os.environ.setdefault("OLLAMA_API_BASE", "http://127.0.0.1:11434")
+
+sys.path.insert(0, str(repo_root / "packages" / "shared-config"))
+sys.path.insert(0, str(repo_root / "packages" / "shared-types"))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from google.adk.cli.fast_api import get_fast_api_app
+
+session_service_uri = os.environ.get("JARVIS_SESSION_SERVICE_URI") or None
+
+app = get_fast_api_app(
+    agents_dir=str(agent_root),
+    session_service_uri=session_service_uri,
+    web=False,
+)
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("JARVIS_PORT", 5000))
+    print(f"🧠 Jarvis Agent running on http://localhost:{port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)

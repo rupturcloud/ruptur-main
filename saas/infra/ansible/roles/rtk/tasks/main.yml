@@ -1,0 +1,146 @@
+---
+# RTK — Rust Token Killer
+# Operações: instalar, configurar, manter e curar o indexador de repos
+# Escopo: localhost (workstation macOS)
+
+- name: Verificar se RTK está instalado
+  ansible.builtin.stat:
+    path: "{{ rtk_binary_path }}"
+  register: rtk_binary_stat
+
+- name: Verificar versão instalada do RTK
+  ansible.builtin.command: "{{ rtk_binary_path }} --version"
+  register: rtk_installed_version
+  changed_when: false
+  failed_when: false
+  when: rtk_binary_stat.stat.exists
+
+- name: Exibir versão instalada
+  ansible.builtin.debug:
+    msg: "RTK instalado: {{ rtk_installed_version.stdout | default('não instalado') }}"
+
+- name: Alertar se RTK não estiver instalado
+  ansible.builtin.fail:
+    msg: >
+      RTK não encontrado em {{ rtk_binary_path }}.
+      Instale manualmente com: cargo install rtk
+      ou baixe o binário em: https://github.com/reachingforthejack/rtk
+  when: not rtk_binary_stat.stat.exists
+
+# --- Diretórios ---
+
+- name: Garantir diretório de config do RTK
+  ansible.builtin.file:
+    path: "{{ rtk_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Garantir diretório legado de config no macOS
+  ansible.builtin.file:
+    path: "{{ rtk_legacy_macos_config_dir }}"
+    state: directory
+    mode: "0755"
+  when: ansible_system == "Darwin"
+
+- name: Garantir diretório de scripts Claude
+  ansible.builtin.file:
+    path: "{{ rtk_scripts_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Garantir diretório de índice RTK
+  ansible.builtin.file:
+    path: "{{ rtk_index_dir }}"
+    state: directory
+    mode: "0755"
+
+# --- Configuração ---
+
+- name: Fazer backup da config atual (se existir)
+  ansible.builtin.copy:
+    src: "{{ rtk_config_path }}"
+    dest: "{{ rtk_config_dir }}/config.toml.bak"
+    remote_src: true
+  failed_when: false
+  changed_when: false
+
+- name: Implantar config canônica do RTK
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: "{{ rtk_config_path }}"
+    mode: "0644"
+  notify: validar rtk config
+
+- name: Implantar budget canônico de contexto
+  ansible.builtin.template:
+    src: context-budget.yaml.j2
+    dest: "{{ rtk_budget_path }}"
+    mode: "0644"
+
+- name: Implantar perfil operacional canônico
+  ansible.builtin.template:
+    src: operational-profile.md.j2
+    dest: "{{ rtk_profile_path }}"
+    mode: "0644"
+
+- name: Sincronizar config legada do macOS com a canônica
+  ansible.builtin.file:
+    src: "{{ rtk_config_path }}"
+    dest: "{{ rtk_legacy_macos_config_path }}"
+    state: link
+    force: true
+  when: ansible_system == "Darwin"
+
+# --- Indexador ---
+
+- name: Implantar script repo_indexer.sh
+  ansible.builtin.template:
+    src: repo_indexer.sh.j2
+    dest: "{{ rtk_scripts_dir }}/repo_indexer.sh"
+    mode: "0755"
+
+- name: Executar indexador agora (primeira run ou sob demanda)
+  ansible.builtin.command:
+    cmd: "bash {{ rtk_scripts_dir }}/repo_indexer.sh"
+  register: rtk_indexer_run
+  changed_when: true
+  tags:
+    - rtk_index
+    - rtk_curate
+
+- name: Exibir resultado do indexador
+  ansible.builtin.debug:
+    msg: "{{ rtk_indexer_run.stdout_lines }}"
+  tags:
+    - rtk_index
+    - rtk_curate
+
+# --- Cron ---
+
+- name: Configurar cron de atualização periódica do índice
+  ansible.builtin.cron:
+    name: "RTK Shipyard — atualizar índice de repos"
+    minute: "{{ rtk_cron_schedule.split(' ')[0] }}"
+    hour: "{{ rtk_cron_schedule.split(' ')[1] }}"
+    day: "{{ rtk_cron_schedule.split(' ')[2] }}"
+    month: "{{ rtk_cron_schedule.split(' ')[3] }}"
+    weekday: "{{ rtk_cron_schedule.split(' ')[4] }}"
+    job: "bash {{ rtk_scripts_dir }}/repo_indexer.sh >> {{ rtk_log_path }} 2>&1"
+    state: present
+
+- name: Remover cron legado criado fora do Ansible (se existir)
+  ansible.builtin.cron:
+    name: "Claude Code — Índice de repos atualizado a cada 6h"
+    state: absent
+
+# --- Verificação final ---
+
+- name: Verificar que o índice foi gerado
+  ansible.builtin.stat:
+    path: "{{ rtk_index_path }}"
+  register: rtk_index_stat
+
+- name: Falhar se o índice não foi gerado
+  ansible.builtin.fail:
+    msg: "Índice RTK não encontrado em {{ rtk_index_path }} — verificar logs em {{ rtk_log_path }}"
+  when: not rtk_index_stat.stat.exists

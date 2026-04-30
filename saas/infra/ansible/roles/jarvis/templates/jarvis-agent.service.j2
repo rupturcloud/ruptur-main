@@ -1,0 +1,21 @@
+[Unit]
+Description=Jarvis Agent (ADK) — decision layer
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=network.target
+
+[Service]
+Type=simple
+User={{ jarvis_service_user }}
+Group={{ jarvis_service_group }}
+WorkingDirectory={{ jarvis_service_workdir }}
+EnvironmentFile={{ jarvis_config_dir }}/jarvis.env
+Environment=PYTHONPATH={{ jarvis_py_path }}
+ExecStart={{ jarvis_python_bin }} main.py
+Restart=always
+RestartSec=5
+StandardOutput=append:{{ jarvis_logs_dir }}/jarvis-agent.log
+StandardError=append:{{ jarvis_logs_dir }}/jarvis-agent.error.log
+
+[Install]
+WantedBy=multi-user.target

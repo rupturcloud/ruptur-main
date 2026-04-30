@@ -1,0 +1,70 @@
+---
+- name: Renderizar compose do Postgres
+  ansible.builtin.template:
+    src: docker-compose.postgres.yml.j2
+    dest: "{{ postgres_compose_file }}"
+    mode: "0644"
+
+- name: Subir Postgres quando autostart estiver habilitado
+  ansible.builtin.command:
+    cmd: docker compose -f {{ postgres_compose_file }} up -d
+  changed_when: shipyard_compose_autostart | bool
+  when: shipyard_compose_autostart | bool
+
+- name: Aguardar Postgres aceitar conexões
+  ansible.builtin.command:
+    cmd: >-
+      docker exec ruptur-postgres
+      pg_isready -U {{ shipyard_postgres_user }} -d {{ shipyard_postgres_db }}
+  register: postgres_ready_check
+  changed_when: false
+  retries: 15
+  delay: 2
+  until: postgres_ready_check.rc == 0
+  when: shipyard_compose_autostart | bool
+
+- name: Verificar se role do n8n já existe
+  ansible.builtin.shell: >-
+    docker exec ruptur-postgres
+    psql -U {{ shipyard_postgres_user }} -d {{ shipyard_postgres_db }}
+    -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ shipyard_n8n_user }}';"
+  register: postgres_n8n_role_check
+  changed_when: false
+  when: shipyard_compose_autostart | bool
+
+- name: Criar role do n8n
+  ansible.builtin.shell: >-
+    docker exec ruptur-postgres
+    psql -U {{ shipyard_postgres_user }} -d {{ shipyard_postgres_db }}
+    -c "CREATE ROLE \"{{ shipyard_n8n_user }}\" LOGIN PASSWORD '{{ shipyard_n8n_password }}';"
+  changed_when: true
+  when:
+    - shipyard_compose_autostart | bool
+    - postgres_n8n_role_check.stdout | trim != '1'
+
+- name: Garantir senha atual da role do n8n
+  ansible.builtin.shell: >-
+    docker exec ruptur-postgres
+    psql -U {{ shipyard_postgres_user }} -d {{ shipyard_postgres_db }}
+    -c "ALTER ROLE \"{{ shipyard_n8n_user }}\" WITH PASSWORD '{{ shipyard_n8n_password }}';"
+  changed_when: false
+  when: shipyard_compose_autostart | bool
+
+- name: Verificar se database do n8n já existe
+  ansible.builtin.shell: >-
+    docker exec ruptur-postgres
+    psql -U {{ shipyard_postgres_user }} -d {{ shipyard_postgres_db }}
+    -tAc "SELECT 1 FROM pg_database WHERE datname='{{ shipyard_n8n_db }}';"
+  register: postgres_n8n_db_check
+  changed_when: false
+  when: shipyard_compose_autostart | bool
+
+- name: Criar database do n8n
+  ansible.builtin.shell: >-
+    docker exec ruptur-postgres
+    psql -U {{ shipyard_postgres_user }} -d {{ shipyard_postgres_db }}
+    -c "CREATE DATABASE \"{{ shipyard_n8n_db }}\" OWNER \"{{ shipyard_n8n_user }}\";"
+  changed_when: true
+  when:
+    - shipyard_compose_autostart | bool
+    - postgres_n8n_db_check.stdout | trim != '1'
