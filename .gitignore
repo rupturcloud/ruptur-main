@@ -88,3 +88,6 @@ public/
 selector_map/
 downloaded_files/
 .playwright-mcp/
+# Runtime data files
+runtime-data/instance-dna/
+runtime-data/warmup-state.json
