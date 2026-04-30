@@ -874,6 +874,12 @@ function pickRoutineMessage(routine, options = {}) {
   const { allowGroup = false } = options;
   let routineMessages = state.config.messages.filter((message) => routine.messages.includes(message.id));
 
+  // Fallback: if routine.messages is empty, use all global messages
+  if (!routine.messages.length) {
+    console.warn(`[warmup:message] Routine "${routine.name}" has empty messages array, using all global messages (${state.config.messages.length})`);
+    routineMessages = state.config.messages;
+  }
+
   if (allowGroup) {
     const groupMessages = routineMessages.filter((message) => String(message.category ?? "").trim().toLowerCase() === "grupo");
     if (groupMessages.length) {
@@ -887,10 +893,13 @@ function pickRoutineMessage(routine, options = {}) {
   }
 
   if (!routineMessages.length) {
+    console.error(`[warmup:message] No messages available for routine "${routine.name}" (allowGroup: ${allowGroup})`);
     return undefined;
   }
 
-  return routineMessages[Math.floor(Math.random() * routineMessages.length)];
+  const selected = routineMessages[Math.floor(Math.random() * routineMessages.length)];
+  console.log(`[warmup:message] Selected message "${selected.name}" (category: ${selected.category}) for routine "${routine.name}"`);
+  return selected;
 }
 
 function buildDefaultRoutine(instances) {
@@ -1126,9 +1135,21 @@ function buildPersistentPool(instances, tickStartedAt) {
 function buildDispatchPlan(routine) {
   const eligibleSenders = shuffle(routine.senderInstances).filter((token) => state.instanceStates[token]?.eligibleNow);
 
+  console.log(`[warmup:dispatch] Building plan for routine "${routine.name}" (mode: ${routine.mode})`);
+  console.log(`[warmup:dispatch] Total senders in routine: ${routine.senderInstances.length}`);
+  console.log(`[warmup:dispatch] Eligible senders: ${eligibleSenders.length}`);
+  console.log(`[warmup:dispatch] Total receivers in routine: ${routine.receiverInstances.length}`);
+
   if (routine.mode === "group") {
     const groupId = shuffle(routine.receiverInstances.filter((entry) => entry.endsWith("@g.us")))[0];
     const senderToken = eligibleSenders[0];
+    console.log(`[warmup:dispatch] Group mode - Group ID: ${groupId}, Sender: ${senderToken}`);
+    if (!groupId) {
+      console.warn(`[warmup:dispatch] No group found in receiverInstances`);
+    }
+    if (!senderToken) {
+      console.warn(`[warmup:dispatch] No eligible sender for group mode`);
+    }
     return groupId && senderToken
       ? [{ senderToken, receiverToken: groupId, isGroup: true }]
       : [];
@@ -1138,19 +1159,46 @@ function buildDispatchPlan(routine) {
     .filter((token) => state.instanceStates[token]?.resolvedNumber);
   const plan = [];
 
+  console.log(`[warmup:dispatch] Direct receivers (with resolved number): ${directReceivers.length}`);
+
   if (routine.mode === "one-to-one") {
     const usedReceivers = new Set();
+    let skippedCount = 0;
 
     for (const senderToken of eligibleSenders) {
       const receiverToken = directReceivers.find((token) => token !== senderToken && !usedReceivers.has(token))
         ?? directReceivers.find((token) => token !== senderToken);
 
       if (!receiverToken) {
+        skippedCount++;
+        console.warn(`[warmup:dispatch] No receiver found for sender ${senderToken} (skipped)`);
         continue;
       }
 
       usedReceivers.add(receiverToken);
       plan.push({ senderToken, receiverToken });
+    }
+
+    console.log(`[warmup:dispatch] One-to-one mode - Plan size: ${plan.length}, Skipped: ${skippedCount}`);
+    
+    if (plan.length === 0) {
+      console.error(`[warmup:dispatch] CRITICAL: No dispatch plan created!`);
+      console.error(`[warmup:dispatch] - Eligible senders: ${eligibleSenders.length}`);
+      console.error(`[warmup:dispatch] - Direct receivers: ${directReceivers.length}`);
+      console.error(`[warmup:dispatch] - Sender tokens: ${eligibleSenders.slice(0, 5).join(', ')}${eligibleSenders.length > 5 ? '...' : ''}`);
+      console.error(`[warmup:dispatch] - Receiver tokens: ${directReceivers.slice(0, 5).join(', ')}${directReceivers.length > 5 ? '...' : ''}`);
+      
+      // Check if sender and receiver lists are identical
+      const sendersSet = new Set(eligibleSenders);
+      const receiversSet = new Set(directReceivers);
+      const areIdentical = sendersSet.size === receiversSet.size && 
+                          [...sendersSet].every(token => receiversSet.has(token));
+      
+      if (areIdentical && eligibleSenders.length === 1) {
+        console.error(`[warmup:dispatch] ROOT CAUSE: Only 1 instance available for both sender and receiver - cannot send to self`);
+      } else if (areIdentical) {
+        console.error(`[warmup:dispatch] ROOT CAUSE: Sender and receiver lists are identical (${eligibleSenders.length} instances) - need at least 2 different instances`);
+      }
     }
 
     return plan;
@@ -1274,6 +1322,7 @@ function buildRegenerationEntries({ routines, instancesByToken, round, tickStart
 function createPoolEntry({ routine, dispatch, instancesByToken, round, tickStartedAt, queueType = "standard", activityLabelOverride, messageOverride }) {
   const sender = instancesByToken.get(dispatch.senderToken);
   if (!sender) {
+    console.warn(`[warmup:pool] Sender not found in instancesByToken: ${dispatch.senderToken}`);
     return null;
   }
 
@@ -1284,6 +1333,7 @@ function createPoolEntry({ routine, dispatch, instancesByToken, round, tickStart
   });
 
   if (!message) {
+    console.warn(`[warmup:pool] No message available for routine "${routine.name}"`);
     return null;
   }
 
@@ -1313,6 +1363,7 @@ function createPoolEntry({ routine, dispatch, instancesByToken, round, tickStart
   const receiver = instancesByToken.get(dispatch.receiverToken);
   const receiverState = state.instanceStates[dispatch.receiverToken];
   if (!receiver || !receiverState?.resolvedNumber) {
+    console.warn(`[warmup:pool] Receiver not found or no resolved number: ${dispatch.receiverToken} (receiver: ${!!receiver}, resolvedNumber: ${!!receiverState?.resolvedNumber})`);
     return null;
   }
 
@@ -1422,9 +1473,21 @@ function buildCurrentRoundPool(routines, instancesByToken, round, tickStartedAt)
   };
 
   const queuedSenders = new Set();
+  console.log(`[warmup:pool] Building round pool for round ${round} with ${routines.length} routines`);
 
   for (const routine of routines) {
+    if (!routine.isActive) {
+      console.log(`[warmup:pool] Skipping inactive routine: ${routine.name}`);
+      continue;
+    }
+
+    console.log(`[warmup:pool] Processing routine: ${routine.name} (active: ${routine.isActive})`);
     const plan = buildDispatchPlan(routine);
+    console.log(`[warmup:pool] Dispatch plan size: ${plan.length}`);
+    
+    let createdEntries = 0;
+    let skippedEntries = 0;
+    
     for (const dispatch of plan) {
       const entry = createPoolEntry({
         routine,
@@ -1438,9 +1501,16 @@ function buildCurrentRoundPool(routines, instancesByToken, round, tickStartedAt)
         roundPool.entries.push(entry);
         roundPool.queuedEntries += 1;
         queuedSenders.add(entry.senderToken);
+        createdEntries++;
+      } else {
+        skippedEntries++;
       }
     }
+    
+    console.log(`[warmup:pool] Routine "${routine.name}" - Created: ${createdEntries}, Skipped: ${skippedEntries}`);
   }
+  
+  console.log(`[warmup:pool] Round pool complete - Total entries: ${roundPool.entries.length}, Queued senders: ${queuedSenders.size}`);
 
   const regenerationEntries = buildRegenerationEntries({
     routines,
