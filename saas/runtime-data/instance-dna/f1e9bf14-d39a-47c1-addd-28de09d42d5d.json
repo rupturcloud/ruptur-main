@@ -1,0 +1,209 @@
+{
+  "history": [
+    {
+      "timestamp": "2026-04-30T20:33:22.659Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 24
+    },
+    {
+      "timestamp": "2026-04-30T20:23:22.587Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 22
+    },
+    {
+      "timestamp": "2026-04-30T20:13:22.658Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 21
+    },
+    {
+      "timestamp": "2026-04-30T20:03:23.044Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 19
+    },
+    {
+      "timestamp": "2026-04-30T19:53:23.171Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 17
+    },
+    {
+      "timestamp": "2026-04-30T19:43:22.762Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 16
+    },
+    {
+      "timestamp": "2026-04-30T19:33:23.231Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 14
+    },
+    {
+      "timestamp": "2026-04-30T19:23:22.669Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 12
+    },
+    {
+      "timestamp": "2026-04-30T19:13:22.770Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 11
+    },
+    {
+      "timestamp": "2026-04-30T19:03:22.735Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 9
+    },
+    {
+      "timestamp": "2026-04-30T18:53:22.666Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 7
+    },
+    {
+      "timestamp": "2026-04-30T18:43:22.653Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 6
+    },
+    {
+      "timestamp": "2026-04-30T18:33:22.348Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 4
+    },
+    {
+      "timestamp": "2026-04-30T18:23:25.450Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 2
+    },
+    {
+      "timestamp": "2026-04-30T18:13:24.688Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 1
+    },
+    {
+      "timestamp": "2026-04-30T18:02:37.312Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T17:52:36.683Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T17:42:37.268Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T17:31:28.284Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T17:12:29.321Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T17:02:29.500Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T16:52:29.443Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T16:42:29.179Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T16:32:29.095Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T16:22:28.151Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T16:12:29.385Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T16:02:43.899Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T15:52:28.500Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-04-30T15:42:27.517Z",
+      "type": "pulse",
+      "heatScore": 100,
+      "status": "connected",
+      "sentToday": 0
+    }
+  ],
+  "firstSeenAt": "2026-04-30T15:42:27.516Z",
+  "lastUpdatedAt": "2026-04-30T20:33:22.659Z"
+}
