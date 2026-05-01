@@ -161,30 +161,59 @@ export function setupCampaignRoutes(app) {
     }
   });
 
-  // Get campaign templates
-  app.get('/api/campaigns/templates', async (req, res) => {
-    try {
-      const templates = await campaignManager.getCampaignTemplates();
-      res.json(templates);
-    } catch (error) {
-      console.error('[API] Error getting campaign templates:', error.message);
-      res.status(500).json({ error: error.message });
-    }
-  });
+// Get campaign templates
+app.get('/api/campaigns/templates', async (req, res) => {
+  try {
+    const templates = await campaignManager.getCampaignTemplates();
+    res.json(templates);
+  } catch (error) {
+    console.error('[API] Error getting campaign templates:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  // Create campaign from template
-  app.post('/api/campaigns/from-template/:templateId', async (req, res) => {
-    try {
-      const { templateId } = req.params;
-      const { name, customizations } = req.body;
-      
-      const campaign = await campaignManager.createCampaignFromTemplate(templateId, name, customizations);
-      res.json(campaign);
-    } catch (error) {
-      console.error('[API] Error creating campaign from template:', error.message);
-      res.status(500).json({ error: error.message });
+// Create campaign from template
+app.post('/api/campaigns/from-template/:templateId', async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const { name, customizations } = req.body;
+    
+    const campaign = await campaignManager.createCampaignFromTemplate(templateId, name, customizations);
+    res.json(campaign);
+  } catch (error) {
+    console.error('[API] Error creating campaign from template:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload contacts CSV
+app.post('/api/campaigns/upload-contacts', async (req, res) => {
+  try {
+    // This would typically handle multipart/form-data
+    // For simplicity, we'll expect a base64 encoded file in the body
+    const { fileBuffer, fileName } = req.body;
+    
+    if (!fileBuffer || !fileName) {
+      return res.status(400).json({ error: 'File buffer and file name are required' });
     }
-  });
+    
+    // Decode base64 buffer
+    const buffer = Buffer.from(fileBuffer, 'base64');
+    
+    // Process CSV
+    const contacts = await campaignManager.processCsvFile(buffer);
+    
+    res.json({
+      success: true,
+      contacts,
+      count: contacts.length,
+      message: `Processed ${contacts.length} valid contacts from CSV`
+    });
+  } catch (error) {
+    console.error('[API] Error uploading contacts:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 
   console.log('[API] Campaign routes registered');
 }

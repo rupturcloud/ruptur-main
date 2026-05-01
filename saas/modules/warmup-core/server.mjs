@@ -2942,12 +2942,29 @@ const server = http.createServer(async (req, res) => {
     if (normalizedPathname.startsWith("/api/dashboard")) {
       return handleDashboardRoute(req, res, url);
     }
-    if (normalizedPathname === "/api/local/uazapi/instance/all") {
+    if (normalizedPathname.startsWith("/api/local/uazapi/instance/all")) {
+      // Parse query parameters
+      const queryParams = new URLSearchParams(url.search);
+      const tenantId = queryParams.get('tenantId');
+      
       if (!state.config.settings.adminToken?.trim()) {
         return createResponse(res, 200, []);
       }
-      const instances = await fetchAllInstances();
-      return createResponse(res, 200, instances);
+      
+      const allInstances = await fetchAllInstances();
+      
+      // Filter instances by tenantId if provided
+      if (tenantId) {
+        const filteredInstances = allInstances.filter(instance => 
+          instance.bubble_user_id === tenantId || 
+          instance.tenantId === tenantId ||
+          (instance.metadata && instance.metadata.tenantId === tenantId)
+        );
+        return createResponse(res, 200, filteredInstances);
+      }
+      
+      // If no tenantId specified, return all (admin only)
+      return createResponse(res, 200, allInstances);
     }
     if (normalizedPathname === "/api/local/warmup/state") return createResponse(res, 200, buildSnapshot());
     if (normalizedPathname === "/api/local/warmup/config") {

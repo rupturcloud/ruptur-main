@@ -54,18 +54,18 @@ export const apiService = {
     return await response.json();
   },
 
-  // --- Inbox & Messages ---
-  async getInstances(tenantId) {
-    const response = await fetch(`${API_BASE_URL}/api/local/uazapi/instance/all`);
-    if (!response.ok) throw new Error('Falha ao buscar instâncias');
-    return await response.json();
-  },
+   // --- Inbox & Messages ---
+   async getInstances(tenantId) {
+     const response = await fetch(`${API_BASE_URL}/api/local/uazapi/instance/all?tenantId=${tenantId}`);
+     if (!response.ok) throw new Error('Falha ao buscar instâncias');
+     return await response.json();
+   },
 
-  async getMessages(instanceId, tenantId) {
-    const response = await fetch(`${API_BASE_URL}/api/inbox/messages/${instanceId}?tenantId=${tenantId}`);
-    if (!response.ok) throw new Error('Falha ao buscar mensagens');
-    const data = await response.json();
-    return data.messages || [];
-  }
+   async getMessages(instanceId, tenantId) {
+     const response = await fetch(`${API_BASE_URL}/api/inbox/messages/${instanceId}?tenantId=${tenantId}`);
+     if (!response.ok) throw new Error('Falha ao buscar mensagens');
+     const data = await response.json();
+     return data.messages || [];
+   }
 };
 
