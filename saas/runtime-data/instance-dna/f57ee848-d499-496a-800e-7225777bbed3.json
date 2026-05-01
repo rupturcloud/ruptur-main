@@ -1,6 +1,41 @@
 {
   "history": [
     {
+      "timestamp": "2026-05-01T13:53:25.418Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T13:42:36.026Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T13:32:35.705Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T13:22:36.622Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T13:12:35.665Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 25
+    },
+    {
       "timestamp": "2026-05-01T13:01:32.901Z",
       "type": "pulse",
       "heatScore": 70,
@@ -212,5 +247,5 @@
     }
   ],
   "firstSeenAt": "2026-04-30T15:42:28.052Z",
-  "lastUpdatedAt": "2026-05-01T13:01:32.901Z"
+  "lastUpdatedAt": "2026-05-01T13:53:25.418Z"
 }
