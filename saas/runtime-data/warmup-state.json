@@ -26,7 +26,7 @@
         "isActive": true,
         "messages": [],
         "createdAt": "2026-03-26T17:17:37.420Z",
-        "totalSent": 356,
+        "totalSent": 363,
         "senderInstances": [
           "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
           "d4b80d2e-ed8c-43d2-a325-b062150a0a5d",
@@ -93,7 +93,7 @@
           "bd81c936-028d-4375-8a36-114b8b67f8d5",
           "f57ee848-d499-496a-800e-7225777bbed3"
         ],
-        "lastRunAt": "2026-05-01T15:51:22.458Z"
+        "lastRunAt": "2026-05-01T15:59:22.428Z"
       }
     ],
     "messages": [
@@ -144,25 +144,26 @@
   "scheduler": {
     "enabled": true,
     "status": "active",
-    "round": 468,
+    "round": 478,
     "lastManualAction": {
       "action": "start",
       "actor": "Operador local @127.0.0.1",
       "reason": "Ativação manual do Warmup 24/7",
       "acceptedAt": "2026-04-30T18:33:20.881Z"
     },
-    "lastTickAt": "2026-05-01T15:51:22.458Z"
+    "lastTickAt": "2026-05-01T16:01:22.422Z",
+    "lastError": "Nenhuma instância passou nas regras locais. Principais bloqueios: 29x Instância desconectada | 1x Aguardando intervalo mínimo até 01/05/2026, 13:03:11 | 1x Aguardando intervalo mínimo até 30/04/2026, 17:42:16."
   },
   "summary": {
     "totalInstances": 31,
     "connected": 5,
-    "eligible": 3,
-    "heatingNow": 3,
+    "eligible": 0,
+    "heatingNow": 0,
     "regenerating": 0,
-    "queuedEntries": 3,
+    "queuedEntries": 0,
     "persistentPoolSize": 5,
-    "subpoolCount": 2,
-    "sentToday": 415,
+    "subpoolCount": 0,
+    "sentToday": 422,
     "recentErrors": 0,
     "activeRoutines": 1,
     "cadenceBpm": 1,
@@ -170,7 +171,7 @@
   },
   "currentPool": {
     "persistent": {
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "healthyTokens": [
         "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
         "c81a5296-36db-4b80-8a47-96539591261b",
@@ -178,120 +179,22 @@
         "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7",
         "bd81c936-028d-4375-8a36-114b8b67f8d5"
       ],
-      "readyTokens": [
-        "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
-        "c81a5296-36db-4b80-8a47-96539591261b",
-        "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7"
-      ]
+      "readyTokens": []
     },
     "currentRound": {
-      "round": 468,
-      "createdAt": "2026-05-01T15:51:22.458Z",
-      "queuedSenders": [
-        "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
-        "c81a5296-36db-4b80-8a47-96539591261b",
-        "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7"
-      ],
-      "queuedEntries": 3,
-      "subpools": [
-        {
-          "key": "standard:message:Saudação",
-          "label": "Saudação",
-          "activityKind": "message",
-          "queueType": "standard",
-          "queuedEntries": 0,
-          "processedEntries": 2,
-          "errorEntries": 0,
-          "senderTokens": [
-            "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
-            "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7"
-          ]
-        },
-        {
-          "key": "standard:message:Resposta curta",
-          "label": "Resposta curta",
-          "activityKind": "message",
-          "queueType": "standard",
-          "queuedEntries": 0,
-          "processedEntries": 1,
-          "errorEntries": 0,
-          "senderTokens": [
-            "c81a5296-36db-4b80-8a47-96539591261b"
-          ]
-        }
-      ],
-      "entries": [
-        {
-          "id": "b92a05ba-a398-4c61-b878-6cd9cd25dff5",
-          "routineId": "warmup-default-24x7",
-          "routineName": "Warmup 24/7 Padrão",
-          "senderToken": "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
-          "senderName": "TVyjjv",
-          "receiverToken": "df861510-b6a4-4ffd-940e-bf4070d2cb7d",
-          "receiverName": "JFOwun",
-          "receiverNumber": "553173623842",
-          "activityKind": "message",
-          "activityLabel": "Saudação",
-          "messageId": "1",
-          "messageText": "Oi, tudo certo por aí?",
-          "messageCategory": "Saudação",
-          "queueType": "standard",
-          "delayMs": 18001,
-          "trackId": "warmup_warmup-default-24x7_r468_f1e9bf_df8615_d5881eaf",
-          "status": "sent",
-          "createdAt": "2026-05-01T15:51:22.458Z",
-          "updatedAt": "2026-05-01T15:51:24.241Z"
-        },
-        {
-          "id": "25494a38-a4f8-4713-a8c6-0026b44d2c61",
-          "routineId": "warmup-default-24x7",
-          "routineName": "Warmup 24/7 Padrão",
-          "senderToken": "c81a5296-36db-4b80-8a47-96539591261b",
-          "senderName": "vufp7R",
-          "receiverToken": "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7",
-          "receiverName": "JlAw5g",
-          "receiverNumber": "553175052754",
-          "activityKind": "message",
-          "activityLabel": "Resposta curta",
-          "messageId": "3",
-          "messageText": "Aqui está tranquilo.",
-          "messageCategory": "Resposta curta",
-          "queueType": "standard",
-          "delayMs": 13708,
-          "trackId": "warmup_warmup-default-24x7_r468_c81a52_5e269f_d2cba8d2",
-          "status": "sent",
-          "createdAt": "2026-05-01T15:51:22.458Z",
-          "updatedAt": "2026-05-01T15:51:26.239Z"
-        },
-        {
-          "id": "d2a1d5b1-aaaa-4c89-bb7e-cd5e43b651a8",
-          "routineId": "warmup-default-24x7",
-          "routineName": "Warmup 24/7 Padrão",
-          "senderToken": "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7",
-          "senderName": "JlAw5g",
-          "receiverToken": "5e68bc1a-a7f5-46bb-9951-d4965f9d13b2",
-          "receiverName": "CU7IfV",
-          "receiverNumber": "553173623853",
-          "activityKind": "message",
-          "activityLabel": "Saudação",
-          "messageId": "1",
-          "messageText": "Oi, tudo certo por aí?",
-          "messageCategory": "Saudação",
-          "queueType": "standard",
-          "delayMs": 8477,
-          "trackId": "warmup_warmup-default-24x7_r468_5e269f_5e68bc_0630773c",
-          "status": "sent",
-          "createdAt": "2026-05-01T15:51:22.458Z",
-          "updatedAt": "2026-05-01T15:51:28.170Z"
-        }
-      ]
+      "round": 478,
+      "createdAt": "2026-05-01T16:01:22.422Z",
+      "queuedSenders": [],
+      "queuedEntries": 0,
+      "subpools": [],
+      "entries": []
     }
   },
   "instanceStates": {
     "f1e9bf14-d39a-47c1-addd-28de09d42d5d": {
       "instanceToken": "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
       "instanceName": "TVyjjv",
-      "sentToday": 55,
+      "sentToday": 56,
       "sendsLog": [
         "2026-04-30T18:11:29.407Z",
         "2026-04-30T18:17:23.791Z",
@@ -347,11 +250,12 @@
         "2026-05-01T15:33:26.656Z",
         "2026-05-01T15:39:26.328Z",
         "2026-05-01T15:45:30.968Z",
-        "2026-05-01T15:51:24.241Z"
+        "2026-05-01T15:51:24.241Z",
+        "2026-05-01T15:57:26.258Z"
       ],
-      "cooldownRounds": 1,
+      "cooldownRounds": 0,
       "eligibleNow": false,
-      "warmingNow": true,
+      "warmingNow": false,
       "proxyStatus": "managed",
       "proxy": {
         "effective_detail": "managed_pool",
@@ -370,13 +274,13 @@
         "validation_error": false
       },
       "heatScore": 100,
-      "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:24.241Z",
+      "heatStage": "eligible",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173623893",
-      "eligibilityReason": "Último disparo em 01/05/2026, 12:51:24 · próximo ciclo após 01/05/2026, 12:57:09",
-      "nextEligibleAt": "2026-05-01T15:57:09.841Z",
-      "lastSentAt": "2026-05-01T15:51:24.241Z",
-      "lastRoundParticipated": 468
+      "eligibilityReason": "Aguardando intervalo mínimo até 01/05/2026, 13:03:11",
+      "nextEligibleAt": "2026-05-01T16:03:11.858Z",
+      "lastSentAt": "2026-05-01T15:57:26.258Z",
+      "lastRoundParticipated": 474
     },
     "0bc638bb-7502-454d-b772-ddb77b1bd229": {
       "instanceToken": "0bc638bb-7502-454d-b772-ddb77b1bd229",
@@ -505,12 +409,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173663181",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:23:27.372Z",
       "lastRoundParticipated": 160,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "1881cf76-edb1-4cd7-8d1b-9f93c5b94245": {
       "instanceToken": "1881cf76-edb1-4cd7-8d1b-9f93c5b94245",
@@ -542,10 +446,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173663514",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z",
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z",
       "lastSentAt": "2026-05-01T13:26:36.645Z",
       "lastRoundParticipated": 324
     },
@@ -608,10 +512,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173663974",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "5896f4fa-c7f2-4511-9a0a-05698d64c746": {
       "instanceToken": "5896f4fa-c7f2-4511-9a0a-05698d64c746",
@@ -640,10 +544,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173663601",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "d281b156-8b09-490c-ad73-2f365980a356": {
       "instanceToken": "d281b156-8b09-490c-ad73-2f365980a356",
@@ -672,10 +576,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173664038",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "05fe06cb-b8c3-469e-aeee-ff4bb09de727": {
       "instanceToken": "05fe06cb-b8c3-469e-aeee-ff4bb09de727",
@@ -704,10 +608,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173663465",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "e9914490-914b-450b-8ec6-30ea0a428e36": {
       "instanceToken": "e9914490-914b-450b-8ec6-30ea0a428e36",
@@ -736,15 +640,15 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173664079",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "c81a5296-36db-4b80-8a47-96539591261b": {
       "instanceToken": "c81a5296-36db-4b80-8a47-96539591261b",
       "instanceName": "vufp7R",
-      "sentToday": 55,
+      "sentToday": 56,
       "sendsLog": [
         "2026-04-30T18:12:32.807Z",
         "2026-04-30T18:18:23.611Z",
@@ -800,11 +704,12 @@
         "2026-05-01T15:33:24.721Z",
         "2026-05-01T15:39:24.382Z",
         "2026-05-01T15:45:26.661Z",
-        "2026-05-01T15:51:26.239Z"
+        "2026-05-01T15:51:26.239Z",
+        "2026-05-01T15:57:24.322Z"
       ],
-      "cooldownRounds": 1,
+      "cooldownRounds": 0,
       "eligibleNow": false,
-      "warmingNow": true,
+      "warmingNow": false,
       "proxyStatus": "managed",
       "proxy": {
         "effective_detail": "managed_pool",
@@ -823,13 +728,13 @@
         "validation_error": false
       },
       "heatScore": 100,
-      "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:26.239Z",
+      "heatStage": "eligible",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553189131980",
-      "eligibilityReason": "Último disparo em 01/05/2026, 12:51:26 · próximo ciclo após 01/05/2026, 12:57:11",
-      "nextEligibleAt": "2026-05-01T15:57:11.839Z",
-      "lastSentAt": "2026-05-01T15:51:26.239Z",
-      "lastRoundParticipated": 468
+      "eligibilityReason": "Aguardando intervalo mínimo até 01/05/2026, 13:03:09",
+      "nextEligibleAt": "2026-05-01T16:03:09.922Z",
+      "lastSentAt": "2026-05-01T15:57:24.322Z",
+      "lastRoundParticipated": 474
     },
     "994bba2d-b26a-43d8-a0c1-7bee3aaa993b": {
       "instanceToken": "994bba2d-b26a-43d8-a0c1-7bee3aaa993b",
@@ -858,10 +763,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015480",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "41936193-d375-47b7-a082-bde19a6f3e5c": {
       "instanceToken": "41936193-d375-47b7-a082-bde19a6f3e5c",
@@ -890,10 +795,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015504",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "1fa39ffb-f210-4dc7-be31-604f42613625": {
       "instanceToken": "1fa39ffb-f210-4dc7-be31-604f42613625",
@@ -922,10 +827,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015520",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "32c796f7-7e39-45f6-912d-b5b9e4d6e990": {
       "instanceToken": "32c796f7-7e39-45f6-912d-b5b9e4d6e990",
@@ -954,10 +859,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015626",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "51061763-9cdb-41c9-8718-08241b4828a3": {
       "instanceToken": "51061763-9cdb-41c9-8718-08241b4828a3",
@@ -988,12 +893,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015589",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:11:25.526Z",
       "lastRoundParticipated": 148,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "a8ab79d9-6f09-4595-aac6-f9cf66689d01": {
       "instanceToken": "a8ab79d9-6f09-4595-aac6-f9cf66689d01",
@@ -1022,10 +927,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015673",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "4d3e8bd4-9cd8-450e-ba32-7b7804f81108": {
       "instanceToken": "4d3e8bd4-9cd8-450e-ba32-7b7804f81108",
@@ -1060,12 +965,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175052778",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:34:25.666Z",
       "lastRoundParticipated": 171,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "382f63c4-11cf-418e-b9d1-6346ed8ba6ad": {
       "instanceToken": "382f63c4-11cf-418e-b9d1-6346ed8ba6ad",
@@ -1094,10 +999,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015703",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "a8e7aa4c-9e07-4e48-8f5c-f3449431e259": {
       "instanceToken": "a8e7aa4c-9e07-4e48-8f5c-f3449431e259",
@@ -1152,17 +1057,17 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015654",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T20:36:28.609Z",
       "lastRoundParticipated": 293,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "174b6044-5705-429f-9979-9d28886eaad6": {
       "instanceToken": "174b6044-5705-429f-9979-9d28886eaad6",
       "instanceName": "7hGb3V",
-      "sentToday": 54,
+      "sentToday": 56,
       "sendsLog": [
         "2026-04-30T18:10:30.762Z",
         "2026-04-30T18:16:26.918Z",
@@ -1217,7 +1122,9 @@
         "2026-05-01T15:28:25.403Z",
         "2026-05-01T15:34:24.554Z",
         "2026-05-01T15:40:24.925Z",
-        "2026-05-01T15:46:24.454Z"
+        "2026-05-01T15:46:24.454Z",
+        "2026-05-01T15:52:24.261Z",
+        "2026-05-01T15:58:24.201Z"
       ],
       "cooldownRounds": 0,
       "eligibleNow": false,
@@ -1241,12 +1148,12 @@
       },
       "heatScore": 100,
       "heatStage": "eligible",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "5511925806450",
-      "eligibilityReason": "Aguardando intervalo mínimo até 01/05/2026, 12:52:10",
-      "nextEligibleAt": "2026-05-01T15:52:10.054Z",
-      "lastSentAt": "2026-05-01T15:46:24.454Z",
-      "lastRoundParticipated": 463
+      "eligibilityReason": "Aguardando intervalo mínimo até 01/05/2026, 13:04:09",
+      "nextEligibleAt": "2026-05-01T16:04:09.801Z",
+      "lastSentAt": "2026-05-01T15:58:24.201Z",
+      "lastRoundParticipated": 475
     },
     "b458db34-ae2e-4e38-bd05-ad1874e59adf": {
       "instanceToken": "b458db34-ae2e-4e38-bd05-ad1874e59adf",
@@ -1277,12 +1184,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175015721",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:58:26.877Z",
       "lastRoundParticipated": 195,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "8f7529f2-db70-4c10-9f62-8d342e4d61d7": {
       "instanceToken": "8f7529f2-db70-4c10-9f62-8d342e4d61d7",
@@ -1337,12 +1244,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175052792",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T20:36:26.668Z",
       "lastRoundParticipated": 293,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "978267c4-841e-4c64-b2f4-1513fb8e587f": {
       "instanceToken": "978267c4-841e-4c64-b2f4-1513fb8e587f",
@@ -1389,17 +1296,17 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175052712",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T19:46:27.417Z",
       "lastRoundParticipated": 243,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7": {
       "instanceToken": "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7",
       "instanceName": "JlAw5g",
-      "sentToday": 55,
+      "sentToday": 56,
       "sendsLog": [
         "2026-04-30T18:12:26.781Z",
         "2026-04-30T18:18:29.416Z",
@@ -1455,11 +1362,12 @@
         "2026-05-01T15:33:28.595Z",
         "2026-05-01T15:39:28.295Z",
         "2026-05-01T15:45:28.601Z",
-        "2026-05-01T15:51:28.170Z"
+        "2026-05-01T15:51:28.170Z",
+        "2026-05-01T15:57:28.194Z"
       ],
-      "cooldownRounds": 1,
+      "cooldownRounds": 0,
       "eligibleNow": false,
-      "warmingNow": true,
+      "warmingNow": false,
       "proxyStatus": "managed",
       "proxy": {
         "effective_detail": "managed_pool",
@@ -1469,7 +1377,7 @@
           "reason": "",
           "since": 0
         },
-        "last_test_at": 1777642674003,
+        "last_test_at": 1777650986597,
         "last_test_error": "",
         "managed": true,
         "mode": "internal",
@@ -1478,13 +1386,13 @@
         "validation_error": false
       },
       "heatScore": 100,
-      "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:28.170Z",
+      "heatStage": "eligible",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175052754",
-      "eligibilityReason": "Último disparo em 01/05/2026, 12:51:28 · próximo ciclo após 01/05/2026, 12:57:13",
-      "nextEligibleAt": "2026-05-01T15:57:13.770Z",
-      "lastSentAt": "2026-05-01T15:51:28.170Z",
-      "lastRoundParticipated": 468
+      "eligibilityReason": "Aguardando intervalo mínimo até 01/05/2026, 13:03:13",
+      "nextEligibleAt": "2026-05-01T16:03:13.794Z",
+      "lastSentAt": "2026-05-01T15:57:28.194Z",
+      "lastRoundParticipated": 474
     },
     "b000ea82-d4a4-49f9-a4e3-4ee2ac151a40": {
       "instanceToken": "b000ea82-d4a4-49f9-a4e3-4ee2ac151a40",
@@ -1517,12 +1425,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175052744",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:23:29.303Z",
       "lastRoundParticipated": 160,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "85e6d42a-f59a-40e0-9024-ddfe6b87a7b0": {
       "instanceToken": "85e6d42a-f59a-40e0-9024-ddfe6b87a7b0",
@@ -1557,12 +1465,12 @@
       },
       "heatScore": 60,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175052817",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:34:29.531Z",
       "lastRoundParticipated": 171,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "7b7e1fa0-1986-41ba-9309-6a57a715dc03": {
       "instanceToken": "7b7e1fa0-1986-41ba-9309-6a57a715dc03",
@@ -1593,12 +1501,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "556298278468",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:10:24.781Z",
       "lastRoundParticipated": 147,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "c0be2dd0-f01c-4d16-845b-ee9c666359f0": {
       "instanceToken": "c0be2dd0-f01c-4d16-845b-ee9c666359f0",
@@ -1629,12 +1537,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553175052770",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T18:11:23.513Z",
       "lastRoundParticipated": 148,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "df861510-b6a4-4ffd-940e-bf4070d2cb7d": {
       "instanceToken": "df861510-b6a4-4ffd-940e-bf4070d2cb7d",
@@ -1663,10 +1571,10 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173623842",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "5e68bc1a-a7f5-46bb-9951-d4965f9d13b2": {
       "instanceToken": "5e68bc1a-a7f5-46bb-9951-d4965f9d13b2",
@@ -1695,15 +1603,15 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173623853",
       "eligibilityReason": "Instância desconectada",
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "bd81c936-028d-4375-8a36-114b8b67f8d5": {
       "instanceToken": "bd81c936-028d-4375-8a36-114b8b67f8d5",
       "instanceName": "FYv3SY",
-      "sentToday": 54,
+      "sentToday": 56,
       "sendsLog": [
         "2026-04-30T18:12:34.792Z",
         "2026-04-30T18:18:27.480Z",
@@ -1758,7 +1666,9 @@
         "2026-05-01T15:29:25.354Z",
         "2026-05-01T15:35:24.339Z",
         "2026-05-01T15:41:24.297Z",
-        "2026-05-01T15:47:24.310Z"
+        "2026-05-01T15:47:24.310Z",
+        "2026-05-01T15:53:25.304Z",
+        "2026-05-01T15:59:24.728Z"
       ],
       "cooldownRounds": 0,
       "eligibleNow": false,
@@ -1782,12 +1692,12 @@
       },
       "heatScore": 100,
       "heatStage": "eligible",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173623654",
-      "eligibilityReason": "Aguardando intervalo mínimo até 01/05/2026, 12:53:09",
-      "nextEligibleAt": "2026-05-01T15:53:09.910Z",
-      "lastSentAt": "2026-05-01T15:47:24.310Z",
-      "lastRoundParticipated": 464
+      "eligibilityReason": "Aguardando intervalo mínimo até 01/05/2026, 13:05:10",
+      "nextEligibleAt": "2026-05-01T16:05:10.328Z",
+      "lastSentAt": "2026-05-01T15:59:24.728Z",
+      "lastRoundParticipated": 476
     },
     "f57ee848-d499-496a-800e-7225777bbed3": {
       "instanceToken": "f57ee848-d499-496a-800e-7225777bbed3",
@@ -1842,12 +1752,12 @@
       },
       "heatScore": 70,
       "heatStage": "waiting",
-      "updatedAt": "2026-05-01T15:51:22.458Z",
+      "updatedAt": "2026-05-01T16:01:22.422Z",
       "resolvedNumber": "553173663568",
       "eligibilityReason": "Instância desconectada",
       "lastSentAt": "2026-04-30T20:34:24.990Z",
       "lastRoundParticipated": 291,
-      "lastReconnectAttemptAt": "2026-05-01T15:41:22.486Z"
+      "lastReconnectAttemptAt": "2026-05-01T15:52:22.456Z"
     },
     "f5d1655f-1015-4e64-9cf0-be87fedf1fdc": {
       "instanceToken": "f5d1655f-1015-4e64-9cf0-be87fedf1fdc",
@@ -1886,6 +1796,125 @@
     }
   },
   "logs": [
+    {
+      "id": "584da528-52f0-403e-a779-92d72db17381",
+      "timestamp": "2026-05-01T15:59:26.662Z",
+      "type": "send",
+      "instanceName": "FYv3SY",
+      "message": "Warmup [Saudação] enviado para cBbDiF",
+      "status": "success",
+      "routineId": "warmup-default-24x7",
+      "routineName": "Warmup 24/7 Padrão",
+      "originToken": "bd81c936-028d-4375-8a36-114b8b67f8d5",
+      "destinationNumber": "553173663601",
+      "delayMs": 18860,
+      "trackId": "warmup_warmup-default-24x7_r476_bd81c9_5896f4_e7b111d7",
+      "trackSource": "warmup_manager",
+      "isAsync": true,
+      "details": "Oi, tudo certo por aí?"
+    },
+    {
+      "id": "370604bd-0132-4a07-abf6-c16ff552547f",
+      "timestamp": "2026-05-01T15:58:26.155Z",
+      "type": "send",
+      "instanceName": "7hGb3V",
+      "message": "Warmup [Saudação] enviado para JFOwun",
+      "status": "success",
+      "routineId": "warmup-default-24x7",
+      "routineName": "Warmup 24/7 Padrão",
+      "originToken": "174b6044-5705-429f-9979-9d28886eaad6",
+      "destinationNumber": "553173623842",
+      "delayMs": 18423,
+      "trackId": "warmup_warmup-default-24x7_r475_174b60_df8615_a0147d2f",
+      "trackSource": "warmup_manager",
+      "isAsync": true,
+      "details": "Bom dia. Passando para dar um oi."
+    },
+    {
+      "id": "755392af-11b7-43a4-b87d-8f91b7904c52",
+      "timestamp": "2026-05-01T15:57:30.136Z",
+      "type": "send",
+      "instanceName": "JlAw5g",
+      "message": "Warmup [Continuidade] enviado para FYv3SY",
+      "status": "success",
+      "routineId": "warmup-default-24x7",
+      "routineName": "Warmup 24/7 Padrão",
+      "originToken": "5e269f56-f7cf-4b71-98c2-7d8feecc4ca7",
+      "destinationNumber": "553173623654",
+      "delayMs": 12042,
+      "trackId": "warmup_warmup-default-24x7_r474_5e269f_bd81c9_6503f078",
+      "trackSource": "warmup_manager",
+      "isAsync": true,
+      "details": "Depois me conta se ficou tudo ok."
+    },
+    {
+      "id": "9a6a9916-29b1-4287-a9e7-720e4bcd6239",
+      "timestamp": "2026-05-01T15:57:28.194Z",
+      "type": "send",
+      "instanceName": "TVyjjv",
+      "message": "Warmup [Resposta curta] enviado para d9osmF",
+      "status": "success",
+      "routineId": "warmup-default-24x7",
+      "routineName": "Warmup 24/7 Padrão",
+      "originToken": "f1e9bf14-d39a-47c1-addd-28de09d42d5d",
+      "destinationNumber": "553175052792",
+      "delayMs": 14900,
+      "trackId": "warmup_warmup-default-24x7_r474_f1e9bf_8f7529_89e8abb9",
+      "trackSource": "warmup_manager",
+      "isAsync": true,
+      "details": "Aqui está tranquilo."
+    },
+    {
+      "id": "9f7aa0ed-8e37-4f6b-a107-f825c00b7dc9",
+      "timestamp": "2026-05-01T15:57:26.258Z",
+      "type": "send",
+      "instanceName": "vufp7R",
+      "message": "Warmup [Encerramento] enviado para bgCT86",
+      "status": "success",
+      "routineId": "warmup-default-24x7",
+      "routineName": "Warmup 24/7 Padrão",
+      "originToken": "c81a5296-36db-4b80-8a47-96539591261b",
+      "destinationNumber": "553175015703",
+      "delayMs": 12795,
+      "trackId": "warmup_warmup-default-24x7_r474_c81a52_382f63_bfb91b5d",
+      "trackSource": "warmup_manager",
+      "isAsync": true,
+      "details": "Fechou, depois falamos."
+    },
+    {
+      "id": "c1c6e6cd-3064-4762-9de1-892a260a5eb3",
+      "timestamp": "2026-05-01T15:53:27.245Z",
+      "type": "send",
+      "instanceName": "FYv3SY",
+      "message": "Warmup [Saudação] enviado para KfKwgq",
+      "status": "success",
+      "routineId": "warmup-default-24x7",
+      "routineName": "Warmup 24/7 Padrão",
+      "originToken": "bd81c936-028d-4375-8a36-114b8b67f8d5",
+      "destinationNumber": "553175015626",
+      "delayMs": 8776,
+      "trackId": "warmup_warmup-default-24x7_r470_bd81c9_32c796_6714ae3c",
+      "trackSource": "warmup_manager",
+      "isAsync": true,
+      "details": "Bom dia. Passando para dar um oi."
+    },
+    {
+      "id": "4333ed62-fc62-4187-bb16-24b4b3210ed2",
+      "timestamp": "2026-05-01T15:52:26.198Z",
+      "type": "send",
+      "instanceName": "7hGb3V",
+      "message": "Warmup [Continuidade] enviado para rb9kSq",
+      "status": "success",
+      "routineId": "warmup-default-24x7",
+      "routineName": "Warmup 24/7 Padrão",
+      "originToken": "174b6044-5705-429f-9979-9d28886eaad6",
+      "destinationNumber": "553173663514",
+      "delayMs": 8979,
+      "trackId": "warmup_warmup-default-24x7_r469_174b60_1881cf_2846f775",
+      "trackSource": "warmup_manager",
+      "isAsync": true,
+      "details": "Depois me conta se ficou tudo ok."
+    },
     {
       "id": "2f11ca44-f0c0-49bd-8a8e-2943dd086948",
       "timestamp": "2026-05-01T15:51:30.105Z",

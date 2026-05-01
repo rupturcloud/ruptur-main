@@ -1,6 +1,13 @@
 {
   "history": [
     {
+      "timestamp": "2026-05-01T15:53:25.321Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 1
+    },
+    {
       "timestamp": "2026-05-01T15:43:24.751Z",
       "type": "pulse",
       "heatScore": 70,
@@ -324,5 +331,5 @@
     }
   ],
   "firstSeenAt": "2026-04-30T15:42:28.034Z",
-  "lastUpdatedAt": "2026-05-01T15:43:24.751Z"
+  "lastUpdatedAt": "2026-05-01T15:53:25.321Z"
 }

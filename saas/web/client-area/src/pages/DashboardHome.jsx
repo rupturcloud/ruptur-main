@@ -32,6 +32,46 @@ const DashboardHome = () => {
         </motion.div>
       </header>
 
+      {/* Checklist de Início Rápido */}
+      <section className="quick-start-checklist glass">
+        <div className="checklist-header">
+          <h3><Sparkles size={18} color="#00f2ff" /> Complete sua configuração</h3>
+          <span className="badge-outline">2/4 concluídos</span>
+        </div>
+        <div className="checklist-grid">
+          <div className="check-item done">
+            <div className="check-circle"><Check size={14} /></div>
+            <div className="check-text">
+              <strong>Criar Conta</strong>
+              <span>Sua conta está ativa e pronta.</span>
+            </div>
+          </div>
+          <div className="check-item done">
+            <div className="check-circle"><Check size={14} /></div>
+            <div className="check-text">
+              <strong>Escolher Plano</strong>
+              <span>Você está no plano Trial (50 créditos).</span>
+            </div>
+          </div>
+          <div className="check-item pending">
+            <div className="check-circle">3</div>
+            <div className="check-text">
+              <strong>Conectar WhatsApp</strong>
+              <span>Vincule uma instância para começar os envios.</span>
+            </div>
+            <button className="check-action">Conectar</button>
+          </div>
+          <div className="check-item pending">
+            <div className="check-circle">4</div>
+            <div className="check-text">
+              <strong>Primeiro Disparo</strong>
+              <span>Crie sua primeira campanha de mensagens.</span>
+            </div>
+            <button className="check-action">Criar</button>
+          </div>
+        </div>
+      </section>
+
       <div className="stats-grid">
         {cards.map((stat, index) => (
           <motion.div 
@@ -99,6 +139,26 @@ const DashboardHome = () => {
 
       <style jsx="true">{`
         .dashboard-home { display: flex; flex-direction: column; gap: 30px; }
+        
+        .quick-start-checklist { padding: 30px; border-radius: 24px; background: rgba(0,242,255,0.02); border: 1px solid rgba(0,242,255,0.1); }
+        .checklist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .checklist-header h3 { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; }
+        .badge-outline { padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: var(--text-muted); }
+        
+        .checklist-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+        .check-item { display: flex; align-items: center; gap: 16px; padding: 20px; border-radius: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); position: relative; }
+        .check-item.done { opacity: 0.7; }
+        .check-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; font-weight: 700; color: var(--text-muted); }
+        .check-item.done .check-circle { background: #00ff88; border-color: #00ff88; color: #000; }
+        .check-item.pending .check-circle { border-color: #00f2ff; color: #00f2ff; box-shadow: 0 0 10px rgba(0,242,255,0.2); }
+        
+        .check-text { display: flex; flex-direction: column; gap: 2px; flex-grow: 1; }
+        .check-text strong { font-size: 0.95rem; }
+        .check-text span { font-size: 0.75rem; color: var(--text-muted); }
+        
+        .check-action { padding: 6px 14px; border-radius: 8px; background: #00f2ff; border: none; color: #000; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
+        .check-action:hover { transform: scale(1.05); }
+
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         
         .stat-card { padding: 24px; border-radius: 20px; display: flex; align-items: center; gap: 20px; transition: 0.3s; }
