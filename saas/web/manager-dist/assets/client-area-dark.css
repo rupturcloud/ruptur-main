@@ -615,3 +615,78 @@ tr:hover, tbody tr:hover,
 .text-warning, .text-yellow {
   color: var(--warning) !important;
 }
+
+/* ============================================================
+   SYSTEM STATUS CARD — Dashboard Gateway Card
+   ============================================================ */
+.system-status-card,
+[class*="system-status"],
+[class*="gateway-card"],
+[class*="status-card"] {
+  background: linear-gradient(135deg, rgba(112, 0, 255, 0.15) 0%, rgba(0, 242, 255, 0.08) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 24px !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.system-status-card h3,
+[class*="system-status"] h3,
+[class*="system-status"] [class*="title"] {
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: var(--text-main) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.system-status-card p,
+[class*="system-status"] p,
+[class*="system-status"] [class*="description"] {
+  color: var(--text-dim) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.5 !important;
+  margin-bottom: 16px !important;
+}
+
+.system-status-card a,
+[class*="system-status"] a,
+[class*="gateway-link"],
+[class*="access-link"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  text-decoration: none !important;
+  transition: var(--transition-fast) !important;
+}
+
+.system-status-card a:hover,
+[class*="system-status"] a:hover {
+  color: white !important;
+  gap: 10px !important;
+}
+
+.system-status-card a::after,
+[class*="system-status"] a::after {
+  content: '→' !important;
+  transition: transform 0.2s !important;
+}
+
+.system-status-card a:hover::after,
+[class*="system-status"] a:hover::after {
+  transform: translateX(4px) !important;
+}
+
+/* Shield icon styling */
+[class*="shield-icon"],
+[class*="system-status"] [class*="icon"] {
+  color: var(--primary) !important;
+  font-size: 1.2rem !important;
+}
