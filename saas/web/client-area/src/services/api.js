@@ -1,44 +1,110 @@
 /**
  * Ruptur Client Area API Service
- * Centraliza as chamadas ao backend do Ruptur e integração com Bubble.io
+ * Centraliza chamadas ao backend com JWT automático no header.
+ *
+ * authFetch: wrapper de fetch que injeta o token de sessão do Supabase.
+ * apiService: métodos de alto nível para cada recurso.
  */
+import { supabase } from './supabase';
 
-const API_BASE_URL = ''; // Endpoints já começam com /api no server.mjs e o front é servido na mesma origem
+const API_BASE_URL = '';
 
+/**
+ * Fetch autenticado — injeta Bearer token automaticamente.
+ * Retry automático em caso de 401 (token expirado).
+ */
+export async function authFetch(url, options = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  const config = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  };
+
+  let response = await fetch(`${API_BASE_URL}${url}`, config);
+
+  // Se o token expirou, tenta renovar e refaz a request
+  if (response.status === 401 && token) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    if (refreshed?.session?.access_token) {
+      config.headers['Authorization'] = `Bearer ${refreshed.session.access_token}`;
+      response = await fetch(`${API_BASE_URL}${url}`, config);
+    }
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const error = new Error(body.error || body.message || `Request failed: ${response.status}`);
+    error.status = response.status;
+    error.body = body;
+    throw error;
+  }
+
+  return response.json();
+}
+
+/**
+ * API Service — métodos de alto nível por recurso
+ */
 export const apiService = {
-  // --- Dashboard Statistics ---
+  // --- Dashboard ---
   async getDashboardStats(tenantId) {
-    const response = await fetch(`${API_BASE_URL}/api/dashboard?tenantId=${tenantId}`);
-    if (!response.ok) throw new Error('Falha ao buscar estatísticas');
-    return await response.json();
+    return authFetch(`/api/dashboard?tenantId=${tenantId}`);
   },
 
   // --- Wallet & Credits ---
+  async getWalletData(tenantId) {
+    return authFetch(`/api/wallet?tenantId=${tenantId}`);
+  },
+
   async getWalletHistory(tenantId) {
-    const response = await fetch(`${API_BASE_URL}/api/wallet/transactions?tenantId=${tenantId}`);
-    if (!response.ok) throw new Error('Falha ao buscar histórico');
-    const data = await response.json();
+    const data = await authFetch(`/api/wallet/transactions?tenantId=${tenantId}`);
     return data.transactions || [];
   },
 
-  async addCredits(tenantId, amount) {
-    // Redirecionamento para checkout (mantido como está por enquanto, ou integrar com stripe/bubble)
-    return { checkoutUrl: `https://app.ruptur.cloud/checkout?tenant=${tenantId}&amount=${amount}` };
+  // --- Billing (Getnet) ---
+
+  /** Listar pacotes de créditos avulsos */
+  async getPackages() {
+    return authFetch('/api/billing/packages');
+  },
+
+  /** Criar checkout de compra de créditos avulsos */
+  async createCheckout(tenantId, packageId) {
+    return authFetch('/api/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ tenantId, packageId }),
+    });
+  },
+
+  /** Criar assinatura recorrente */
+  async createSubscription(tenantId, planId) {
+    return authFetch('/api/billing/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ tenantId, planId }),
+    });
+  },
+
+  /** Listar planos de assinatura */
+  async getPlans() {
+    const data = await authFetch('/api/billing/plans');
+    return data.plans || [];
   },
 
   // --- Campaigns ---
   async getCampaigns(tenantId) {
-    const response = await fetch(`${API_BASE_URL}/api/campaigns?tenantId=${tenantId}`);
-    if (!response.ok) throw new Error('Falha ao buscar campanhas');
-    const data = await response.json();
-    // Se o backend retornar { campaigns: [] }, extraímos
+    const data = await authFetch(`/api/campaigns?tenantId=${tenantId}`);
     return Array.isArray(data) ? data : (data.campaigns || []);
   },
 
   async createCampaign(tenantId, campaignData) {
-    const response = await fetch(`${API_BASE_URL}/api/campaigns`, {
+    return authFetch('/api/campaigns', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantId },
       body: JSON.stringify({
         ...campaignData,
         tenantId,
@@ -47,34 +113,54 @@ export const apiService = {
         mediaUrl: campaignData.mediaUrl || '',
         buttonType: campaignData.buttonType || '',
         buttons: campaignData.buttons || [],
-        sections: campaignData.sections || []
-      })
+        sections: campaignData.sections || [],
+      }),
     });
-    if (!response.ok) throw new Error('Falha ao criar campanha');
-    return await response.json();
   },
 
   async launchCampaign(tenantId, campaignId) {
-    const response = await fetch(`${API_BASE_URL}/api/campaigns/${campaignId}/launch`, {
+    return authFetch(`/api/campaigns/${campaignId}/launch`, {
       method: 'POST',
-      headers: { 'x-tenant-id': tenantId }
+      body: JSON.stringify({ tenantId }),
     });
-    if (!response.ok) throw new Error('Falha ao disparar campanha');
-    return await response.json();
   },
 
-   // --- Inbox & Messages ---
-   async getInstances(tenantId) {
-     const response = await fetch(`${API_BASE_URL}/api/local/uazapi/instance/all?tenantId=${tenantId}`);
-     if (!response.ok) throw new Error('Falha ao buscar instâncias');
-     return await response.json();
-   },
+  // --- Instances ---
+  async getInstances(tenantId) {
+    return authFetch(`/api/local/uazapi/instance/all?tenantId=${tenantId}`);
+  },
 
-   async getMessages(instanceId, tenantId) {
-     const response = await fetch(`${API_BASE_URL}/api/inbox/messages/${instanceId}?tenantId=${tenantId}`);
-     if (!response.ok) throw new Error('Falha ao buscar mensagens');
-     const data = await response.json();
-     return data.messages || [];
-   }
+  // --- Inbox ---
+  async getMessages(instanceId, tenantId) {
+    const data = await authFetch(`/api/inbox/messages/${instanceId}?tenantId=${tenantId}`);
+    return data.messages || [];
+  },
+
+  // --- Tenant ---
+  async getTenant(tenantId) {
+    return authFetch(`/api/tenants/${tenantId}`);
+  },
+
+  async updateTenant(tenantId, updates) {
+    return authFetch(`/api/tenants/${tenantId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  // --- Admin ---
+  async getAdminStats() {
+    return authFetch('/api/admin/stats');
+  },
+
+  async getAdminClients(search = '') {
+    return authFetch(`/api/admin/clients?search=${encodeURIComponent(search)}`);
+  },
+
+  async adminAddCredits(tenantId, amount, description) {
+    return authFetch('/api/admin/credits', {
+      method: 'POST',
+      body: JSON.stringify({ tenantId, amount, description }),
+    });
+  },
 };
-

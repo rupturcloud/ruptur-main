@@ -1,193 +1,256 @@
 /**
- * Wallet Module - Credit Management for Multi-tenancy
- * 
- * Handles balance checks, credit deductions, and transaction logging
- * Synchronizes with Bubble.io as the source of truth
+ * Wallet Module — Gestão de Créditos Multi-tenant
+ *
+ * Fonte de verdade: Supabase (tabelas tenants + wallet_transactions)
+ * Funções: consultar saldo, debitar, creditar, histórico
+ *
+ * IMPORTANTE: Toda operação de débito faz verificação atômica
+ * via RPC ou leitura + escrita no Supabase para evitar race conditions.
  */
 
-import BubbleClient from '../../integrations/bubble/client.js';
-
-const bubbleClient = new BubbleClient();
-
 export class WalletManager {
-  constructor() {
-    this.balanceCache = new Map(); // tenantId -> { balance, lastSync }
-    this.CACHE_TTL = 30000; // 30 seconds cache for balance
+  /**
+   * @param {import('@supabase/supabase-js').SupabaseClient} supabase
+   */
+  constructor(supabase) {
+    this.supabase = supabase;
+    // Cache leve em memória (read-only, invalidado em cada mutação)
+    this._cache = new Map();
+    this.CACHE_TTL = 15_000; // 15s
   }
 
+  // ========================================================================
+  //  Leitura
+  // ========================================================================
+
   /**
-   * Get balance for a tenant
-   * @param {string} tenantId 
+   * Saldo atual do tenant
+   * @param {string} tenantId
    * @returns {Promise<number>}
    */
   async getBalance(tenantId) {
-    try {
-      const now = Date.now();
-      const cached = this.balanceCache.get(tenantId);
+    const cached = this._cache.get(tenantId);
+    if (cached && Date.now() - cached.ts < this.CACHE_TTL) return cached.balance;
 
-      // Return cached balance if fresh
-      if (cached && (now - cached.lastSync < this.CACHE_TTL)) {
-        return cached.balance;
-      }
+    const { data, error } = await this.supabase
+      .from('tenants')
+      .select('credits_balance')
+      .eq('id', tenantId)
+      .single();
 
-      // Fetch from Bubble
-      const response = await bubbleClient.getThings('Tenant', {
-        constraints: [
-          {
-            key: 'tenant_id',
-            constraint_type: 'equals',
-            value: tenantId
-          }
-        ]
-      });
-
-      // Bubble returns results in a 'results' array or similar depending on the wrapper
-      // Based on client.js, request returns the json response directly
-      const tenants = response.response?.results || response.results || [];
-
-      if (tenants.length === 0) {
-        console.warn(`[Wallet] Tenant ${tenantId} not found in Bubble. Defaulting balance to 0.`);
-        return 0;
-      }
-
-      const tenant = tenants[0];
-      const balance = tenant.balance_credits || 0;
-      
-      this.balanceCache.set(tenantId, {
-        balance,
-        lastSync: now,
-        bubbleId: tenant._id
-      });
-
-      return balance;
-    } catch (error) {
-      console.error(`[Wallet] Error getting balance for ${tenantId}:`, error.message);
-      // Fallback to cache if available, even if stale
-      return this.balanceCache.get(tenantId)?.balance || 0;
+    if (error) {
+      console.error(`[Wallet] Erro ao consultar saldo de ${tenantId}:`, error.message);
+      return cached?.balance ?? 0;
     }
+
+    const balance = data.credits_balance ?? 0;
+    this._cache.set(tenantId, { balance, ts: Date.now() });
+    return balance;
   }
 
   /**
-   * Check if tenant has enough credits
-   * @param {string} tenantId 
-   * @param {number} required 
-   * @returns {Promise<boolean>}
+   * Verifica se o tenant tem créditos suficientes
    */
   async hasEnoughCredits(tenantId, required = 1) {
     const balance = await this.getBalance(tenantId);
     return balance >= required;
   }
 
+  // ========================================================================
+  //  Mutações (débito / crédito)
+  // ========================================================================
+
   /**
-   * Deduct credits from tenant
-   * @param {string} tenantId 
-   * @param {number} amount 
-   * @param {Object} metadata Optional metadata (campaignId, etc)
+   * Debitar créditos do tenant (ex: envio de mensagem)
+   *
+   * @param {string} tenantId
+   * @param {number} amount - Quantidade de créditos a debitar
+   * @param {Object} metadata - { description, campaignId, ... }
+   * @returns {Promise<number>} Novo saldo
    */
   async deductCredit(tenantId, amount = 1, metadata = {}) {
-    try {
-      // 1. Always verify current balance before deducting (ignore cache for security)
-      const currentBalance = await this.getBalance(tenantId);
-      
-      if (currentBalance < amount) {
-        throw new Error(`Insufficient credits for tenant ${tenantId}. Required: ${amount}, Available: ${currentBalance}`);
-      }
+    // 1. Leitura fresca (ignora cache) para garantir consistência
+    const { data: tenant, error: readErr } = await this.supabase
+      .from('tenants')
+      .select('credits_balance')
+      .eq('id', tenantId)
+      .single();
 
-      const cached = this.balanceCache.get(tenantId);
-      const bubbleId = cached?.bubbleId;
-
-      if (!bubbleId) {
-        throw new Error(`Could not find Bubble ID for tenant ${tenantId}`);
-      }
-
-      // 2. Create transaction record in Bubble
-      await bubbleClient.createThing('WalletTransaction', {
-        tenant_id: tenantId,
-        amount: -amount,
-        type: 'debit',
-        description: metadata.description || 'Campaign message send',
-        campaign_id: metadata.campaignId,
-        timestamp: new Date().toISOString()
-      });
-
-      // 3. Update Tenant balance in Bubble
-      const newBalance = currentBalance - amount;
-      await bubbleClient.updateThing('Tenant', bubbleId, {
-        balance_credits: newBalance
-      });
-
-      // 4. Update local cache
-      this.balanceCache.set(tenantId, {
-        balance: newBalance,
-        lastSync: Date.now(),
-        bubbleId: bubbleId
-      });
-
-      return newBalance;
-    } catch (error) {
-      console.error(`[Wallet] Error deducting credit for ${tenantId}:`, error.message);
-      throw error;
+    if (readErr || !tenant) {
+      throw new Error(`Tenant ${tenantId} não encontrado`);
     }
+
+    const currentBalance = tenant.credits_balance ?? 0;
+
+    if (currentBalance < amount) {
+      throw new Error(
+        `Créditos insuficientes para tenant ${tenantId}. Necessário: ${amount}, Disponível: ${currentBalance}`
+      );
+    }
+
+    const newBalance = currentBalance - amount;
+
+    // 2. Atualizar saldo (condição otimista para evitar write stale)
+    const { error: updateErr } = await this.supabase
+      .from('tenants')
+      .update({ credits_balance: newBalance })
+      .eq('id', tenantId)
+      .eq('credits_balance', currentBalance); // Otimistic lock
+
+    if (updateErr) {
+      throw new Error(`Falha ao debitar créditos: ${updateErr.message}`);
+    }
+
+    // 3. Registrar transação
+    await this.supabase.from('wallet_transactions').insert({
+      tenant_id: tenantId,
+      type: 'debit',
+      amount: -amount,
+      balance_after: newBalance,
+      source: metadata.source || 'campaign',
+      description: metadata.description || 'Envio de mensagem',
+      metadata: metadata.campaignId ? { campaign_id: metadata.campaignId } : undefined,
+    });
+
+    // Invalidar cache
+    this._cache.delete(tenantId);
+
+    console.log(`[Wallet] Débito: tenant=${tenantId} amount=${amount} newBalance=${newBalance}`);
+    return newBalance;
   }
 
   /**
-   * Add credits to tenant (e.g. from Admin or Payment)
+   * Creditar créditos ao tenant (ex: compra, bonus, admin)
+   *
+   * @param {string} tenantId
+   * @param {number} amount
+   * @param {Object} opts - { source, description, paymentId }
+   * @returns {Promise<number>} Novo saldo
    */
-  async addCredits(tenantId, amount, description = 'Manual credit add') {
-    try {
-      const currentBalance = await this.getBalance(tenantId);
-      const cached = this.balanceCache.get(tenantId);
-      const bubbleId = cached?.bubbleId;
+  async addCredits(tenantId, amount, opts = {}) {
+    const { source = 'purchase', description = 'Recarga de créditos', paymentId } = opts;
 
-      if (!bubbleId) throw new Error(`Tenant ${tenantId} not found`);
+    // 1. Ler saldo atual
+    const { data: tenant, error: readErr } = await this.supabase
+      .from('tenants')
+      .select('credits_balance')
+      .eq('id', tenantId)
+      .single();
 
-      await bubbleClient.createThing('WalletTransaction', {
-        tenant_id: tenantId,
-        amount: amount,
-        type: 'credit',
-        description,
-        timestamp: new Date().toISOString()
-      });
-
-      const newBalance = currentBalance + amount;
-      await bubbleClient.updateThing('Tenant', bubbleId, {
-        balance_credits: newBalance
-      });
-
-      this.balanceCache.set(tenantId, {
-        balance: newBalance,
-        lastSync: Date.now(),
-        bubbleId: bubbleId
-      });
-
-      return newBalance;
-    } catch (error) {
-      console.error(`[Wallet] Error adding credits for ${tenantId}:`, error.message);
-      throw error;
+    if (readErr || !tenant) {
+      throw new Error(`Tenant ${tenantId} não encontrado`);
     }
+
+    const newBalance = (tenant.credits_balance ?? 0) + amount;
+
+    // 2. Atualizar saldo
+    const { error: updateErr } = await this.supabase
+      .from('tenants')
+      .update({ credits_balance: newBalance })
+      .eq('id', tenantId);
+
+    if (updateErr) {
+      throw new Error(`Falha ao creditar: ${updateErr.message}`);
+    }
+
+    // 3. Registrar transação
+    await this.supabase.from('wallet_transactions').insert({
+      tenant_id: tenantId,
+      type: 'credit',
+      amount,
+      balance_after: newBalance,
+      source,
+      description,
+      metadata: paymentId ? { payment_id: paymentId } : undefined,
+    });
+
+    // Invalidar cache
+    this._cache.delete(tenantId);
+
+    console.log(`[Wallet] Crédito: tenant=${tenantId} amount=+${amount} newBalance=${newBalance}`);
+    return newBalance;
   }
 
+  // ========================================================================
+  //  Histórico
+  // ========================================================================
+
   /**
-   * Get transaction history for a tenant
+   * Histórico de transações do tenant
    */
-  async getTransactions(tenantId, limit = 50) {
-    try {
-      const response = await bubbleClient.getThings('WalletTransaction', {
-        constraints: [
-          {
-            key: 'tenant_id',
-            constraint_type: 'equals',
-            value: tenantId
-          }
-        ],
-        limit
-      });
-      return response.response?.results || response.results || [];
-    } catch (error) {
-      console.error(`[Wallet] Error getting transactions for ${tenantId}:`, error.message);
+  async getTransactions(tenantId, { limit = 50, offset = 0, type } = {}) {
+    let query = this.supabase
+      .from('wallet_transactions')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (type && type !== 'ALL') {
+      query = query.eq('type', type);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error(`[Wallet] Erro ao buscar transações de ${tenantId}:`, error.message);
       return [];
     }
+
+    return data || [];
+  }
+
+  // ========================================================================
+  //  Stats agregadas
+  // ========================================================================
+
+  /**
+   * Estatísticas de consumo (para dashboard)
+   */
+  async getStats(tenantId) {
+    const balance = await this.getBalance(tenantId);
+
+    // Total consumido (all-time)
+    const { data: debits } = await this.supabase
+      .from('wallet_transactions')
+      .select('amount')
+      .eq('tenant_id', tenantId)
+      .eq('type', 'debit');
+
+    const totalConsumed = (debits || []).reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+    // Consumo hoje
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const { data: todayDebits } = await this.supabase
+      .from('wallet_transactions')
+      .select('amount')
+      .eq('tenant_id', tenantId)
+      .eq('type', 'debit')
+      .gte('created_at', todayStart.toISOString());
+
+    const consumedToday = (todayDebits || []).reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+    return {
+      balance,
+      totalConsumed,
+      consumedToday,
+    };
   }
 }
 
-export const walletManager = new WalletManager();
+// Singleton — inicializado no gateway com supabase injetado
+let _instance = null;
+
+export function createWalletManager(supabase) {
+  _instance = new WalletManager(supabase);
+  return _instance;
+}
+
+export function getWalletManager() {
+  if (!_instance) throw new Error('[Wallet] Manager não inicializado. Chame createWalletManager(supabase) primeiro.');
+  return _instance;
+}
+
+export default WalletManager;

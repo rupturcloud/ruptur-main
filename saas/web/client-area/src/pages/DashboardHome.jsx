@@ -2,13 +2,15 @@ import React, { useEffect } from 'react';
 import { Wallet, Send, Users, AlertCircle, TrendingUp, Zap } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 
-const DashboardHome = ({ tenantId }) => {
+const DashboardHome = () => {
+  const { tenantId } = useAuth();
   const { data: stats, loading, request: fetchStats } = useApi(apiService.getDashboardStats);
 
   useEffect(() => {
-    fetchStats(tenantId);
+    if (tenantId) fetchStats(tenantId);
   }, [tenantId, fetchStats]);
 
   const cards = [

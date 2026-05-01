@@ -1,22 +1,29 @@
+/**
+ * Sidebar — Navegação lateral com React Router
+ *
+ * Usa NavLink para active state automático e navegação SPA.
+ */
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Send, 
-  Wallet, 
-  MessageSquare, 
+import {
+  LayoutDashboard,
+  Send,
+  Wallet,
+  MessageSquare,
   LogOut,
-  Zap
+  Zap,
+  Settings
 } from 'lucide-react';
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard',  icon: <LayoutDashboard size={20} /> },
-  { id: 'campaigns', label: 'Campanhas',  icon: <Send size={20} /> },
-  { id: 'wallet',    label: 'Carteira',   icon: <Wallet size={20} /> },
-  { id: 'inbox',     label: 'Inbox',      icon: <MessageSquare size={20} /> },
+  { to: '/dashboard',  label: 'Dashboard',  icon: <LayoutDashboard size={20} /> },
+  { to: '/campanhas',  label: 'Campanhas',  icon: <Send size={20} /> },
+  { to: '/carteira',   label: 'Carteira',   icon: <Wallet size={20} /> },
+  { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare size={20} /> },
 ];
 
-const Sidebar = ({ activeTab, setActiveTab, onLogout, tenantId }) => {
+const Sidebar = ({ onLogout, tenantId, tenantName }) => {
   return (
     <aside className="sidebar glass">
       {/* Logo */}
@@ -33,34 +40,26 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, tenantId }) => {
       {/* Navegação */}
       <nav className="sidebar-nav">
         {menuItems.map((item) => (
-          <motion.button
-            key={item.id}
-            whileTap={{ scale: 0.97 }}
-            className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(item.id)}
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <span className="icon">{item.icon}</span>
             <span className="label">{item.label}</span>
-            {activeTab === item.id && (
-              <motion.div
-                layoutId="active-pill"
-                className="active-indicator"
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
-          </motion.button>
+          </NavLink>
         ))}
       </nav>
 
       {/* Rodapé */}
       <div className="sidebar-footer">
-        {tenantId && (
+        {(tenantName || tenantId) && (
           <div className="tenant-info">
             <div className="tenant-avatar">
-              {tenantId.charAt(0).toUpperCase()}
+              {(tenantName || tenantId || '?').charAt(0).toUpperCase()}
             </div>
             <div className="tenant-text">
-              <span className="tenant-name">{tenantId}</span>
+              <span className="tenant-name">{tenantName || tenantId}</span>
               <span className="tenant-role">Cliente</span>
             </div>
           </div>
@@ -138,6 +137,8 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, tenantId }) => {
           width: 100%;
           position: relative;
           font-family: 'Inter', sans-serif;
+          text-decoration: none;
+          font-size: 0.92rem;
         }
 
         .nav-item:hover {
@@ -149,15 +150,6 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, tenantId }) => {
           color: var(--primary);
           background: rgba(0, 242, 255, 0.08);
           font-weight: 600;
-        }
-
-        .active-indicator {
-          position: absolute;
-          left: 0; top: 8px; bottom: 8px;
-          width: 3px;
-          border-radius: 2px;
-          background: var(--primary);
-          box-shadow: 0 0 10px var(--primary);
         }
 
         .nav-item .icon {

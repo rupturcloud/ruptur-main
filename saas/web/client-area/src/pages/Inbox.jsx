@@ -5,11 +5,13 @@ import {
   Wifi, WifiOff, RefreshCw, PhoneOff
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 // ----------------------------------------------------------------
 // Inbox — caixa de mensagens por instância, isolado por tenantId
 // ----------------------------------------------------------------
-const Inbox = ({ tenantId }) => {
+const Inbox = () => {
+  const { tenantId } = useAuth();
   const [instances, setInstances] = useState([]);
   const [selectedInstance, setSelectedInstance] = useState(null);
   const [messages, setMessages] = useState([]);

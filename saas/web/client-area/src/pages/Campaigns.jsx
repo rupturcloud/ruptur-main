@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Send, Plus, Users, MessageSquare, Clock, Filter, Trash2, Play, Pause, Upload, Layout, List } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Campaigns = ({ tenantId }) => {
+const Campaigns = () => {
+  const { tenantId } = useAuth();
   const [showWizard, setShowWizard] = useState(false);
   const { data: campaigns, loading, request: fetchCampaigns } = useApi(apiService.getCampaigns);
   const [newCampaign, setNewCampaign] = useState({
@@ -23,7 +25,7 @@ const Campaigns = ({ tenantId }) => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    fetchCampaigns(tenantId);
+    if (tenantId) fetchCampaigns(tenantId);
   }, [tenantId, fetchCampaigns]);
 
    const handleCreate = async () => {
@@ -199,7 +201,7 @@ const Campaigns = ({ tenantId }) => {
                           <button type="button" onClick={() => {
                             const newBtns = [...newCampaign.buttons, { buttonId: '', buttonText: '' }];
                             setNewCampaign({...newCampaign, buttons: newBtns});
-                          }>+</button>
+                          }}>+</button>
                         )}
                       </div>
                     ))}
