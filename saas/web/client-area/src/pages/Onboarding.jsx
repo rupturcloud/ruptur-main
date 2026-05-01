@@ -56,6 +56,7 @@ export default function Onboarding() {
   const [error, setError] = useState('');
   const [qrCode, setQrCode] = useState(null);
   const [provisioning, setProvisioning] = useState(true);
+  const [qrStatus, setQrStatus] = useState('waiting');
 
   useEffect(() => {
     // Simula ou aguarda o provisionamento real do tenant
@@ -96,9 +97,22 @@ export default function Onboarding() {
       setTimeout(() => {
         setQrCode('https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=RupturCloud-Auth-' + Date.now());
         setLoading(false);
+        setQrStatus('waiting');
       }, 2500);
     }
   }, [step, qrCode]);
+
+  // A integração real com Webhooks substituirá este controle.
+  // Por ora, em produção, mantemos o fluxo manual (ou via API real) sem auto-advance fake.
+  const handleSimulateConnection = () => {
+    setQrStatus('scanned');
+    setTimeout(() => {
+      setQrStatus('connected');
+      setTimeout(() => {
+        nextStep();
+      }, 1000);
+    }, 1500);
+  };
 
   // Tela de Provisionamento Premium
   if (provisioning) {
@@ -315,7 +329,7 @@ export default function Onboarding() {
                 <p className="step-desc">Escaneie o código abaixo com o seu celular para ativar sua primeira instância.</p>
                 
                 <div className="qr-wrapper">
-                  <div className="qr-frame">
+                  <div className={`qr-frame ${qrStatus}`}>
                     {loading ? (
                       <div className="qr-state">
                         <div className="radar-ping"></div>
@@ -324,7 +338,34 @@ export default function Onboarding() {
                       </div>
                     ) : (
                       <div className="qr-display">
-                        <img src={qrCode} alt="WhatsApp QR Code" />
+                        <img src={qrCode} alt="WhatsApp QR Code" className={qrStatus !== 'waiting' ? 'blurred' : ''} />
+                        
+                        <AnimatePresence>
+                          {qrStatus === 'scanned' && (
+                            <motion.div 
+                              className="qr-overlay-status"
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <Loader2 size={40} className="spin status-icon primary" />
+                              <span>Autenticando Aparelho...</span>
+                            </motion.div>
+                          )}
+                          {qrStatus === 'connected' && (
+                            <motion.div 
+                              className="qr-overlay-status success"
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                            >
+                              <div className="success-circle">
+                                <Check size={40} className="status-icon" />
+                              </div>
+                              <span>Conexão Estabelecida!</span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        
                         <div className="qr-overlay-glow"></div>
                       </div>
                     )}
@@ -348,7 +389,12 @@ export default function Onboarding() {
 
                 <div className="step-actions split">
                   <button className="btn-ghost" onClick={prevStep}>Voltar</button>
-                  <button className="btn-primary-lg" onClick={nextStep}>Já conectei o aparelho <Check size={18} /></button>
+                  <button 
+                    className="btn-primary-lg" 
+                    onClick={qrStatus === 'connected' ? nextStep : handleSimulateConnection}
+                  >
+                    {qrStatus === 'waiting' ? 'Já escaneei o QR Code' : qrStatus === 'connected' ? 'Continuar' : 'Autenticando...'}
+                  </button>
                 </div>
               </motion.section>
             )}
@@ -562,8 +608,14 @@ export default function Onboarding() {
         .qr-wrapper { margin-bottom: 40px; display: flex; justify-content: center; }
         .qr-frame { width: 300px; height: 300px; padding: 25px; background: #fff; border-radius: 32px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
         .qr-display { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-        .qr-display img { width: 100%; border-radius: 12px; }
+        .qr-display img { width: 100%; border-radius: 12px; transition: filter 0.3s; }
+        .qr-display img.blurred { filter: blur(8px) brightness(0.8); }
         .qr-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; color: #505060; font-weight: 600; text-align: center; }
+        
+        .qr-overlay-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.8); border-radius: 12px; font-weight: 700; color: #000; z-index: 10; }
+        .qr-overlay-status.success { background: rgba(0,255,136,0.9); color: #000; }
+        .status-icon.primary { color: var(--primary); }
+        .success-circle { width: 64px; height: 64px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--success); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         
         .qr-instructions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 24px; border-radius: 20px; text-align: left; }
         .ins-item { display: flex; flex-direction: column; gap: 12px; }

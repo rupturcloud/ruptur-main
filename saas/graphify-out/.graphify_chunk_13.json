@@ -1,0 +1,460 @@
+{
+  "chunk_id": 13,
+  "total_chunks": 14,
+  "file_count": 6,
+  "files": [
+    "preview-home-dark-final.png",
+    "preview-home-current.png",
+    "preview-home-fixed-final.png",
+    "preview-warmup.png",
+    "preview-home-fixed-wait.png",
+    "preview-home-fixed.png"
+  ],
+  "nodes": [
+    {
+      "id": "visual_ruptur_cloud_home",
+      "label": "Ruptur Cloud Home Page",
+      "type": "visual_component",
+      "description": "Main landing/home page component with theme toggles and branding",
+      "confidence": 1.0,
+      "extracted_from": [
+        "preview-home-dark-final.png",
+        "preview-home-current.png",
+        "preview-home-fixed-final.png",
+        "preview-home-fixed-wait.png",
+        "preview-home-fixed.png"
+      ],
+      "attributes": {
+        "has_logo": true,
+        "has_tagline": true,
+        "has_theme_toggle": true,
+        "theme_modes": ["light", "dark"],
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "visual_diagnostico_ia_card",
+      "label": "Diagnóstico de IA Card",
+      "type": "visual_component",
+      "description": "Card component displaying AI diagnostics with exposure risk metrics",
+      "confidence": 1.0,
+      "extracted_from": [
+        "preview-home-dark-final.png",
+        "preview-home-current.png",
+        "preview-home-fixed-final.png",
+        "preview-home-fixed-wait.png",
+        "preview-home-fixed.png"
+      ],
+      "attributes": {
+        "icon": "flash",
+        "shows_risk_percentage": true,
+        "has_analysis_button": true,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "visual_system_status_card",
+      "label": "System Status Card",
+      "type": "visual_component",
+      "description": "Card showing system status with gateway ecosystem details and Warmup Manager link",
+      "confidence": 1.0,
+      "extracted_from": [
+        "preview-home-dark-final.png",
+        "preview-home-current.png",
+        "preview-home-fixed-final.png",
+        "preview-home-fixed-wait.png",
+        "preview-home-fixed.png"
+      ],
+      "attributes": {
+        "icon": "shield",
+        "shows_ecosystem_status": true,
+        "has_access_button": true,
+        "references_kvm2": true,
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "visual_warmup_manager_button",
+      "label": "Warmup Manager Button",
+      "type": "visual_component",
+      "description": "Prominent CTA button for accessing Warmup Manager with badge",
+      "confidence": 1.0,
+      "extracted_from": [
+        "preview-home-dark-final.png",
+        "preview-home-current.png",
+        "preview-home-fixed-final.png",
+        "preview-home-fixed-wait.png",
+        "preview-home-fixed.png"
+      ],
+      "attributes": {
+        "color": "blue_purple_gradient",
+        "position": "top_right",
+        "shows_badge": true,
+        "badge_text": "acesso em tempo real, infraestrutura, imagem e saúde"
+      }
+    },
+    {
+      "id": "visual_help_button",
+      "label": "Help/Support Button",
+      "type": "visual_component",
+      "description": "Green floating help button for user support",
+      "confidence": 1.0,
+      "extracted_from": [
+        "preview-home-dark-final.png",
+        "preview-home-current.png",
+        "preview-home-fixed-final.png",
+        "preview-home-fixed-wait.png",
+        "preview-home-fixed.png"
+      ],
+      "attributes": {
+        "color": "green",
+        "icon": "chat",
+        "floating": true,
+        "text": "Precisa de ajuda?"
+      }
+    },
+    {
+      "id": "visual_theme_toggle",
+      "label": "Theme Toggle",
+      "type": "visual_component",
+      "description": "Light/Dark mode toggle in header",
+      "confidence": 1.0,
+      "extracted_from": [
+        "preview-home-dark-final.png",
+        "preview-home-current.png",
+        "preview-home-fixed-final.png",
+        "preview-home-fixed-wait.png",
+        "preview-home-fixed.png"
+      ],
+      "attributes": {
+        "modes": ["Light", "Dark"],
+        "position": "top_left",
+        "style": "toggle_buttons"
+      }
+    },
+    {
+      "id": "visual_warmup_manager_dashboard",
+      "label": "Warmup Manager Dashboard",
+      "type": "visual_component",
+      "description": "Full Warmup Manager application dashboard with sidebar navigation and main content area",
+      "confidence": 1.0,
+      "extracted_from": ["preview-warmup.png"],
+      "attributes": {
+        "app_title": "Warmup Manager",
+        "subtitle": "Whatsapp Automation",
+        "has_sidebar": true,
+        "has_top_bar": true,
+        "theme": "light",
+        "language": "pt-BR"
+      }
+    },
+    {
+      "id": "visual_warmup_manager_sidebar",
+      "label": "Warmup Manager Sidebar Navigation",
+      "type": "visual_component",
+      "description": "Sidebar menu with navigation items for Warmup Manager",
+      "confidence": 1.0,
+      "extracted_from": ["preview-warmup.png"],
+      "attributes": {
+        "menu_items": [
+          "Dashboard",
+          "Instâncias",
+          "Warmup",
+          "Telemetria",
+          "Device Lab",
+          "Auto-regeneração",
+          "Relatórios",
+          "Grupos",
+          "Mensagens",
+          "Logs",
+          "Configurações"
+        ],
+        "active_item": "Dashboard"
+      }
+    },
+    {
+      "id": "visual_dashboard_section",
+      "label": "Dashboard Main Section",
+      "type": "visual_component",
+      "description": "Main dashboard content area showing Warmup 24/7 status and Audit Trail",
+      "confidence": 1.0,
+      "extracted_from": ["preview-warmup.png"],
+      "attributes": {
+        "sections": ["Warmup 24/7", "Rastro de auditoria"],
+        "shows_loading": true,
+        "loading_text": "Carregando runtime..."
+      }
+    },
+    {
+      "id": "visual_warmup_24_7_card",
+      "label": "Warmup 24/7 Card",
+      "type": "visual_component",
+      "description": "Card displaying Warmup 24/7 runtime status and configuration details",
+      "confidence": 1.0,
+      "extracted_from": ["preview-warmup.png"],
+      "attributes": {
+        "status_indicators": ["rotinas ativas: 1", "sincronizado em: nunca", "rodada: 0"],
+        "has_action_buttons": true,
+        "action_buttons": [
+          "Ativar Warmup 24/7",
+          "Parar Warmup",
+          "Reiniciar Warmup",
+          "Atualizar status"
+        ],
+        "configuration_text": "Perfil aplicado no start/restart: intervalo mínimo 6 min, máximo diário 250, cooldown 1 rodada(s), async ligado, readchat desligado, readmessages desligado."
+      }
+    },
+    {
+      "id": "visual_audit_trail_card",
+      "label": "Audit Trail Card",
+      "type": "visual_component",
+      "description": "Audit trail section showing risk overrides and Warmup controls",
+      "confidence": 1.0,
+      "extracted_from": ["preview-warmup.png"],
+      "attributes": {
+        "title": "Rastro de auditoria",
+        "description": "Override de risco, controles manuais e autorrecuperações do Warmup.",
+        "status": "no_events",
+        "no_events_text": "Nenhum evento de auditoria registrado até o momento."
+      }
+    },
+    {
+      "id": "visual_footer_branding",
+      "label": "Footer Branding",
+      "type": "visual_component",
+      "description": "Footer with copyright and company attribution",
+      "confidence": 1.0,
+      "extracted_from": [
+        "preview-home-dark-final.png",
+        "preview-home-current.png",
+        "preview-home-fixed-final.png",
+        "preview-warmup.png",
+        "preview-home-fixed-wait.png",
+        "preview-home-fixed.png"
+      ],
+      "attributes": {
+        "copyright_year": 2025,
+        "company": "2DL Company",
+        "status_label": "Status Persianas",
+        "heart_icon": true
+      }
+    },
+    {
+      "id": "concept_ui_theme_system",
+      "label": "UI Theme System",
+      "type": "concept",
+      "description": "Light and dark theme support throughout the application",
+      "confidence": 1.0,
+      "attributes": {
+        "themes": ["light", "dark"],
+        "applies_to": ["home_page", "warmup_manager"]
+      }
+    },
+    {
+      "id": "concept_warmup_automation",
+      "label": "Warmup Automation",
+      "type": "concept",
+      "description": "WhatsApp automation and warmup scheduling system for the Warmup Manager",
+      "confidence": 0.8,
+      "attributes": {
+        "product_name": "Warmup Manager",
+        "automation_target": "WhatsApp",
+        "key_features": ["24/7 runtime", "scheduler", "auto-regeneration"]
+      }
+    },
+    {
+      "id": "concept_system_diagnostics",
+      "label": "System Diagnostics",
+      "type": "concept",
+      "description": "AI-powered diagnostics for infrastructure risk assessment",
+      "confidence": 0.8,
+      "attributes": {
+        "focus_areas": ["parametric_risk", "temperature_analysis", "infrastructure_performance"],
+        "output": "exposure_risk_percentage"
+      }
+    },
+    {
+      "id": "concept_system_status_monitoring",
+      "label": "System Status Monitoring",
+      "type": "concept",
+      "description": "Real-time monitoring of gateway ecosystem status",
+      "confidence": 0.8,
+      "attributes": {
+        "monitored_systems": ["gateways", "ecosystem"],
+        "target_isolation": "KVM2"
+      }
+    },
+    {
+      "id": "concept_dashboard_layout",
+      "label": "Dashboard Layout Pattern",
+      "type": "concept",
+      "description": "Consistent dashboard layout with sidebar navigation and main content area",
+      "confidence": 0.8,
+      "attributes": {
+        "components": ["sidebar", "header", "main_content", "footer"],
+        "pattern_type": "admin_dashboard"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "visual_ruptur_cloud_home",
+      "target": "visual_theme_toggle",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_ruptur_cloud_home",
+      "target": "visual_diagnostico_ia_card",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_ruptur_cloud_home",
+      "target": "visual_system_status_card",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_ruptur_cloud_home",
+      "target": "visual_warmup_manager_button",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_ruptur_cloud_home",
+      "target": "visual_help_button",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_diagnostico_ia_card",
+      "target": "concept_system_diagnostics",
+      "relation": "visual_implements",
+      "confidence": 1.0,
+      "type": "semantic"
+    },
+    {
+      "source": "visual_system_status_card",
+      "target": "concept_system_status_monitoring",
+      "relation": "visual_implements",
+      "confidence": 1.0,
+      "type": "semantic"
+    },
+    {
+      "source": "visual_warmup_manager_button",
+      "target": "visual_warmup_manager_dashboard",
+      "relation": "navigates_to",
+      "confidence": 0.8,
+      "type": "interaction"
+    },
+    {
+      "source": "visual_warmup_manager_dashboard",
+      "target": "visual_warmup_manager_sidebar",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_warmup_manager_dashboard",
+      "target": "visual_dashboard_section",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_dashboard_section",
+      "target": "visual_warmup_24_7_card",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_dashboard_section",
+      "target": "visual_audit_trail_card",
+      "relation": "visual_contains",
+      "confidence": 1.0,
+      "type": "structural"
+    },
+    {
+      "source": "visual_warmup_24_7_card",
+      "target": "concept_warmup_automation",
+      "relation": "visual_implements",
+      "confidence": 0.9,
+      "type": "semantic"
+    },
+    {
+      "source": "visual_warmup_manager_sidebar",
+      "target": "concept_dashboard_layout",
+      "relation": "follows_pattern",
+      "confidence": 0.8,
+      "type": "semantic"
+    },
+    {
+      "source": "visual_ruptur_cloud_home",
+      "target": "concept_ui_theme_system",
+      "relation": "implements",
+      "confidence": 1.0,
+      "type": "semantic"
+    },
+    {
+      "source": "visual_warmup_manager_dashboard",
+      "target": "concept_ui_theme_system",
+      "relation": "implements",
+      "confidence": 1.0,
+      "type": "semantic"
+    },
+    {
+      "source": "concept_warmup_automation",
+      "target": "concept_system_status_monitoring",
+      "relation": "depends_on",
+      "confidence": 0.7,
+      "type": "dependency"
+    },
+    {
+      "source": "visual_warmup_24_7_card",
+      "target": "visual_audit_trail_card",
+      "relation": "related_to",
+      "confidence": 0.6,
+      "type": "semantic"
+    }
+  ],
+  "metadata": {
+    "extraction_method": "visual_analysis_from_screenshots",
+    "language_detected": "pt-BR",
+    "color_modes": ["light", "dark"],
+    "applications_identified": ["Ruptur Cloud", "Warmup Manager"],
+    "ui_patterns_identified": ["dashboard", "card_layout", "sidebar_navigation", "theme_toggle"],
+    "key_features": [
+      "AI Diagnostics",
+      "System Status Monitoring",
+      "Warmup Automation",
+      "WhatsApp Integration",
+      "Dark/Light Theme Support"
+    ]
+  },
+  "summary": {
+    "total_nodes": 17,
+    "total_edges": 18,
+    "visual_components": 12,
+    "concepts": 5,
+    "confidence_distribution": {
+      "1.0": 15,
+      "0.9": 1,
+      "0.8": 5,
+      "0.7": 1,
+      "0.6": 1
+    },
+    "edge_types": {
+      "structural": 8,
+      "semantic": 8,
+      "interaction": 1,
+      "dependency": 1
+    }
+  }
+}

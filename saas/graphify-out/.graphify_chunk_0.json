@@ -1,0 +1,322 @@
+{
+  "nodes": [
+    {
+      "id": "getnet_scrape_module",
+      "label": "Getnet Scrape Script",
+      "file_type": "code",
+      "source_file": "getnet-scrape.js",
+      "source_location": null
+    },
+    {
+      "id": "getnet_scrape_chromium",
+      "label": "Chromium Browser",
+      "file_type": "code",
+      "source_file": "getnet-scrape.js",
+      "source_location": "1"
+    },
+    {
+      "id": "getnet_scrape_globalgetnet_docs",
+      "label": "GlobalGetNet Currency Docs",
+      "file_type": "code",
+      "source_file": "getnet-scrape.js",
+      "source_location": "5"
+    },
+    {
+      "id": "playwright_config",
+      "label": "Playwright Test Configuration",
+      "file_type": "code",
+      "source_file": "playwright.config.mjs",
+      "source_location": null
+    },
+    {
+      "id": "playwright_warmup_runtime_host",
+      "label": "WARMUP_RUNTIME_HOST Environment Variable",
+      "file_type": "code",
+      "source_file": "playwright.config.mjs",
+      "source_location": "3"
+    },
+    {
+      "id": "playwright_warmup_runtime_port",
+      "label": "WARMUP_RUNTIME_PORT Environment Variable",
+      "file_type": "code",
+      "source_file": "playwright.config.mjs",
+      "source_location": "4"
+    },
+    {
+      "id": "playwright_health_endpoint",
+      "label": "Health Check Endpoint",
+      "file_type": "code",
+      "source_file": "playwright.config.mjs",
+      "source_location": "26"
+    },
+    {
+      "id": "auth_middleware_module",
+      "label": "Auth Middleware Module",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": null
+    },
+    {
+      "id": "auth_jwt_manager",
+      "label": "JWT Manager",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "1"
+    },
+    {
+      "id": "auth_createAuthMiddleware",
+      "label": "createAuthMiddleware Function",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "7"
+    },
+    {
+      "id": "auth_session_object",
+      "label": "Session Object",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "35-43"
+    },
+    {
+      "id": "auth_token_extraction",
+      "label": "Token Extraction Logic",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "25-26"
+    },
+    {
+      "id": "auth_createTenantValidationMiddleware",
+      "label": "createTenantValidationMiddleware Function",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "60"
+    },
+    {
+      "id": "auth_tenant_isolation",
+      "label": "Tenant Isolation Logic",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "68-76"
+    },
+    {
+      "id": "auth_createRateLimitMiddleware",
+      "label": "createRateLimitMiddleware Function",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "93"
+    },
+    {
+      "id": "auth_rate_limit_bucket",
+      "label": "Rate Limit Bucket Storage",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "96"
+    },
+    {
+      "id": "auth_createResponse",
+      "label": "createResponse Helper Function",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "130"
+    },
+    {
+      "id": "auth_cors_headers",
+      "label": "CORS Headers Configuration",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "133-136"
+    },
+    {
+      "id": "auth_parseBody",
+      "label": "parseBody Helper Function",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "144"
+    },
+    {
+      "id": "auth_dev_mode",
+      "label": "Development Mode Flag",
+      "file_type": "code",
+      "source_file": "middleware/auth.js",
+      "source_location": "12"
+    }
+  ],
+  "edges": [
+    {
+      "source": "getnet_scrape_module",
+      "target": "getnet_scrape_chromium",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "getnet_scrape_chromium",
+      "target": "getnet_scrape_globalgetnet_docs",
+      "relation": "fetches",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "playwright_config",
+      "target": "playwright_warmup_runtime_host",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "playwright_config",
+      "target": "playwright_warmup_runtime_port",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "playwright_warmup_runtime_host",
+      "target": "playwright_health_endpoint",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "playwright_warmup_runtime_port",
+      "target": "playwright_health_endpoint",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_middleware_module",
+      "target": "auth_jwt_manager",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_createAuthMiddleware",
+      "target": "auth_jwt_manager",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_createAuthMiddleware",
+      "target": "auth_session_object",
+      "relation": "creates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_createAuthMiddleware",
+      "target": "auth_token_extraction",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_token_extraction",
+      "target": "auth_session_object",
+      "relation": "populates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_createTenantValidationMiddleware",
+      "target": "auth_tenant_isolation",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_tenant_isolation",
+      "target": "auth_session_object",
+      "relation": "validates",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9
+    },
+    {
+      "source": "auth_createRateLimitMiddleware",
+      "target": "auth_rate_limit_bucket",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_middleware_module",
+      "target": "auth_createResponse",
+      "relation": "exports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_createResponse",
+      "target": "auth_cors_headers",
+      "relation": "sets",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_middleware_module",
+      "target": "auth_parseBody",
+      "relation": "exports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0
+    },
+    {
+      "source": "auth_dev_mode",
+      "target": "auth_createAuthMiddleware",
+      "relation": "controls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    },
+    {
+      "source": "auth_dev_mode",
+      "target": "auth_createTenantValidationMiddleware",
+      "relation": "controls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    },
+    {
+      "source": "auth_dev_mode",
+      "target": "auth_createRateLimitMiddleware",
+      "relation": "controls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "auth_security_context",
+      "label": "Authentication & Security Subsystem",
+      "members": [
+        "auth_createAuthMiddleware",
+        "auth_token_extraction",
+        "auth_session_object",
+        "auth_jwt_manager"
+      ],
+      "relation": "forms_security_layer"
+    },
+    {
+      "id": "auth_isolation_context",
+      "label": "Multi-Tenant Isolation",
+      "members": [
+        "auth_createTenantValidationMiddleware",
+        "auth_tenant_isolation",
+        "auth_session_object"
+      ],
+      "relation": "enforces_tenant_boundary"
+    },
+    {
+      "id": "playwright_runtime_context",
+      "label": "Playwright Runtime Configuration",
+      "members": [
+        "playwright_config",
+        "playwright_warmup_runtime_host",
+        "playwright_warmup_runtime_port",
+        "playwright_health_endpoint"
+      ],
+      "relation": "configures_test_environment"
+    }
+  ],
+  "input_tokens": 2850,
+  "output_tokens": 1200
+}

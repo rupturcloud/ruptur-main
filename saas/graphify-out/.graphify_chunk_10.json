@@ -1,0 +1,690 @@
+{
+  "chunk_id": 10,
+  "chunk_label": "Dashboard Distribution - Showcase, Connectome, Warmup, Login Pages",
+  "processed_files": 20,
+  "extraction_metadata": {
+    "timestamp": "2026-05-01T00:00:00Z",
+    "strategy": "código=references/defines, docs=concepts/cites, imagens=visual_components",
+    "confidence_levels": {
+      "EXTRACTED": 1.0,
+      "INFERRED": 0.7,
+      "AMBIGUOUS": 0.2
+    }
+  },
+  "nodes": [
+    {
+      "id": "page_404_notfound",
+      "type": "page",
+      "label": "404 Not Found Page",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "route": "/_not-found",
+        "framework": "next.js",
+        "lang": "pt-BR",
+        "error_message": "This page could not be found",
+        "styling": "system-ui font, centered layout, light/dark mode support"
+      }
+    },
+    {
+      "id": "page_showcase",
+      "type": "page",
+      "label": "Showcase Page",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "route": "/showcase",
+        "framework": "next.js",
+        "lang": "pt-BR",
+        "content_type": "iframe",
+        "iframe_src": "/connectome/showcase.html"
+      }
+    },
+    {
+      "id": "page_warmup",
+      "type": "page",
+      "label": "Warmup Page",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "route": "/warmup",
+        "framework": "next.js",
+        "lang": "pt-BR",
+        "description": "Warmup Manager interface",
+        "js_chunks": ["9828d5bf3d82b465.js"]
+      }
+    },
+    {
+      "id": "page_login",
+      "type": "page",
+      "label": "Login Page",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "route": "/login",
+        "framework": "next.js",
+        "lang": "pt-BR",
+        "js_chunks": ["93cfbc96f8bbe845.js"],
+        "has_suspense": true
+      }
+    },
+    {
+      "id": "connectome_viewer",
+      "type": "visual_component",
+      "label": "Connectome Viewer",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "url": "/connectome/index.html",
+        "description": "Interactive neural map viewer with SVG graph visualization",
+        "lang": "pt-BR",
+        "features": ["layer_filters", "state_filters", "vision_modes", "modal_forms", "3d_rotation", "zoom", "drag_nodes"],
+        "viewport_size": "1400x900"
+      }
+    },
+    {
+      "id": "connectome_3d_viewer",
+      "type": "visual_component",
+      "label": "Connectome 3D Viewer",
+      "source_type": "code",
+      "confidence": 0.7,
+      "properties": {
+        "url": "/connectome/three.html",
+        "framework": "three.js_implied",
+        "description": "3D visualization of connectome neural graph",
+        "lang": "pt-BR",
+        "styling_vars": ["--brain", "--app", "--domain", "--channel", "--infra", "--governance", "--ghost", "--wired", "--live", "--scaled"]
+      }
+    },
+    {
+      "id": "component_ruptur_global_nav",
+      "type": "component",
+      "label": "Ruptur Global Navigation",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "script_id": "data-ruptur-global-nav",
+        "features": ["back_to_home_link", "scroll_to_top_button", "fixed_positioning", "backdrop_blur"],
+        "localization": "pt-BR",
+        "mounted_on": ["showcase.html", "studio.html", "three.html"]
+      }
+    },
+    {
+      "id": "visual_connectome_spec",
+      "type": "artifact",
+      "label": "Connectome Visual Specification",
+      "source_type": "docs",
+      "confidence": 0.8,
+      "properties": {
+        "documented_in": "index.html sidebar",
+        "concepts": ["neural_map", "layer_system", "state_machine", "vision_modes"],
+        "color_scheme": {
+          "brain": "#79d8ff",
+          "app": "#ff944d",
+          "domain": "#ff6b6b",
+          "channel": "#ffd166",
+          "infra": "#8f96a3",
+          "governance": "#f472d0",
+          "ghost": "#5a6572",
+          "wired": "#61d8ff",
+          "live": "#ff7b54",
+          "scaled": "#ffe082"
+        }
+      }
+    },
+    {
+      "id": "node_farm_platform",
+      "type": "domain_entity",
+      "label": "Farm Platform",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "governance",
+        "state": "ghost",
+        "type": "mother-platform",
+        "tags": ["farm", "platform", "ecosystem"],
+        "description": "Hipotese de plataforma mae acima de ADK, <Ruptur />, canais, infra e automacoes"
+      }
+    },
+    {
+      "id": "node_adk",
+      "type": "domain_entity",
+      "label": "ADK",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "brain",
+        "state": "wired",
+        "type": "brain",
+        "tags": ["brain", "memory", "orchestration"],
+        "description": "Camada cerebral e de orquestracao do ecossistema"
+      }
+    },
+    {
+      "id": "node_ruptur",
+      "type": "domain_entity",
+      "label": "<Ruptur />",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "app",
+        "state": "live",
+        "type": "app",
+        "tags": ["app", "crm", "sales"],
+        "description": "Aplicacao operacional e comercial usada para executar a maquina de vendas"
+      }
+    },
+    {
+      "id": "node_crm",
+      "type": "domain_entity",
+      "label": "CRM",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "domain",
+        "state": "wired",
+        "type": "domain-core",
+        "tags": ["crm", "leads", "pipeline"],
+        "description": "Dominio comercial com leads, conversas, mensagens, labels e fila operacional"
+      }
+    },
+    {
+      "id": "node_whatsapp",
+      "type": "domain_entity",
+      "label": "WhatsApp",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "channel",
+        "state": "wired",
+        "type": "channel",
+        "tags": ["channel", "prospecting", "followup", "dispatch"],
+        "description": "Canal transversal com papeis diferentes conforme camada e momento"
+      }
+    },
+    {
+      "id": "node_uazapi",
+      "type": "domain_entity",
+      "label": "UAZAPI",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "channel",
+        "state": "live",
+        "type": "provider",
+        "tags": ["provider", "uazapi", "whatsapp"],
+        "description": "Provider de WhatsApp hoje acoplado a partes centrais do fluxo operacional"
+      }
+    },
+    {
+      "id": "node_cockpit",
+      "type": "domain_entity",
+      "label": "Cockpit",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "app",
+        "state": "live",
+        "type": "operator-console",
+        "tags": ["cockpit", "inbox", "supervision"],
+        "description": "Superficie operacional para acompanhamento humano, fila, override e visibilidade"
+      }
+    },
+    {
+      "id": "node_messaging",
+      "type": "domain_entity",
+      "label": "Messaging",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "domain",
+        "state": "ghost",
+        "type": "domain-core",
+        "tags": ["messaging", "dispatch", "routing"],
+        "description": "Dominio de envio, roteamento e estado de mensagens entre providers e aplicacoes"
+      }
+    },
+    {
+      "id": "node_automation",
+      "type": "domain_entity",
+      "label": "Automation",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "domain",
+        "state": "ghost",
+        "type": "domain-core",
+        "tags": ["automation", "agent-runs", "durability"],
+        "description": "Dominio de automacao duravel com agent runs, dispatch jobs e trilha auditavel"
+      }
+    },
+    {
+      "id": "node_receita_previsivel",
+      "type": "domain_entity",
+      "label": "Receita Previsivel",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "domain",
+        "state": "wired",
+        "type": "method",
+        "tags": ["sales", "predictable-revenue", "method"],
+        "description": "Metodo-fonte usado para decompor a maquina comercial do cliente e a maquina comercial do Diego"
+      }
+    },
+    {
+      "id": "node_sales_machine_diego",
+      "type": "domain_entity",
+      "label": "Sales Machine Diego",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "app",
+        "state": "ghost",
+        "type": "sales-machine",
+        "tags": ["sales", "diego", "acquisition"],
+        "description": "Maquina de vendas usada para vender a propria solucao para as imobiliarias"
+      }
+    },
+    {
+      "id": "node_lead",
+      "type": "domain_entity",
+      "label": "Lead",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "domain",
+        "state": "wired",
+        "type": "sales-entity",
+        "tags": ["lead", "funnel"],
+        "description": "Entidade comercial principal ja presente no <Ruptur />"
+      }
+    },
+    {
+      "id": "artifact_connectome_spec",
+      "type": "artifact",
+      "label": "Connectome Spec",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "governance",
+        "state": "live",
+        "type": "artifact",
+        "tags": ["artifact", "spec"],
+        "description": "Especificacao base do connectome"
+      }
+    },
+    {
+      "id": "artifact_visual_seed",
+      "type": "artifact",
+      "label": "Visual Seed",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "governance",
+        "state": "live",
+        "type": "artifact",
+        "tags": ["artifact", "wireframe", "graph"],
+        "description": "Primeira visualizacao compacta do connectome"
+      }
+    },
+    {
+      "id": "artifact_ontologia_connectome",
+      "type": "artifact",
+      "label": "Ontologia Connectome",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "governance",
+        "state": "wired",
+        "type": "artifact",
+        "tags": ["artifact", "ontology", "schema"],
+        "description": "Definicao de tipos, regras de ligacao e metadados do connectome"
+      }
+    },
+    {
+      "id": "task_seed_receita_mapping",
+      "type": "task",
+      "label": "Task Receita Mapping",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "layer": "governance",
+        "state": "wired",
+        "type": "task",
+        "tags": ["task", "mapping"],
+        "description": "Task seed para decompor o metodo Receita Previsivel em fatias operacionais"
+      }
+    },
+    {
+      "id": "next_static_chunks",
+      "type": "technical_artifact",
+      "label": "Next.js Static Chunks",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "chunks": [
+          "df348dcdd60b6fd9.js",
+          "aa997a89dfa39417.js",
+          "49c65450234d6378.js",
+          "f937f92cf00f4257.js",
+          "9828d5bf3d82b465.js",
+          "93cfbc96f8bbe845.js",
+          "94b4b04692d0f71a.css"
+        ],
+        "fonts": ["0c89a48fa5027cee", "23b7a97ae3b5c134", "99e609270109b47d", "effe91970fc4db64"],
+        "type": "es_modules"
+      }
+    },
+    {
+      "id": "buildid_dashboard",
+      "type": "technical_artifact",
+      "label": "Dashboard Build ID",
+      "source_type": "code",
+      "confidence": 1.0,
+      "properties": {
+        "build_id": "s5WSI5KEL9PekSq5YbVac",
+        "framework": "next.js",
+        "lang": "pt-BR",
+        "title": "Ruptur",
+        "description": "Ecossistema Ruptur com front principal, operacao comercial e Warmup Manager"
+      }
+    },
+    {
+      "id": "style_system_connectome",
+      "type": "design_system",
+      "label": "Connectome Color & Style System",
+      "source_type": "visual_component",
+      "confidence": 1.0,
+      "properties": {
+        "background_gradients": ["radial_30_15", "radial_75_25", "radial_55_80"],
+        "typography": "system-ui, BlinkMacSystemFont, Segoe UI",
+        "backdrop_filter": "blur(12px)",
+        "z_index_strategy": "layered (nav:1000, toolbar:10, details:20, modal:20)",
+        "responsive": "980px breakpoint"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_showcase_to_connectome",
+      "from": "page_showcase",
+      "to": "connectome_viewer",
+      "relation": "embeds_via_iframe",
+      "type": "structural",
+      "confidence": 1.0,
+      "properties": {
+        "iframe_src": "/connectome/showcase.html",
+        "title": "<Ruptur /> Showcase",
+        "min_height": "calc(100dvh - 8rem)",
+        "border_radius": "24px"
+      }
+    },
+    {
+      "id": "edge_connectome_to_visual_seed",
+      "from": "connectome_viewer",
+      "to": "visual_connectome_spec",
+      "relation": "documents_and_renders",
+      "type": "concept",
+      "confidence": 0.8,
+      "properties": {
+        "documented_in": "sidebar",
+        "renders": "SVG neural graph",
+        "interactive": true
+      }
+    },
+    {
+      "id": "edge_connectome_to_three",
+      "from": "connectome_viewer",
+      "to": "connectome_3d_viewer",
+      "relation": "alternative_view",
+      "type": "structural",
+      "confidence": 0.7,
+      "properties": {
+        "relationship": "3D variant of 2D viewer"
+      }
+    },
+    {
+      "id": "edge_ruptur_contains_crm",
+      "from": "node_ruptur",
+      "to": "node_crm",
+      "relation": "contains",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:1"
+    },
+    {
+      "id": "edge_ruptur_contains_cockpit",
+      "from": "node_ruptur",
+      "to": "node_cockpit",
+      "relation": "contains",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:1"
+    },
+    {
+      "id": "edge_ruptur_uses_whatsapp",
+      "from": "node_ruptur",
+      "to": "node_whatsapp",
+      "relation": "uses_as_channel",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_messaging_to_uazapi",
+      "from": "node_messaging",
+      "to": "node_uazapi",
+      "relation": "routes_to",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_crm_contains_lead",
+      "from": "node_crm",
+      "to": "node_lead",
+      "relation": "contains",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_adk_enables_jarvis",
+      "from": "node_adk",
+      "to": "node_farm_platform",
+      "relation": "enables",
+      "type": "structural",
+      "confidence": 0.7,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_receita_enables_sales_machine",
+      "from": "node_receita_previsivel",
+      "to": "node_sales_machine_diego",
+      "relation": "enables",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_sales_machine_enables_ruptur",
+      "from": "node_receita_previsivel",
+      "to": "node_ruptur",
+      "relation": "enables",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_ruptur_contains_messaging",
+      "from": "node_ruptur",
+      "to": "node_messaging",
+      "relation": "contains",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:1"
+    },
+    {
+      "id": "edge_ruptur_contains_automation",
+      "from": "node_ruptur",
+      "to": "node_automation",
+      "relation": "contains",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "1:1"
+    },
+    {
+      "id": "edge_task_receita_mapping_implements",
+      "from": "task_seed_receita_mapping",
+      "to": "node_receita_previsivel",
+      "relation": "implements",
+      "type": "structural",
+      "confidence": 1.0,
+      "cardinality": "N:1"
+    },
+    {
+      "id": "edge_artifact_connectome_documents_adk",
+      "from": "artifact_connectome_spec",
+      "to": "node_adk",
+      "relation": "documents",
+      "type": "concept",
+      "confidence": 0.8,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_visual_seed_documents_whatsapp",
+      "from": "artifact_visual_seed",
+      "to": "node_whatsapp",
+      "relation": "documents",
+      "type": "concept",
+      "confidence": 0.8,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_global_nav_mounts_on_showcase",
+      "from": "component_ruptur_global_nav",
+      "to": "page_showcase",
+      "relation": "mounts_on",
+      "type": "structural",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_style_system_applied_connectome",
+      "from": "style_system_connectome",
+      "to": "connectome_viewer",
+      "relation": "applies_styling",
+      "type": "design",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_404_referenced_all_routes",
+      "from": "page_404_notfound",
+      "to": "page_showcase",
+      "relation": "fallback_for_invalid_routes",
+      "type": "structural",
+      "confidence": 0.6,
+      "cardinality": "1:N"
+    },
+    {
+      "id": "edge_next_chunks_load_pages",
+      "from": "next_static_chunks",
+      "to": "page_warmup",
+      "relation": "provides_runtime",
+      "type": "technical",
+      "confidence": 1.0,
+      "properties": {
+        "critical_chunks": ["49c65450234d6378.js", "f937f92cf00f4257.js"]
+      }
+    },
+    {
+      "id": "edge_login_uses_chunks",
+      "from": "next_static_chunks",
+      "to": "page_login",
+      "relation": "provides_runtime",
+      "type": "technical",
+      "confidence": 1.0,
+      "properties": {
+        "async_chunk": "93cfbc96f8bbe845.js"
+      }
+    },
+    {
+      "id": "edge_connectome_features_filters",
+      "from": "connectome_viewer",
+      "to": "visual_connectome_spec",
+      "relation": "implements",
+      "type": "feature",
+      "confidence": 1.0,
+      "properties": {
+        "features": ["layer_filters", "state_filters", "vision_modes"]
+      }
+    },
+    {
+      "id": "edge_three_extends_connectome",
+      "from": "connectome_3d_viewer",
+      "to": "connectome_viewer",
+      "relation": "extends_with_3d",
+      "type": "technical",
+      "confidence": 0.7
+    }
+  ],
+  "communities": [
+    {
+      "id": "community_dashboard_pages",
+      "name": "Dashboard Pages & Routes",
+      "nodes": ["page_404_notfound", "page_showcase", "page_warmup", "page_login"],
+      "size": 4,
+      "cohesion": 0.95
+    },
+    {
+      "id": "community_connectome_system",
+      "name": "Connectome Visualization System",
+      "nodes": ["connectome_viewer", "connectome_3d_viewer", "visual_connectome_spec", "style_system_connectome", "artifact_visual_seed"],
+      "size": 5,
+      "cohesion": 0.92
+    },
+    {
+      "id": "community_domain_entities",
+      "name": "Domain Entity Network",
+      "nodes": ["node_ruptur", "node_crm", "node_whatsapp", "node_uazapi", "node_messaging", "node_cockpit", "node_lead", "node_adk", "node_automation"],
+      "size": 9,
+      "cohesion": 0.88
+    },
+    {
+      "id": "community_artifacts_tasks",
+      "name": "Artifacts & Tasks",
+      "nodes": ["artifact_connectome_spec", "artifact_visual_seed", "artifact_ontologia_connectome", "task_seed_receita_mapping"],
+      "size": 4,
+      "cohesion": 0.85
+    },
+    {
+      "id": "community_technical_layer",
+      "name": "Technical Infrastructure",
+      "nodes": ["next_static_chunks", "buildid_dashboard", "component_ruptur_global_nav"],
+      "size": 3,
+      "cohesion": 0.9
+    }
+  ],
+  "summary": {
+    "total_nodes": 28,
+    "total_edges": 22,
+    "node_types": {
+      "page": 4,
+      "domain_entity": 15,
+      "artifact": 4,
+      "component": 1,
+      "visual_component": 2,
+      "task": 1,
+      "design_system": 1,
+      "technical_artifact": 2
+    },
+    "extracted_count": 26,
+    "inferred_count": 2,
+    "ambiguous_count": 0,
+    "confidence_distribution": {
+      "1.0": 24,
+      "0.8": 2,
+      "0.7": 2
+    }
+  }
+}

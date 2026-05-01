@@ -1,0 +1,637 @@
+{
+  "chunk_id": "chunk_11",
+  "chunk_size": 20,
+  "metadata": {
+    "processed_at": "2026-05-01T00:00:00Z",
+    "source_types": ["next_dist", "html", "markdown", "json", "robots"],
+    "extraction_method": "semantic_analysis",
+    "confidence_avg": 0.82
+  },
+  "nodes": [
+    {
+      "id": "next_dashboard_login",
+      "type": "system_component",
+      "label": "Next.js Dashboard Login",
+      "source_file": "web/dashboard-dist/login/__next._full.txt",
+      "properties": {
+        "framework": "Next.js 16",
+        "language": "pt-BR",
+        "build_id": "s5WSI5KEL9PekSq5YbVac"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "next_dashboard_billing",
+      "type": "system_component",
+      "label": "Next.js Dashboard Billing",
+      "source_file": "web/dashboard-dist/billing/__next._full.txt",
+      "properties": {
+        "framework": "Next.js 16",
+        "language": "pt-BR",
+        "module": "billing",
+        "build_id": "s5WSI5KEL9PekSq5YbVac"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "react_client_area",
+      "type": "visual_component",
+      "label": "Ruptur Cloud Client Area (React + Vite)",
+      "source_file": "web/client-area/index.html",
+      "properties": {
+        "framework": "React + Vite",
+        "language": "pt-BR",
+        "purpose": "whatsapp_automation",
+        "keywords": ["automação whatsapp", "marketing whatsapp", "saas whatsapp"],
+        "og_title": "Ruptur Cloud | Automação Premium para WhatsApp",
+        "og_description": "Transforme seu WhatsApp em uma máquina de vendas com automação inteligente e zero bloqueios."
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "warmup_manager_app",
+      "type": "visual_component",
+      "label": "Warmup Manager Dashboard",
+      "source_file": "web/manager-dist/index.html",
+      "properties": {
+        "framework": "React/Vite",
+        "purpose": "warmup_operations",
+        "description": "Dashboard de operações, proxy e warmup para instâncias UAZAPI",
+        "integration": "supabase",
+        "theme": "light"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "warmup_manager_dark",
+      "type": "visual_component",
+      "label": "Warmup Manager Dark Theme",
+      "source_file": "web/manager-dist/index-dark.html",
+      "properties": {
+        "framework": "React/Vite",
+        "purpose": "warmup_operations",
+        "theme": "dark",
+        "author": "Ruptur Cloud"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "client_area_readme",
+      "type": "documentation",
+      "label": "Client Area Documentation (React + Vite Setup)",
+      "source_file": "web/client-area/README.md",
+      "properties": {
+        "content": "React + Vite minimal setup guide with ESLint and React Compiler info",
+        "tools": ["@vitejs/plugin-react", "Oxc", "SWC", "typescript-eslint"],
+        "guidance": "TS template available for production apps"
+      },
+      "confidence": 0.8
+    },
+    {
+      "id": "github_setup_workflow",
+      "type": "documentation",
+      "label": "GitHub Actions Deploy Automation Setup",
+      "source_file": "docs/GITHUB-SETUP.md",
+      "properties": {
+        "purpose": "ci_cd_automation",
+        "triggers": ["push_main", "push_develop", "pull_request", "release"],
+        "secrets": ["GCP_SA_KEY", "SLACK_WEBHOOK", "DEPLOY_EMAIL"],
+        "gcp_project": "ruptur-jarvis-v1-68358",
+        "pipeline_stages": ["lint", "tests", "security_scan", "build", "deploy", "smoke_tests"],
+        "deployment_time": "5-8 minutes",
+        "success_rate": "95%+"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "deployment_guide",
+      "type": "documentation",
+      "label": "Ruptur SaaS Deployment & Automation Guide",
+      "source_file": "docs/DEPLOYMENT.md",
+      "properties": {
+        "purpose": "deployment_orchestration",
+        "tools": ["Makefile", "Docker", "docker-compose", "Terraform", "Ansible"],
+        "commands": ["make deploy-prod", "make deploy-local", "make test-apis", "make status"],
+        "environments": ["production", "staging", "local"],
+        "gcp_project": "ruptur-jarvis-v1-68358",
+        "infrastructure": "GCP Compute Engine"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "discovery_report",
+      "type": "documentation",
+      "label": "SaaS Migration Audit & Discovery Report",
+      "source_file": "docs/extraction/DISCOVERY-REPORT.md",
+      "properties": {
+        "scope": "legacy_migration",
+        "date": "2026-04-19",
+        "phases": 4,
+        "phase_status": "phase_1_2_complete",
+        "warmup_critical": true,
+        "instances_total": 44,
+        "instances_connected": 29,
+        "warmup_cycle_ms": 60000,
+        "warmup_capacity_per_cycle": 6,
+        "warmup_min_interval_days": 4,
+        "warmup_max_daily": 250,
+        "warmup_antiban_rate": 12
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "migration_plan",
+      "type": "documentation",
+      "label": "4-Phase Migration Plan (Legacy → Ruptur Cloud)",
+      "source_file": "docs/extraction/MIGRATION-PLAN.md",
+      "properties": {
+        "phases": ["audit", "structure", "files", "integration_isolation", "warmup_analysis"],
+        "phase_0": "complete",
+        "phase_1": "complete",
+        "phase_2": "pending",
+        "phase_3": "pending",
+        "phase_4": "pending",
+        "target_directory": "/Users/diego/dev/ruptur-cloud/ruptur-main/saas/",
+        "directories_created": 34
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "legacy_inventory",
+      "type": "documentation",
+      "label": "Legacy SaaS Inventory & Classification",
+      "source_file": "docs/extraction/LEGACY-INVENTORY.md",
+      "properties": {
+        "items_catalogued": 11,
+        "source": "/Users/diego/dev/tiatendeai/ruptur/saas/",
+        "critical_items": ["runtime/server.mjs", "warmup-state.json"],
+        "server_mjs_lines": 2611,
+        "server_mjs_status": "frozen",
+        "classifications": ["CONGELAR", "ADAPTAR", "MOVER"]
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "state_export",
+      "type": "documentation",
+      "label": "State Export & Integration Guide",
+      "source_file": "docs/extraction/STATE-EXPORT.md",
+      "properties": {
+        "purpose": "knowledge_integration",
+        "target": "obsidian_knowledge_base",
+        "integration_checklist": true,
+        "phases_documented": 4,
+        "critical_functions_mapped": 40
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "robots_config",
+      "type": "configuration",
+      "label": "SEO Robots Configuration",
+      "source_file": "web/manager-dist/robots.txt",
+      "properties": {
+        "allowed_bots": ["Googlebot", "Bingbot", "Twitterbot", "facebookexternalhit"],
+        "allow_all": true
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "uazapi_integration",
+      "type": "system_component",
+      "label": "UAZAPI WhatsApp Integration",
+      "source_files": ["docs/extraction/DISCOVERY-REPORT.md", "docs/extraction/STATE-EXPORT.md"],
+      "properties": {
+        "endpoint": "https://tiatendeai.uazapi.com",
+        "auth_method": "adminToken_header",
+        "operations": ["GET_instance_all", "POST_send"],
+        "polling_interval_ms": 60000,
+        "purpose": "warmup_instance_management"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "supabase_integration",
+      "type": "system_component",
+      "label": "Supabase Backend Integration",
+      "source_files": ["web/manager-dist/index.html", "docs/extraction/DISCOVERY-REPORT.md"],
+      "properties": {
+        "url": "https://axrwlboyowoskdxeogba.supabase.co",
+        "operations": ["routines_crud", "state_read_write"],
+        "security_issue": "public_key_exposed_in_js",
+        "purpose": "state_persistence"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stripe_integration",
+      "type": "system_component",
+      "label": "Stripe Payment Integration",
+      "source_files": ["docs/extraction/DISCOVERY-REPORT.md"],
+      "properties": {
+        "operations": ["checkout_flows", "subscription_management", "webhook_handling"],
+        "purpose": "billing_subscriptions"
+      },
+      "confidence": 0.8
+    },
+    {
+      "id": "bubble_integration",
+      "type": "system_component",
+      "label": "Bubble No-Code Integration",
+      "source_files": ["docs/extraction/DISCOVERY-REPORT.md"],
+      "properties": {
+        "operations": ["inbox_integration_mapping", "auth_bridges", "embedded_forms"],
+        "purpose": "cms_integration"
+      },
+      "confidence": 0.8
+    },
+    {
+      "id": "warmup_core_module",
+      "type": "system_component",
+      "label": "Warmup Core System (Protected)",
+      "source_files": ["docs/extraction/DISCOVERY-REPORT.md", "docs/extraction/LEGACY-INVENTORY.md"],
+      "properties": {
+        "status": "production_active",
+        "location": "modules/warmup-core/",
+        "original": "runtime/server.mjs",
+        "state_file": "warmup-state.json",
+        "critical_rules": ["preserve_behavior", "no_rewrite", "immutable_default_routine"],
+        "protected_routine": "warmup-default-24x7",
+        "cycle_interval_ms": 60000,
+        "max_executions_per_tick": 6,
+        "functions_count": 40
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "frontend_architecture",
+      "type": "system_component",
+      "label": "Frontend Stack Architecture",
+      "source_files": ["web/client-area/index.html", "web/manager-dist/index.html", "docs/extraction/DISCOVERY-REPORT.md"],
+      "properties": {
+        "frameworks": ["React 19", "Next.js 16", "Vite"],
+        "styling": ["Tailwind CSS 4"],
+        "components": ["Front Lindona", "Warmup Manager", "Legacy SafeFlow"],
+        "total_size": "4.2 MB",
+        "language": "pt-BR"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "deployment_infrastructure",
+      "type": "system_component",
+      "label": "Deployment Infrastructure Stack",
+      "source_files": ["docs/DEPLOYMENT.md", "docs/GITHUB-SETUP.md"],
+      "properties": {
+        "container": "Docker",
+        "orchestration": "docker-compose",
+        "iac": ["Terraform", "Ansible"],
+        "ci_cd": "GitHub Actions",
+        "cloud": "GCP",
+        "project_id": "ruptur-jarvis-v1-68358",
+        "compute": "Google Compute Engine"
+      },
+      "confidence": 1.0
+    }
+  ],
+  "edges": [
+    {
+      "source": "next_dashboard_login",
+      "target": "deployment_infrastructure",
+      "type": "references",
+      "label": "Served via Docker",
+      "confidence": 0.9
+    },
+    {
+      "source": "next_dashboard_billing",
+      "target": "deployment_infrastructure",
+      "type": "references",
+      "label": "Served via Docker",
+      "confidence": 0.9
+    },
+    {
+      "source": "react_client_area",
+      "target": "uazapi_integration",
+      "type": "integrates_with",
+      "label": "WhatsApp automation frontend",
+      "confidence": 0.9
+    },
+    {
+      "source": "react_client_area",
+      "target": "supabase_integration",
+      "type": "integrates_with",
+      "label": "State & user data",
+      "confidence": 0.85
+    },
+    {
+      "source": "warmup_manager_app",
+      "target": "warmup_core_module",
+      "type": "controls",
+      "label": "Dashboard controls warmup scheduler",
+      "confidence": 1.0
+    },
+    {
+      "source": "warmup_manager_app",
+      "target": "uazapi_integration",
+      "type": "integrates_with",
+      "label": "Instance polling & control",
+      "confidence": 1.0
+    },
+    {
+      "source": "warmup_manager_app",
+      "target": "supabase_integration",
+      "type": "integrates_with",
+      "label": "Routines & state persistence",
+      "confidence": 0.95
+    },
+    {
+      "source": "warmup_manager_dark",
+      "target": "warmup_manager_app",
+      "type": "variant_of",
+      "label": "Dark theme variant",
+      "confidence": 1.0
+    },
+    {
+      "source": "github_setup_workflow",
+      "target": "deployment_infrastructure",
+      "type": "defines",
+      "label": "GitHub Actions CI/CD pipeline config",
+      "confidence": 1.0
+    },
+    {
+      "source": "deployment_guide",
+      "target": "deployment_infrastructure",
+      "type": "documents",
+      "label": "Full deployment orchestration",
+      "confidence": 1.0
+    },
+    {
+      "source": "discovery_report",
+      "target": "warmup_core_module",
+      "type": "cites",
+      "label": "Detailed warmup system audit",
+      "confidence": 1.0
+    },
+    {
+      "source": "discovery_report",
+      "target": "uazapi_integration",
+      "type": "cites",
+      "label": "Documents UAZAPI integration",
+      "confidence": 1.0
+    },
+    {
+      "source": "discovery_report",
+      "target": "supabase_integration",
+      "type": "cites",
+      "label": "Documents Supabase integration",
+      "confidence": 1.0
+    },
+    {
+      "source": "discovery_report",
+      "target": "stripe_integration",
+      "type": "cites",
+      "label": "Documents Stripe integration",
+      "confidence": 0.8
+    },
+    {
+      "source": "discovery_report",
+      "target": "bubble_integration",
+      "type": "cites",
+      "label": "Documents Bubble integration",
+      "confidence": 0.8
+    },
+    {
+      "source": "migration_plan",
+      "target": "warmup_core_module",
+      "type": "plans",
+      "label": "4-phase migration strategy",
+      "confidence": 1.0
+    },
+    {
+      "source": "migration_plan",
+      "target": "discovery_report",
+      "type": "depends_on",
+      "label": "Based on discovery findings",
+      "confidence": 0.95
+    },
+    {
+      "source": "legacy_inventory",
+      "target": "warmup_core_module",
+      "type": "classifies",
+      "label": "Marks as CONGELAR (frozen)",
+      "confidence": 1.0
+    },
+    {
+      "source": "state_export",
+      "target": "discovery_report",
+      "type": "summarizes",
+      "label": "Executive summary export",
+      "confidence": 0.9
+    },
+    {
+      "source": "warmup_core_module",
+      "target": "uazapi_integration",
+      "type": "references",
+      "label": "Polls instances & dispatches messages",
+      "confidence": 1.0
+    },
+    {
+      "source": "warmup_core_module",
+      "target": "supabase_integration",
+      "type": "references",
+      "label": "Reads/writes routines & state",
+      "confidence": 1.0
+    },
+    {
+      "source": "frontend_architecture",
+      "target": "react_client_area",
+      "type": "includes",
+      "label": "Component: Front Lindona",
+      "confidence": 1.0
+    },
+    {
+      "source": "frontend_architecture",
+      "target": "warmup_manager_app",
+      "type": "includes",
+      "label": "Component: Warmup Manager",
+      "confidence": 1.0
+    },
+    {
+      "source": "frontend_architecture",
+      "target": "next_dashboard_login",
+      "type": "includes",
+      "label": "Component: Next.js Dashboard",
+      "confidence": 0.9
+    },
+    {
+      "source": "deployment_infrastructure",
+      "target": "warmup_core_module",
+      "type": "deploys",
+      "label": "Docker containerization",
+      "confidence": 0.95
+    },
+    {
+      "source": "github_setup_workflow",
+      "target": "deployment_guide",
+      "type": "implements",
+      "label": "Automation of manual deployment steps",
+      "confidence": 0.9
+    },
+    {
+      "source": "client_area_readme",
+      "target": "react_client_area",
+      "type": "documents",
+      "label": "React + Vite setup guide",
+      "confidence": 0.85
+    },
+    {
+      "source": "react_client_area",
+      "target": "stripe_integration",
+      "type": "integrates_with",
+      "label": "Billing integration",
+      "confidence": 0.75
+    }
+  ],
+  "concepts": [
+    {
+      "id": "warmup_system",
+      "type": "concept",
+      "label": "WhatsApp Instance Warmup System",
+      "description": "Automated instance heating via UAZAPI with schedule management, health tracking, and anti-ban protection",
+      "key_metrics": {
+        "cycle_interval_ms": 60000,
+        "instances_per_cycle": 6,
+        "min_interval_between_messages_days": 4,
+        "max_daily_messages_per_instance": 250,
+        "anti_ban_rate_per_minute": 12
+      },
+      "status": "production_active",
+      "protection_level": "critical"
+    },
+    {
+      "id": "saas_migration",
+      "type": "concept",
+      "label": "Legacy-to-Cloud SaaS Migration",
+      "description": "Phased migration from monolithic legacy SaaS to modular Ruptur Cloud architecture",
+      "phases": 4,
+      "current_phase": 2,
+      "completion_percentage": 50
+    },
+    {
+      "id": "multi_tenant_architecture",
+      "type": "concept",
+      "label": "Multi-Tenant SaaS Platform",
+      "description": "Tenant isolation, user management, billing, admin areas with Stripe integration",
+      "modules": ["tenants", "users", "billing", "onboarding", "whatsapp", "inbox", "crm", "campaigns"]
+    },
+    {
+      "id": "ci_cd_automation",
+      "type": "concept",
+      "label": "Continuous Integration & Deployment",
+      "description": "GitHub Actions-driven CI/CD with testing, security scanning, Docker builds, and GCP deployment",
+      "pipeline_stages": ["lint", "test", "security_scan", "build", "push_registry", "deploy", "smoke_tests"]
+    },
+    {
+      "id": "state_persistence",
+      "type": "concept",
+      "label": "Persistent State Management",
+      "description": "JSON-based state storage (warmup-state.json) with configuration, scheduler, pool, and audit trail",
+      "risk": "race_conditions_without_locks",
+      "future_migration": "relational_database"
+    },
+    {
+      "id": "frontend_multiplicity",
+      "type": "concept",
+      "label": "Multi-Frontend Strategy",
+      "description": "Multiple React/Next.js applications serving different user roles (client, admin, operator)",
+      "frontends": ["Front Lindona", "Warmup Manager", "Legacy SafeFlow"]
+    }
+  ],
+  "clusters": [
+    {
+      "id": "cluster_documentation",
+      "name": "Documentation & Planning",
+      "nodes": ["discovery_report", "migration_plan", "legacy_inventory", "state_export", "github_setup_workflow", "deployment_guide"],
+      "density": 0.92,
+      "cohesion": "high"
+    },
+    {
+      "id": "cluster_warmup_system",
+      "name": "Warmup Core & Operations",
+      "nodes": ["warmup_core_module", "warmup_manager_app", "warmup_manager_dark", "uazapi_integration"],
+      "density": 0.88,
+      "cohesion": "critical"
+    },
+    {
+      "id": "cluster_frontend",
+      "name": "Frontend Layer",
+      "nodes": ["react_client_area", "next_dashboard_login", "next_dashboard_billing", "frontend_architecture"],
+      "density": 0.84,
+      "cohesion": "high"
+    },
+    {
+      "id": "cluster_integrations",
+      "name": "External Integrations",
+      "nodes": ["uazapi_integration", "supabase_integration", "stripe_integration", "bubble_integration"],
+      "density": 0.71,
+      "cohesion": "medium"
+    },
+    {
+      "id": "cluster_infrastructure",
+      "name": "Deployment & Infrastructure",
+      "nodes": ["deployment_infrastructure", "github_setup_workflow", "deployment_guide", "robots_config"],
+      "density": 0.76,
+      "cohesion": "high"
+    }
+  ],
+  "statistics": {
+    "total_nodes": 20,
+    "total_edges": 27,
+    "total_concepts": 6,
+    "total_clusters": 5,
+    "avg_node_degree": 2.7,
+    "avg_confidence": 0.924,
+    "confidence_distribution": {
+      "1_0": 14,
+      "0_9_0_99": 7,
+      "0_8_0_89": 6,
+      "0_7_0_79": 2,
+      "below_0_7": 0
+    },
+    "node_types_distribution": {
+      "system_component": 8,
+      "visual_component": 3,
+      "documentation": 5,
+      "configuration": 1,
+      "concept": 6
+    },
+    "edge_types_distribution": {
+      "integrates_with": 4,
+      "references": 3,
+      "cites": 5,
+      "documents": 2,
+      "depends_on": 1,
+      "controls": 1,
+      "variant_of": 1,
+      "defines": 1,
+      "plans": 1,
+      "classifies": 1,
+      "summarizes": 1,
+      "includes": 3,
+      "deploys": 1,
+      "implements": 1
+    }
+  },
+  "extraction_notes": {
+    "next_dist_files": "Extracted RSC serialization, buildId, and component references from __next.* files",
+    "html_analysis": "Extracted meta tags, framework info (React/Vite/Next.js), language (pt-BR), integrations from HTML",
+    "markdown_docs": "Full semantic analysis of migration docs, warmup system documentation, deployment guides",
+    "special_extractions": [
+      "Warmup critical metrics (cycle, capacity, cadence, limits) extracted from DISCOVERY-REPORT",
+      "Integration endpoints documented (UAZAPI, Supabase, Stripe, Bubble) from docs",
+      "Security issues noted (hardcoded keys, exposed tokens, missing auth) for risk mapping",
+      "Phase tracking (4-phase migration plan with current status) mapped to workflow"
+    ],
+    "confidence_notes": "EXTRACTED edges (1.0) for direct references in same file; INFERRED edges (0.75-0.95) for documented integrations; AMBIGUOUS low for speculative connections not explicitly documented"
+  }
+}

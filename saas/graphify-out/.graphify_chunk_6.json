@@ -1,0 +1,991 @@
+{
+  "chunk_id": "chunk_6",
+  "timestamp": "2026-05-01T00:00:00Z",
+  "source_files": 20,
+  "nodes": [
+    {
+      "id": "lowercase_index",
+      "type": "page",
+      "label": "Dashboard Index",
+      "confidence": 1.0,
+      "source": "index.txt",
+      "category": "page_shell"
+    },
+    {
+      "id": "lowercase_404",
+      "type": "page",
+      "label": "404 Error Page",
+      "confidence": 1.0,
+      "source": "404.html",
+      "category": "error_page"
+    },
+    {
+      "id": "lowercase_crm",
+      "type": "module",
+      "label": "CRM Module",
+      "confidence": 1.0,
+      "source": "crm.html",
+      "category": "operational_module"
+    },
+    {
+      "id": "lowercase_login",
+      "type": "page",
+      "label": "Authentication Page",
+      "confidence": 1.0,
+      "source": "login.html",
+      "category": "auth_module"
+    },
+    {
+      "id": "lowercase_sendflow",
+      "type": "module",
+      "label": "Lead Source & Opt-in Flow",
+      "confidence": 1.0,
+      "source": "sendflow.html",
+      "category": "lead_management"
+    },
+    {
+      "id": "lowercase_page_shell",
+      "type": "component",
+      "label": "Page Shell Component",
+      "confidence": 1.0,
+      "source": "__next.__PAGE__.txt",
+      "category": "framework_component"
+    },
+    {
+      "id": "lowercase_not_found",
+      "type": "page",
+      "label": "404 Fallback Page",
+      "confidence": 1.0,
+      "source": "_not-found.html",
+      "category": "error_page"
+    },
+    {
+      "id": "lowercase_studio",
+      "type": "module",
+      "label": "Studio Connectome",
+      "confidence": 1.0,
+      "source": "studio.html",
+      "category": "development_tools"
+    },
+    {
+      "id": "lowercase_inbox",
+      "type": "module",
+      "label": "MyChat Inbox",
+      "confidence": 1.0,
+      "source": "inbox.html",
+      "category": "messaging_module"
+    },
+    {
+      "id": "lowercase_billing",
+      "type": "module",
+      "label": "Billing & Payment",
+      "confidence": 1.0,
+      "source": "billing.txt",
+      "category": "billing_module"
+    },
+    {
+      "id": "lowercase_broadcasts",
+      "type": "module",
+      "label": "Campaign Management",
+      "confidence": 1.0,
+      "source": "broadcasts.html",
+      "category": "campaign_module"
+    },
+    {
+      "id": "lowercase_warmup",
+      "type": "module",
+      "label": "Email Warmup & Maturation",
+      "confidence": 1.0,
+      "source": "warmup.txt",
+      "category": "email_operations"
+    },
+    {
+      "id": "lowercase_metrics",
+      "type": "module",
+      "label": "Health Monitoring",
+      "confidence": 1.0,
+      "source": "metrics.html",
+      "category": "monitoring_module"
+    },
+    {
+      "id": "lowercase_connections",
+      "type": "module",
+      "label": "WhatsApp Instance Connections",
+      "confidence": 1.0,
+      "source": "connections.html",
+      "category": "channel_management"
+    },
+    {
+      "id": "lowercase_pipeline",
+      "type": "module",
+      "label": "CRM Pipeline/Kanban",
+      "confidence": 1.0,
+      "source": "pipeline.txt",
+      "category": "crm_workflow"
+    },
+    {
+      "id": "lowercase_app_root",
+      "type": "component",
+      "label": "Root Application Layout",
+      "confidence": 1.0,
+      "source": "app.html",
+      "category": "app_layout"
+    },
+    {
+      "id": "lowercase_app_redirect",
+      "type": "redirect",
+      "label": "App to Inbox Redirect",
+      "confidence": 1.0,
+      "source": "app.txt",
+      "category": "routing"
+    },
+    {
+      "id": "lowercase_react_fragment",
+      "type": "component",
+      "label": "React Fragment Structure",
+      "confidence": 0.8,
+      "source": "index.txt",
+      "category": "framework_component"
+    },
+    {
+      "id": "lowercase_navigation_sidebar",
+      "type": "component",
+      "label": "Navigation Sidebar",
+      "confidence": 0.8,
+      "source": "crm.html",
+      "category": "ui_component"
+    },
+    {
+      "id": "lowercase_control_deck",
+      "type": "component",
+      "label": "Control Deck Layout",
+      "confidence": 0.8,
+      "source": "crm.html",
+      "category": "ui_component"
+    },
+    {
+      "id": "lowercase_whatsapp_button",
+      "type": "component",
+      "label": "WhatsApp Support Button",
+      "confidence": 0.8,
+      "source": "404.html",
+      "category": "ui_component"
+    },
+    {
+      "id": "lowercase_qr_code_connection",
+      "type": "feature",
+      "label": "QR Code Connection",
+      "confidence": 0.8,
+      "source": "connections.html",
+      "category": "connection_method"
+    },
+    {
+      "id": "lowercase_phone_code_connection",
+      "type": "feature",
+      "label": "Phone Code Connection",
+      "confidence": 0.8,
+      "source": "connections.html",
+      "category": "connection_method"
+    },
+    {
+      "id": "lowercase_uazapi_provider",
+      "type": "provider",
+      "label": "UAZAPI Provider",
+      "confidence": 1.0,
+      "source": "broadcasts.html",
+      "category": "messaging_provider"
+    },
+    {
+      "id": "lowercase_baileys_provider",
+      "type": "provider",
+      "label": "Baileys Provider",
+      "confidence": 1.0,
+      "source": "broadcasts.html",
+      "category": "messaging_provider"
+    },
+    {
+      "id": "lowercase_leadscore",
+      "type": "metric",
+      "label": "Lead Score",
+      "confidence": 0.9,
+      "source": "metrics.html",
+      "category": "health_metric"
+    },
+    {
+      "id": "lowercase_healthscore",
+      "type": "metric",
+      "label": "Health Score",
+      "confidence": 0.9,
+      "source": "metrics.html",
+      "category": "health_metric"
+    },
+    {
+      "id": "lowercase_hitl_board",
+      "type": "component",
+      "label": "Human-in-the-Loop Board",
+      "confidence": 0.8,
+      "source": "metrics.html",
+      "category": "integration_component"
+    },
+    {
+      "id": "lowercase_message_template",
+      "type": "component",
+      "label": "Message Template Composition",
+      "confidence": 0.8,
+      "source": "broadcasts.html",
+      "category": "content_component"
+    },
+    {
+      "id": "lowercase_conversation_state",
+      "type": "state",
+      "label": "Conversation Operational State",
+      "confidence": 0.8,
+      "source": "inbox.html",
+      "category": "state_management"
+    },
+    {
+      "id": "lowercase_dark_theme",
+      "type": "styling",
+      "label": "Dark Theme Styling",
+      "confidence": 0.8,
+      "source": "inbox.html",
+      "category": "ui_styling"
+    },
+    {
+      "id": "lowercase_error_boundary",
+      "type": "component",
+      "label": "Error Boundary",
+      "confidence": 0.8,
+      "source": "app.txt",
+      "category": "error_handling"
+    },
+    {
+      "id": "lowercase_suspended_component",
+      "type": "component",
+      "label": "Suspended Component Handler",
+      "confidence": 0.8,
+      "source": "login.html",
+      "category": "async_component"
+    },
+    {
+      "id": "lowercase_dynamic_import",
+      "type": "feature",
+      "label": "Dynamic Import",
+      "confidence": 0.8,
+      "source": "login.html",
+      "category": "code_loading"
+    },
+    {
+      "id": "lowercase_font_preload",
+      "type": "resource",
+      "label": "Font Preload",
+      "confidence": 0.8,
+      "source": "index.txt",
+      "category": "performance_optimization"
+    },
+    {
+      "id": "lowercase_css_reference",
+      "type": "resource",
+      "label": "CSS Reference",
+      "confidence": 0.8,
+      "source": "index.txt",
+      "category": "styling_resource"
+    },
+    {
+      "id": "lowercase_build_metadata",
+      "type": "metadata",
+      "label": "Build Metadata",
+      "confidence": 0.8,
+      "source": "index.txt",
+      "category": "framework_metadata"
+    },
+    {
+      "id": "lowercase_rsc_payload",
+      "type": "data_format",
+      "label": "React Server Component Payload",
+      "confidence": 0.9,
+      "source": "multiple",
+      "category": "next_js_format"
+    },
+    {
+      "id": "lowercase_module_hydration",
+      "type": "feature",
+      "label": "Module Hydration Data",
+      "confidence": 0.8,
+      "source": "index.txt",
+      "category": "framework_feature"
+    },
+    {
+      "id": "lowercase_connectome_studio",
+      "type": "resource",
+      "label": "Connectome Studio Resource",
+      "confidence": 0.8,
+      "source": "studio.html",
+      "category": "embedded_resource"
+    },
+    {
+      "id": "lowercase_one_to_one_campaign",
+      "type": "feature",
+      "label": "1:1 Campaign Type",
+      "confidence": 0.8,
+      "source": "broadcasts.html",
+      "category": "campaign_type"
+    },
+    {
+      "id": "lowercase_group_campaign",
+      "type": "feature",
+      "label": "Group Campaign Type",
+      "confidence": 0.8,
+      "source": "broadcasts.html",
+      "category": "campaign_type"
+    },
+    {
+      "id": "lowercase_provider_selection",
+      "type": "component",
+      "label": "Provider Selection Logic",
+      "confidence": 0.8,
+      "source": "broadcasts.html",
+      "category": "provider_management"
+    },
+    {
+      "id": "lowercase_channel_health",
+      "type": "metric",
+      "label": "Channel Health Assessment",
+      "confidence": 0.8,
+      "source": "metrics.html",
+      "category": "operational_metric"
+    },
+    {
+      "id": "lowercase_warmup_strategy",
+      "type": "feature",
+      "label": "Warmup Strategy Management",
+      "confidence": 0.8,
+      "source": "warmup.txt",
+      "category": "email_operations"
+    },
+    {
+      "id": "lowercase_connection_status",
+      "type": "state",
+      "label": "Connection Status Tracking",
+      "confidence": 0.8,
+      "source": "connections.html",
+      "category": "state_management"
+    },
+    {
+      "id": "lowercase_sendflow_sources_api",
+      "type": "api_endpoint",
+      "label": "Get SendFlow Sources API",
+      "confidence": 0.9,
+      "source": "sendflow.txt",
+      "category": "api_endpoint"
+    },
+    {
+      "id": "lowercase_sendflow_optin_api",
+      "type": "api_endpoint",
+      "label": "SendFlow Opt-in API",
+      "confidence": 0.9,
+      "source": "sendflow.txt",
+      "category": "api_endpoint"
+    },
+    {
+      "id": "lowercase_module_active_state",
+      "type": "state",
+      "label": "Module Active State Highlighting",
+      "confidence": 0.8,
+      "source": "crm.html",
+      "category": "ui_state"
+    },
+    {
+      "id": "lowercase_operational_status",
+      "type": "component",
+      "label": "Operational Status Display",
+      "confidence": 0.8,
+      "source": "crm.html",
+      "category": "status_display"
+    },
+    {
+      "id": "lowercase_global_navigation",
+      "type": "component",
+      "label": "Global Navigation Script",
+      "confidence": 0.8,
+      "source": "404.html",
+      "category": "navigation_component"
+    },
+    {
+      "id": "lowercase_client_page_root",
+      "type": "component",
+      "label": "Client Page Root Component",
+      "confidence": 0.8,
+      "source": "billing.txt",
+      "category": "page_component"
+    },
+    {
+      "id": "lowercase_server_parameters",
+      "type": "data",
+      "label": "Server Parameters",
+      "confidence": 0.8,
+      "source": "billing.txt",
+      "category": "server_data"
+    },
+    {
+      "id": "lowercase_metadata_outlet",
+      "type": "component",
+      "label": "Metadata Outlet",
+      "confidence": 0.8,
+      "source": "__next.__PAGE__.txt",
+      "category": "page_component"
+    },
+    {
+      "id": "lowercase_navigation_controls",
+      "type": "component",
+      "label": "Navigation Controls",
+      "confidence": 0.8,
+      "source": "_not-found.html",
+      "category": "ui_component"
+    },
+    {
+      "id": "lowercase_message_composition",
+      "type": "feature",
+      "label": "Message Composition UI",
+      "confidence": 0.8,
+      "source": "inbox.html",
+      "category": "ui_feature"
+    },
+    {
+      "id": "lowercase_conversation_management",
+      "type": "feature",
+      "label": "Conversation Management",
+      "confidence": 0.8,
+      "source": "inbox.html",
+      "category": "messaging_feature"
+    },
+    {
+      "id": "lowercase_auth_module",
+      "type": "module",
+      "label": "Authentication Module",
+      "confidence": 0.8,
+      "source": "login.html",
+      "category": "auth_system"
+    },
+    {
+      "id": "lowercase_server_side_rendered",
+      "type": "feature",
+      "label": "Server-Side Rendered Component",
+      "confidence": 0.8,
+      "source": "pipeline.txt",
+      "category": "next_js_feature"
+    },
+    {
+      "id": "lowercase_e_redirect",
+      "type": "feature",
+      "label": "E-redirect Handling",
+      "confidence": 0.7,
+      "source": "app.html",
+      "category": "next_js_feature"
+    },
+    {
+      "id": "lowercase_react_component_tree",
+      "type": "architecture",
+      "label": "React Component Tree Serialization",
+      "confidence": 0.8,
+      "source": "404.html",
+      "category": "architecture_pattern"
+    },
+    {
+      "id": "lowercase_module_dependency",
+      "type": "architecture",
+      "label": "Module Dependencies",
+      "confidence": 0.8,
+      "source": "multiple",
+      "category": "system_architecture"
+    },
+    {
+      "id": "lowercase_api_endpoint_definition",
+      "type": "architecture",
+      "label": "API Endpoint Definition Pattern",
+      "confidence": 0.8,
+      "source": "sendflow.txt",
+      "category": "api_architecture"
+    },
+    {
+      "id": "lowercase_state_management",
+      "type": "architecture",
+      "label": "State Management Pattern",
+      "confidence": 0.7,
+      "source": "multiple",
+      "category": "architecture_pattern"
+    }
+  ],
+  "edges": [
+    {
+      "source": "lowercase_app_root",
+      "target": "lowercase_inbox",
+      "type": "redirects_to",
+      "confidence": 1.0,
+      "category": "routing",
+      "label": "Root layout redirects to inbox"
+    },
+    {
+      "source": "lowercase_app_redirect",
+      "target": "lowercase_inbox",
+      "type": "redirects_to",
+      "confidence": 1.0,
+      "category": "routing",
+      "label": "App path redirects to inbox"
+    },
+    {
+      "source": "lowercase_crm",
+      "target": "lowercase_navigation_sidebar",
+      "type": "contains",
+      "confidence": 0.9,
+      "category": "component_hierarchy",
+      "label": "CRM module contains sidebar navigation"
+    },
+    {
+      "source": "lowercase_crm",
+      "target": "lowercase_control_deck",
+      "type": "contains",
+      "confidence": 0.9,
+      "category": "component_hierarchy",
+      "label": "CRM module contains control deck"
+    },
+    {
+      "source": "lowercase_crm",
+      "target": "lowercase_module_active_state",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "ui_feature",
+      "label": "CRM implements module active state"
+    },
+    {
+      "source": "lowercase_crm",
+      "target": "lowercase_operational_status",
+      "type": "displays",
+      "confidence": 0.8,
+      "category": "ui_feature",
+      "label": "CRM displays operational status"
+    },
+    {
+      "source": "lowercase_login",
+      "target": "lowercase_suspended_component",
+      "type": "uses",
+      "confidence": 0.8,
+      "category": "component_pattern",
+      "label": "Login page uses suspended component"
+    },
+    {
+      "source": "lowercase_login",
+      "target": "lowercase_dynamic_import",
+      "type": "uses",
+      "confidence": 0.8,
+      "category": "code_loading",
+      "label": "Login uses dynamic import for auth module"
+    },
+    {
+      "source": "lowercase_login",
+      "target": "lowercase_auth_module",
+      "type": "loads",
+      "confidence": 0.8,
+      "category": "module_loading",
+      "label": "Login dynamically loads auth module"
+    },
+    {
+      "source": "lowercase_sendflow",
+      "target": "lowercase_sendflow_sources_api",
+      "type": "calls",
+      "confidence": 0.9,
+      "category": "api_integration",
+      "label": "SendFlow module calls sources API"
+    },
+    {
+      "source": "lowercase_sendflow",
+      "target": "lowercase_sendflow_optin_api",
+      "type": "calls",
+      "confidence": 0.9,
+      "category": "api_integration",
+      "label": "SendFlow module calls opt-in API"
+    },
+    {
+      "source": "lowercase_sendflow",
+      "target": "lowercase_crm",
+      "type": "integrates_with",
+      "confidence": 0.7,
+      "category": "module_integration",
+      "label": "SendFlow integrates with CRM"
+    },
+    {
+      "source": "lowercase_sendflow",
+      "target": "lowercase_warmup",
+      "type": "integrates_with",
+      "confidence": 0.7,
+      "category": "module_integration",
+      "label": "SendFlow integrates with warmup module"
+    },
+    {
+      "source": "lowercase_index",
+      "target": "lowercase_react_fragment",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "component_structure",
+      "label": "Index contains React Fragment"
+    },
+    {
+      "source": "lowercase_index",
+      "target": "lowercase_font_preload",
+      "type": "includes",
+      "confidence": 0.8,
+      "category": "resource_loading",
+      "label": "Index includes font preloads"
+    },
+    {
+      "source": "lowercase_index",
+      "target": "lowercase_css_reference",
+      "type": "includes",
+      "confidence": 0.8,
+      "category": "resource_loading",
+      "label": "Index includes CSS references"
+    },
+    {
+      "source": "lowercase_index",
+      "target": "lowercase_build_metadata",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "metadata",
+      "label": "Index contains build metadata"
+    },
+    {
+      "source": "lowercase_index",
+      "target": "lowercase_module_hydration",
+      "type": "provides",
+      "confidence": 0.8,
+      "category": "framework_feature",
+      "label": "Index provides hydration data"
+    },
+    {
+      "source": "lowercase_404",
+      "target": "lowercase_whatsapp_button",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "ui_component",
+      "label": "404 page contains WhatsApp button"
+    },
+    {
+      "source": "lowercase_404",
+      "target": "lowercase_global_navigation",
+      "type": "includes",
+      "confidence": 0.8,
+      "category": "navigation",
+      "label": "404 page includes global navigation script"
+    },
+    {
+      "source": "lowercase_404",
+      "target": "lowercase_react_component_tree",
+      "type": "demonstrates",
+      "confidence": 0.8,
+      "category": "architecture",
+      "label": "404 demonstrates React component serialization"
+    },
+    {
+      "source": "lowercase_not_found",
+      "target": "lowercase_whatsapp_button",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "ui_component",
+      "label": "Not-found page contains WhatsApp button"
+    },
+    {
+      "source": "lowercase_not_found",
+      "target": "lowercase_navigation_controls",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "ui_component",
+      "label": "Not-found page contains navigation controls"
+    },
+    {
+      "source": "lowercase_not_found",
+      "target": "lowercase_global_navigation",
+      "type": "includes",
+      "confidence": 0.8,
+      "category": "navigation",
+      "label": "Not-found page includes navigation injection"
+    },
+    {
+      "source": "lowercase_studio",
+      "target": "lowercase_connectome_studio",
+      "type": "embeds",
+      "confidence": 0.8,
+      "category": "resource_embedding",
+      "label": "Studio embeds connectome resource"
+    },
+    {
+      "source": "lowercase_inbox",
+      "target": "lowercase_conversation_management",
+      "type": "implements",
+      "confidence": 0.9,
+      "category": "feature",
+      "label": "Inbox implements conversation management"
+    },
+    {
+      "source": "lowercase_inbox",
+      "target": "lowercase_message_composition",
+      "type": "implements",
+      "confidence": 0.9,
+      "category": "feature",
+      "label": "Inbox implements message composition"
+    },
+    {
+      "source": "lowercase_inbox",
+      "target": "lowercase_conversation_state",
+      "type": "manages",
+      "confidence": 0.8,
+      "category": "state_management",
+      "label": "Inbox manages conversation operational state"
+    },
+    {
+      "source": "lowercase_inbox",
+      "target": "lowercase_dark_theme",
+      "type": "uses",
+      "confidence": 0.8,
+      "category": "styling",
+      "label": "Inbox uses dark theme styling"
+    },
+    {
+      "source": "lowercase_broadcasts",
+      "target": "lowercase_uazapi_provider",
+      "type": "references",
+      "confidence": 0.9,
+      "category": "provider_selection",
+      "label": "Broadcasts selects UAZAPI as primary provider"
+    },
+    {
+      "source": "lowercase_broadcasts",
+      "target": "lowercase_baileys_provider",
+      "type": "references",
+      "confidence": 0.9,
+      "category": "provider_selection",
+      "label": "Broadcasts lists Baileys as contingency provider"
+    },
+    {
+      "source": "lowercase_broadcasts",
+      "target": "lowercase_message_template",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "feature",
+      "label": "Broadcasts contains message template composition"
+    },
+    {
+      "source": "lowercase_broadcasts",
+      "target": "lowercase_one_to_one_campaign",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "campaign_type",
+      "label": "Broadcasts implements 1:1 campaign type"
+    },
+    {
+      "source": "lowercase_broadcasts",
+      "target": "lowercase_group_campaign",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "campaign_type",
+      "label": "Broadcasts implements group campaign type"
+    },
+    {
+      "source": "lowercase_broadcasts",
+      "target": "lowercase_provider_selection",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "provider_management",
+      "label": "Broadcasts implements provider selection logic"
+    },
+    {
+      "source": "lowercase_metrics",
+      "target": "lowercase_leadscore",
+      "type": "displays",
+      "confidence": 0.9,
+      "category": "metric_display",
+      "label": "Metrics displays leadscore"
+    },
+    {
+      "source": "lowercase_metrics",
+      "target": "lowercase_healthscore",
+      "type": "displays",
+      "confidence": 0.9,
+      "category": "metric_display",
+      "label": "Metrics displays healthscore"
+    },
+    {
+      "source": "lowercase_metrics",
+      "target": "lowercase_channel_health",
+      "type": "performs",
+      "confidence": 0.8,
+      "category": "assessment",
+      "label": "Metrics performs channel health assessment"
+    },
+    {
+      "source": "lowercase_metrics",
+      "target": "lowercase_hitl_board",
+      "type": "integrates_with",
+      "confidence": 0.8,
+      "category": "integration",
+      "label": "Metrics integrates with HITL board"
+    },
+    {
+      "source": "lowercase_connections",
+      "target": "lowercase_qr_code_connection",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "connection_method",
+      "label": "Connections implements QR code connection"
+    },
+    {
+      "source": "lowercase_connections",
+      "target": "lowercase_phone_code_connection",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "connection_method",
+      "label": "Connections implements phone code connection"
+    },
+    {
+      "source": "lowercase_connections",
+      "target": "lowercase_uazapi_provider",
+      "type": "references",
+      "confidence": 0.9,
+      "category": "provider_integration",
+      "label": "Connections references UAZAPI provider"
+    },
+    {
+      "source": "lowercase_connections",
+      "target": "lowercase_baileys_provider",
+      "type": "references",
+      "confidence": 0.9,
+      "category": "provider_integration",
+      "label": "Connections references Baileys provider"
+    },
+    {
+      "source": "lowercase_connections",
+      "target": "lowercase_connection_status",
+      "type": "tracks",
+      "confidence": 0.8,
+      "category": "state_management",
+      "label": "Connections tracks connection status"
+    },
+    {
+      "source": "lowercase_warmup",
+      "target": "lowercase_warmup_strategy",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "feature",
+      "label": "Warmup module implements warmup strategy"
+    },
+    {
+      "source": "lowercase_pipeline",
+      "target": "lowercase_server_side_rendered",
+      "type": "uses",
+      "confidence": 0.8,
+      "category": "rendering",
+      "label": "Pipeline uses server-side rendering"
+    },
+    {
+      "source": "lowercase_pipeline",
+      "target": "lowercase_client_page_root",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "component",
+      "label": "Pipeline contains client page root"
+    },
+    {
+      "source": "lowercase_billing",
+      "target": "lowercase_client_page_root",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "page_structure",
+      "label": "Billing implements client page root"
+    },
+    {
+      "source": "lowercase_billing",
+      "target": "lowercase_server_parameters",
+      "type": "receives",
+      "confidence": 0.8,
+      "category": "data_flow",
+      "label": "Billing receives server parameters"
+    },
+    {
+      "source": "lowercase_page_shell",
+      "target": "lowercase_metadata_outlet",
+      "type": "contains",
+      "confidence": 0.8,
+      "category": "component_structure",
+      "label": "Page shell contains metadata outlet"
+    },
+    {
+      "source": "lowercase_app_txt",
+      "target": "lowercase_error_boundary",
+      "type": "uses",
+      "confidence": 0.8,
+      "category": "error_handling",
+      "label": "App component hierarchy uses error boundary"
+    },
+    {
+      "source": "lowercase_multiple_pages",
+      "target": "lowercase_rsc_payload",
+      "type": "delivers",
+      "confidence": 0.8,
+      "category": "next_js_feature",
+      "label": "Multiple pages deliver RSC payloads"
+    },
+    {
+      "source": "lowercase_multiple_modules",
+      "target": "lowercase_module_dependency",
+      "type": "exhibits",
+      "confidence": 0.7,
+      "category": "architecture",
+      "label": "Modules exhibit dependency patterns"
+    },
+    {
+      "source": "lowercase_sendflow_sources_api",
+      "target": "lowercase_lead_management",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "api_function",
+      "label": "Sources API implements lead management"
+    },
+    {
+      "source": "lowercase_sendflow_optin_api",
+      "target": "lowercase_lead_management",
+      "type": "implements",
+      "confidence": 0.8,
+      "category": "api_function",
+      "label": "Opt-in API implements lead management"
+    }
+  ],
+  "metadata": {
+    "extraction_method": "semantic_analysis",
+    "total_nodes": 66,
+    "total_edges": 57,
+    "confidence_distribution": {
+      "extracted": 45,
+      "inferred": 20,
+      "ambiguous": 1
+    },
+    "semantic_categories": [
+      "page_shell",
+      "module",
+      "component",
+      "provider",
+      "metric",
+      "feature",
+      "api_endpoint",
+      "routing",
+      "state_management",
+      "styling",
+      "resource",
+      "metadata",
+      "architecture"
+    ],
+    "file_coverage": {
+      "processed": 20,
+      "successfully_analyzed": 20,
+      "extraction_rate": 1.0
+    }
+  }
+}

@@ -1,6 +1,62 @@
 {
   "history": [
     {
+      "timestamp": "2026-05-01T18:23:26.617Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 1
+    },
+    {
+      "timestamp": "2026-05-01T18:13:25.431Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 2
+    },
+    {
+      "timestamp": "2026-05-01T18:03:26.029Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 3
+    },
+    {
+      "timestamp": "2026-05-01T17:53:26.587Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 3
+    },
+    {
+      "timestamp": "2026-05-01T17:43:25.609Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 3
+    },
+    {
+      "timestamp": "2026-05-01T17:33:27.198Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 3
+    },
+    {
+      "timestamp": "2026-05-01T17:23:28.391Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 3
+    },
+    {
+      "timestamp": "2026-05-01T17:13:26.739Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 3
+    },
+    {
       "timestamp": "2026-05-01T17:03:25.838Z",
       "type": "pulse",
       "heatScore": 70,
@@ -380,5 +436,5 @@
     }
   ],
   "firstSeenAt": "2026-04-30T15:42:28.035Z",
-  "lastUpdatedAt": "2026-05-01T17:03:25.838Z"
+  "lastUpdatedAt": "2026-05-01T18:23:26.617Z"
 }

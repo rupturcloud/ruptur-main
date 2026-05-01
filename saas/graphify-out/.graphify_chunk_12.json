@@ -1,0 +1,507 @@
+{
+  "chunk_id": "12",
+  "processing_date": "2026-05-01T00:00:00Z",
+  "total_files": 20,
+  "metadata": {
+    "files_by_type": {
+      "markdown": 3,
+      "html": 2,
+      "svg": 6,
+      "png": 2,
+      "other": 7
+    }
+  },
+  "nodes": [
+    {
+      "id": "lowercase_docs",
+      "label": "Documentation Extraction System",
+      "type": "artifact_collection",
+      "confidence": 1.0,
+      "source_files": [
+        "docs/extraction/README.md",
+        "docs/extraction/INDEX.md",
+        "docs/extraction/WARMUP-DOSSIER.md"
+      ],
+      "properties": {
+        "total_lines": 2400,
+        "artifact_count": 6,
+        "phase_status": "Phase 0-2 Complete"
+      }
+    },
+    {
+      "id": "lowercase_discovery_report",
+      "label": "Discovery Report",
+      "type": "concept",
+      "confidence": 1.0,
+      "source": "docs/extraction/INDEX.md",
+      "properties": {
+        "lines": 1200,
+        "sections": 8,
+        "critical_findings": 8,
+        "content_hash": "DISCOVERY-REPORT"
+      }
+    },
+    {
+      "id": "lowercase_warmup_system",
+      "label": "Warmup System Dossier",
+      "type": "concept",
+      "confidence": 1.0,
+      "source": "docs/extraction/WARMUP-DOSSIER.md",
+      "properties": {
+        "lines": 450,
+        "critical_functions": 40,
+        "http_endpoints": 6,
+        "external_integrations": 3
+      }
+    },
+    {
+      "id": "lowercase_legacy_inventory",
+      "label": "Legacy System Inventory",
+      "type": "concept",
+      "confidence": 1.0,
+      "source": "docs/extraction/LEGACY-INVENTORY.md",
+      "properties": {
+        "lines": 170,
+        "items_inventoried": 11,
+        "risk_classifications": 4
+      }
+    },
+    {
+      "id": "lowercase_migration_plan",
+      "label": "Migration Planning Document",
+      "type": "concept",
+      "confidence": 1.0,
+      "source": "docs/extraction/MIGRATION-PLAN.md",
+      "properties": {
+        "lines": 160,
+        "phases": 4,
+        "completed_phases": 2
+      }
+    },
+    {
+      "id": "lowercase_client_area",
+      "label": "Client Area - Front End",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "dist-client/index.html",
+      "properties": {
+        "framework": "react",
+        "root_element": "root",
+        "assets": [
+          "index-3wPgY2Jf.js",
+          "index-go4bWb3O.css"
+        ]
+      }
+    },
+    {
+      "id": "lowercase_playwright_report",
+      "label": "Playwright Test Report",
+      "type": "visual_component",
+      "confidence": 0.8,
+      "source": "tmp/playwright-report/index.html",
+      "properties": {
+        "test_framework": "playwright",
+        "type": "test_report_ui"
+      }
+    },
+    {
+      "id": "lowercase_social_icons",
+      "label": "Social Media Icons Component",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": [
+        "web/client-area/public/icons.svg",
+        "dist-client/icons.svg"
+      ],
+      "properties": {
+        "icons_defined": 6,
+        "icons": [
+          "bluesky-icon",
+          "discord-icon",
+          "documentation-icon",
+          "github-icon",
+          "social-icon",
+          "x-icon"
+        ],
+        "color_scheme": "dark_with_accent_purple"
+      }
+    },
+    {
+      "id": "lowercase_file_icon",
+      "label": "File Icon SVG",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/dashboard-dist/file.svg",
+      "properties": {
+        "viewbox": "0 0 16 16",
+        "color": "#666",
+        "represents": "document_file"
+      }
+    },
+    {
+      "id": "lowercase_dashboard_icons",
+      "label": "Dashboard Icons",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/dashboard-dist/",
+      "properties": {
+        "svg_files": [
+          "vercel.svg",
+          "next.svg",
+          "globe.svg",
+          "window.svg"
+        ]
+      }
+    },
+    {
+      "id": "lowercase_client_area_assets",
+      "label": "Client Area Assets",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/client-area/public/",
+      "properties": {
+        "assets": [
+          "og-image.png",
+          "icons.svg",
+          "favicon.svg"
+        ],
+        "asset_types": [
+          "social_preview",
+          "icon_set",
+          "favicon"
+        ]
+      }
+    },
+    {
+      "id": "lowercase_client_area_src_assets",
+      "label": "Client Area Source Assets",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/client-area/src/assets/",
+      "properties": {
+        "assets": [
+          "hero.png",
+          "vite.svg",
+          "react.svg"
+        ],
+        "asset_types": [
+          "hero_image",
+          "framework_logos"
+        ]
+      }
+    },
+    {
+      "id": "lowercase_manager_dist_icons",
+      "label": "Warmup Manager Distribution Icons",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/manager-dist/placeholder.svg",
+      "properties": {
+        "purpose": "placeholder_icon"
+      }
+    },
+    {
+      "id": "lowercase_favicon",
+      "label": "Favicon Assets",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": [
+        "web/client-area/public/favicon.svg",
+        "dist-client/favicon.svg"
+      ],
+      "properties": {
+        "type": "favicon"
+      }
+    },
+    {
+      "id": "lowercase_og_image",
+      "label": "Open Graph Image",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/client-area/public/og-image.png",
+      "properties": {
+        "purpose": "social_preview_image",
+        "format": "png"
+      }
+    },
+    {
+      "id": "lowercase_hero_image",
+      "label": "Hero Banner Image",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/client-area/src/assets/hero.png",
+      "properties": {
+        "purpose": "landing_page_hero"
+      }
+    },
+    {
+      "id": "lowercase_test_preview",
+      "label": "Playwright Test Preview Screenshot",
+      "type": "visual_component",
+      "confidence": 0.8,
+      "source": "tmp/playwright/preview-home.png",
+      "properties": {
+        "test_artifact": true,
+        "page_name": "preview-home"
+      }
+    },
+    {
+      "id": "lowercase_vite_logo",
+      "label": "Vite Framework Logo",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/client-area/src/assets/vite.svg",
+      "properties": {
+        "framework": "vite"
+      }
+    },
+    {
+      "id": "lowercase_react_logo",
+      "label": "React Framework Logo",
+      "type": "visual_component",
+      "confidence": 1.0,
+      "source": "web/client-area/src/assets/react.svg",
+      "properties": {
+        "framework": "react"
+      }
+    },
+    {
+      "id": "lowercase_warmup_core_module",
+      "label": "Warmup Core Module Reference",
+      "type": "concept",
+      "confidence": 0.8,
+      "source": "docs/extraction/WARMUP-DOSSIER.md",
+      "properties": {
+        "server_file": "server.mjs",
+        "lines_of_code": 2611,
+        "critical_functions": 40,
+        "risk_level": "critical"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "lowercase_docs",
+      "target": "lowercase_discovery_report",
+      "type": "cites",
+      "confidence": 1.0,
+      "label": "Discovery Report is contained in docs"
+    },
+    {
+      "source": "lowercase_docs",
+      "target": "lowercase_warmup_system",
+      "type": "cites",
+      "confidence": 1.0,
+      "label": "Warmup Dossier is contained in docs"
+    },
+    {
+      "source": "lowercase_docs",
+      "target": "lowercase_legacy_inventory",
+      "type": "cites",
+      "confidence": 1.0,
+      "label": "Legacy Inventory is contained in docs"
+    },
+    {
+      "source": "lowercase_docs",
+      "target": "lowercase_migration_plan",
+      "type": "cites",
+      "confidence": 1.0,
+      "label": "Migration Plan is contained in docs"
+    },
+    {
+      "source": "lowercase_discovery_report",
+      "target": "lowercase_warmup_system",
+      "type": "references",
+      "confidence": 1.0,
+      "label": "Discovery Report references Warmup system details"
+    },
+    {
+      "source": "lowercase_migration_plan",
+      "target": "lowercase_warmup_system",
+      "type": "references",
+      "confidence": 1.0,
+      "label": "Migration phases depend on Warmup system"
+    },
+    {
+      "source": "lowercase_warmup_system",
+      "target": "lowercase_warmup_core_module",
+      "type": "describes",
+      "confidence": 1.0,
+      "label": "Dossier documents the core server.mjs implementation"
+    },
+    {
+      "source": "lowercase_legacy_inventory",
+      "target": "lowercase_migration_plan",
+      "type": "informs",
+      "confidence": 1.0,
+      "label": "Inventory items guide migration phases"
+    },
+    {
+      "source": "lowercase_client_area",
+      "target": "lowercase_social_icons",
+      "type": "uses",
+      "confidence": 1.0,
+      "label": "Client area references social icons"
+    },
+    {
+      "source": "lowercase_client_area",
+      "target": "lowercase_og_image",
+      "type": "uses",
+      "confidence": 1.0,
+      "label": "Client area uses OG image for social preview"
+    },
+    {
+      "source": "lowercase_client_area",
+      "target": "lowercase_hero_image",
+      "type": "uses",
+      "confidence": 1.0,
+      "label": "Client area renders hero image"
+    },
+    {
+      "source": "lowercase_client_area",
+      "target": "lowercase_favicon",
+      "type": "uses",
+      "confidence": 1.0,
+      "label": "Client area references favicon"
+    },
+    {
+      "source": "lowercase_client_area_assets",
+      "target": "lowercase_client_area_src_assets",
+      "type": "distributes",
+      "confidence": 0.8,
+      "label": "Public assets derived from src assets"
+    },
+    {
+      "source": "lowercase_client_area_src_assets",
+      "target": "lowercase_react_logo",
+      "type": "contains",
+      "confidence": 1.0,
+      "label": "React logo is part of source assets"
+    },
+    {
+      "source": "lowercase_client_area_src_assets",
+      "target": "lowercase_vite_logo",
+      "type": "contains",
+      "confidence": 1.0,
+      "label": "Vite logo is part of source assets"
+    },
+    {
+      "source": "lowercase_dashboard_icons",
+      "target": "lowercase_file_icon",
+      "type": "contains",
+      "confidence": 1.0,
+      "label": "File icon is part of dashboard icons"
+    },
+    {
+      "source": "lowercase_playwright_report",
+      "target": "lowercase_test_preview",
+      "type": "references",
+      "confidence": 0.8,
+      "label": "Report contains test screenshot artifact"
+    },
+    {
+      "source": "lowercase_social_icons",
+      "target": "lowercase_client_area",
+      "type": "visual_component_for",
+      "confidence": 1.0,
+      "label": "Icons provide visual identity for client area"
+    },
+    {
+      "source": "lowercase_migration_plan",
+      "target": "lowercase_client_area",
+      "type": "involves",
+      "confidence": 0.8,
+      "label": "Migration plan includes client area components"
+    },
+    {
+      "source": "lowercase_warmup_system",
+      "target": "lowercase_manager_dist_icons",
+      "type": "uses",
+      "confidence": 0.6,
+      "label": "Warmup manager UI may use placeholder icons"
+    }
+  ],
+  "concepts": {
+    "warmup_system": {
+      "definition": "Email/message heating automation system with cadence control (4 days minimum)",
+      "components": [
+        "scheduler_loop_60s",
+        "instance_pool_management",
+        "eligibility_rules",
+        "cooldown_system",
+        "audit_trail"
+      ],
+      "critical_functions": 40,
+      "risk_level": "CRITICAL",
+      "confidence": 1.0
+    },
+    "migration_phases": {
+      "definition": "Phased approach to migrate legacy system to new architecture",
+      "phases": [
+        "Phase 0: Audit and discovery",
+        "Phase 1: Planning and documentation",
+        "Phase 2: File migration and setup",
+        "Phase 3: Integration wrappers",
+        "Phase 4: Refactoring and testing"
+      ],
+      "current_status": "Phase 0-2 Complete",
+      "confidence": 1.0
+    },
+    "client_area_ui": {
+      "definition": "React-based frontend for end users with social branding",
+      "frameworks": [
+        "React",
+        "Vite"
+      ],
+      "assets": [
+        "hero_image",
+        "og_image",
+        "favicon",
+        "social_icons"
+      ],
+      "confidence": 1.0
+    },
+    "social_brand_identity": {
+      "definition": "Visual branding through social platform icons",
+      "platforms": [
+        "Bluesky",
+        "Discord",
+        "GitHub",
+        "X/Twitter"
+      ],
+      "color_scheme": "#08060d and #aa3bff",
+      "confidence": 1.0
+    },
+    "documentation_architecture": {
+      "definition": "Multi-layer documentation system for migration and system understanding",
+      "layers": [
+        "README - Navigation and overview",
+        "INDEX - Detailed table of contents",
+        "DISCOVERY-REPORT - Consolidated findings",
+        "WARMUP-DOSSIER - Technical deep dive",
+        "LEGACY-INVENTORY - Asset tracking",
+        "MIGRATION-PLAN - Phased roadmap"
+      ],
+      "total_lines": 2400,
+      "confidence": 1.0
+    }
+  },
+  "audit_trail": {
+    "extraction_method": "semantic_analysis",
+    "confidence_scores": {
+      "extracted": 1.0,
+      "inferred": 0.6,
+      "ambiguous": 0.3
+    },
+    "entity_count": 20,
+    "edge_count": 20,
+    "concept_definitions": 5,
+    "processing_notes": "Chunk contains primarily documentation (markdown), visual assets (SVG/PNG), and HTML entry points. No source code to extract references/defines. All relations inferred from content semantics and file structure.",
+    "critical_assets": [
+      "warmup-dossier.md - System behavior documentation",
+      "discovery-report.md - Executive findings",
+      "migration-plan.md - Project roadmap",
+      "social-icons.svg - Brand identity components"
+    ]
+  }
+}

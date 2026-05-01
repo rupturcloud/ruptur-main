@@ -3253,7 +3253,7 @@ const server = http.createServer(async (req, res) => {
     // Client Area - Área do Usuário
     if (url.pathname.startsWith("/client-area")) {
       const served = await serveStaticFromDir(req, res, {
-        distDir: "./web/client-area",
+        distDir: "./web/dist-client",
         stripPrefix: "/client-area",
         htmlTransform: (html) => injectEcosystemChrome(html, { includeWarmupButton: false }),
       });
