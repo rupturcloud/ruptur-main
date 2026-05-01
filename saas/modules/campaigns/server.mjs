@@ -7,6 +7,7 @@
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { walletManager } from '../wallet/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,11 +52,17 @@ export async function createCampaign(campaignData) {
     recipients = [],
     schedule = null,
     throttle = { minDelay: 5, maxDelay: 15 },
-    variables = []
+    variables = [],
+    tenantId
   } = campaignData;
+
+  if (!tenantId) {
+    throw new Error('tenantId is required for creating a campaign');
+  }
 
   const campaign = {
     id: crypto.randomUUID(),
+    tenantId,
     name,
     description,
     messageId,
@@ -112,6 +119,11 @@ export async function listCampaigns(options = {}) {
   const { status, limit = 50, offset = 0 } = options;
   
   let campaigns = Array.from(state.campaigns.values());
+  
+  // Filter by tenantId
+  if (options.tenantId) {
+    campaigns = campaigns.filter(c => c.tenantId === options.tenantId);
+  }
   
   if (status) {
     campaigns = campaigns.filter(c => c.status === status);
@@ -247,10 +259,15 @@ export async function pauseCampaign(campaignId) {
  * Create message template
  */
 export async function createMessageTemplate(templateData) {
-  const { name, text, category, variables = [] } = templateData;
+  const { name, text, category, variables = [], tenantId } = templateData;
+
+  if (!tenantId) {
+    throw new Error('tenantId is required for creating a template');
+  }
 
   const template = {
     id: crypto.randomUUID(),
+    tenantId,
     name,
     text,
     category,
@@ -274,6 +291,11 @@ export async function listMessageTemplates(options = {}) {
   
   let templates = Array.from(state.messages.values());
   
+  // Filter by tenantId
+  if (options.tenantId) {
+    templates = templates.filter(t => t.tenantId === options.tenantId);
+  }
+
   if (category) {
     templates = templates.filter(t => t.category === category);
   }
@@ -393,20 +415,35 @@ async function processQueue() {
   ).slice(0, 10); // Process max 10 at a time
   
   for (const item of toProcess) {
-    try {
-      // TODO: Integrate with UAZAPI to send message
-      console.log(`[campaigns:send] Sending to ${item.recipient.number} via ${item.instanceToken}`);
+      // 1. Verify credits before sending
+      const campaign = state.campaigns.get(item.campaignId);
+      if (!campaign) throw new Error(`Campaign not found: ${item.campaignId}`);
+
+      const hasCredits = await walletManager.hasEnoughCredits(campaign.tenantId, 1);
+      if (!hasCredits) {
+        console.warn(`[campaigns:send] Tenant ${campaign.tenantId} has insufficient credits. Pausing campaign.`);
+        await pauseCampaign(item.campaignId);
+        continue; 
+      }
+
+      // 2. Deduct credit
+      await walletManager.deductCredit(campaign.tenantId, 1, {
+        description: `Disparo da campanha: ${campaign.name}`,
+        campaignId: campaign.id
+      });
+
+      // 3. TODO: Integrate with UAZAPI to send message
+      // Actually, let's implement the send logic here if we have access to UAZAPI config
+      // For now, let's simulate and log
+      console.log(`[campaigns:send] Sending to ${item.recipient.number} via ${item.instanceToken} for Tenant ${campaign.tenantId}`);
       
       // Mark as sent
       item.recipient.sentAt = now.toISOString();
       item.recipient.status = 'sent';
       
       // Update campaign progress
-      const campaign = state.campaigns.get(item.campaignId);
-      if (campaign) {
-        campaign.progress.sent++;
-        campaign.progress.remaining--;
-      }
+      campaign.progress.sent++;
+      campaign.progress.remaining--;
       
       state.stats.totalSent++;
       

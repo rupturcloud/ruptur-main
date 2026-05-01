@@ -13,27 +13,31 @@ const bubbleClient = new BubbleClient();
 
 export class InboxManager {
   constructor() {
-    this.instances = new Map();
-    this.messages = new Map();
-    this.unreadCounts = new Map();
+    this.instances = new Map(); // instanceId -> { ..., tenantId }
+    this.messages = new Map(); // messageId -> { ..., tenantId }
+    this.unreadCounts = new Map(); // instanceId -> count
   }
 
   /**
    * Initialize inbox for a specific instance
    */
-  async initializeInstance(instanceId) {
+  async initializeInstance(instanceId, tenantId) {
     try {
-      console.log(`[Inbox] Initializing instance: ${instanceId}`);
+      console.log(`[Inbox] Initializing instance: ${instanceId} for tenant: ${tenantId}`);
       
       // Get instance details from UAZAPI
       const instance = await uazapiClient.getInstance(instanceId);
       if (!instance || !instance.connected) {
         throw new Error(`Instance ${instanceId} not connected`);
       }
+      if (!tenantId) {
+        throw new Error(`Tenant ID required for instance ${instanceId}`);
+      }
 
       // Initialize instance state
       this.instances.set(instanceId, {
         id: instanceId,
+        tenantId: tenantId,
         name: instance.name || instanceId,
         phone: instance.phone,
         connected: true,
@@ -41,14 +45,52 @@ export class InboxManager {
         unreadCount: 0
       });
 
+      // Load existing messages for this instance from Bubble
+      await this.loadMessagesFromBubble(instanceId, tenantId);
+
       // Start message polling
       this.startMessagePolling(instanceId);
       
-      console.log(`[Inbox] Instance ${instanceId} initialized successfully`);
+      console.log(`[Inbox] Instance ${instanceId} initialized successfully for tenant ${tenantId}`);
       return true;
     } catch (error) {
       console.error(`[Inbox] Failed to initialize instance ${instanceId}:`, error.message);
       return false;
+    }
+  }
+
+  /**
+   * Load messages from Bubble for an instance
+   */
+  async loadMessagesFromBubble(instanceId, tenantId) {
+    try {
+      const messages = await bubbleClient.getThings('Message', {
+        constraints: [
+          { key: 'instanceId', constraint_type: 'equals', value: instanceId },
+          { key: 'tenantId', constraint_type: 'equals', value: tenantId }
+        ],
+        limit: 100
+      });
+
+      if (messages && messages.length > 0) {
+        for (const msg of messages) {
+          const messageId = `${instanceId}_${msg.messageId || msg.id}`;
+          this.messages.set(messageId, {
+            ...msg,
+            id: messageId,
+            instanceId,
+            tenantId,
+            timestamp: new Date(msg.timestamp || msg.CreatedDate),
+            read: msg.read || false
+          });
+        }
+        
+        // Update unread count based on loaded messages
+        const unreadCount = messages.filter(m => !m.read).length;
+        this.unreadCounts.set(instanceId, unreadCount);
+      }
+    } catch (error) {
+      console.error(`[Inbox] Error loading messages from Bubble for ${instanceId}:`, error.message);
     }
   }
 
@@ -58,13 +100,23 @@ export class InboxManager {
   startMessagePolling(instanceId) {
     const pollInterval = 30000; // 30 seconds
     
-    setInterval(async () => {
+    // Clear existing interval if any
+    const existing = this.instances.get(instanceId);
+    if (existing?.pollTimer) {
+      clearInterval(existing.pollTimer);
+    }
+
+    const timer = setInterval(async () => {
       try {
         await this.syncMessages(instanceId);
       } catch (error) {
         console.error(`[Inbox] Error polling messages for ${instanceId}:`, error.message);
       }
     }, pollInterval);
+
+    if (existing) {
+      existing.pollTimer = timer;
+    }
   }
 
   /**
@@ -85,13 +137,11 @@ export class InboxManager {
 
       // Process each message
       for (const message of messages) {
-        await this.processMessage(instanceId, message);
+        await this.processMessage(instanceId, instance.tenantId, message);
       }
 
       // Update last sync time
       instance.lastSync = new Date();
-      
-      console.log(`[Inbox] Synced ${messages.length} messages for ${instanceId}`);
     } catch (error) {
       console.error(`[Inbox] Error syncing messages for ${instanceId}:`, error.message);
     }
@@ -100,7 +150,7 @@ export class InboxManager {
   /**
    * Process incoming message
    */
-  async processMessage(instanceId, message) {
+  async processMessage(instanceId, tenantId, message) {
     try {
       const messageId = `${instanceId}_${message.id}`;
       
@@ -110,28 +160,32 @@ export class InboxManager {
       }
 
       // Store message locally
-      this.messages.set(messageId, {
+      const messageData = {
         id: messageId,
         instanceId,
+        tenantId,
         ...message,
         timestamp: new Date(message.timestamp),
         read: false
-      });
+      };
+      
+      this.messages.set(messageId, messageData);
 
       // Update unread count
       const currentCount = this.unreadCounts.get(instanceId) || 0;
       this.unreadCounts.set(instanceId, currentCount + 1);
 
       // Send to Bubble for storage
-      await this.storeMessageInBubble(message);
+      await this.storeMessageInBubble(messageData);
 
       // Trigger webhook for real-time updates
       await this.triggerWebhook('message.received', {
         instanceId,
-        message
+        tenantId,
+        message: messageData
       });
 
-      console.log(`[Inbox] New message processed: ${messageId}`);
+      console.log(`[Inbox] New message processed: ${messageId} (Tenant: ${tenantId})`);
     } catch (error) {
       console.error(`[Inbox] Error processing message:`, error.message);
     }
@@ -145,12 +199,13 @@ export class InboxManager {
       await bubbleClient.createRecord('Message', {
         messageId: message.id,
         instanceId: message.instanceId,
+        tenantId: message.tenantId,
         sender: message.sender,
         receiver: message.receiver,
         content: message.content,
-        messageType: message.type,
+        messageType: message.type || 'text',
         timestamp: message.timestamp,
-        read: false
+        read: message.read || false
       });
     } catch (error) {
       console.error(`[Inbox] Error storing message in Bubble:`, error.message);
@@ -158,9 +213,9 @@ export class InboxManager {
   }
 
   /**
-   * Get messages for an instance
+   * Get messages for an instance (Tenant filtered)
    */
-  async getMessages(instanceId, options = {}) {
+  async getMessages(instanceId, tenantId, options = {}) {
     const {
       limit = 50,
       offset = 0,
@@ -169,8 +224,13 @@ export class InboxManager {
     } = options;
 
     try {
+      const instance = this.instances.get(instanceId);
+      if (instance && instance.tenantId !== tenantId) {
+        throw new Error('Unauthorized access to instance inbox');
+      }
+
       let messages = Array.from(this.messages.values())
-        .filter(msg => msg.instanceId === instanceId)
+        .filter(msg => msg.instanceId === instanceId && msg.tenantId === tenantId)
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       if (unreadOnly) {
@@ -198,10 +258,10 @@ export class InboxManager {
   /**
    * Mark message as read
    */
-  async markAsRead(instanceId, messageId) {
+  async markAsRead(instanceId, tenantId, messageId) {
     try {
       const message = this.messages.get(messageId);
-      if (message && message.instanceId === instanceId) {
+      if (message && message.instanceId === instanceId && message.tenantId === tenantId) {
         message.read = true;
         
         // Update unread count
@@ -224,11 +284,14 @@ export class InboxManager {
   /**
    * Send message
    */
-  async sendMessage(instanceId, recipient, content, type = 'text') {
+  async sendMessage(instanceId, tenantId, recipient, content, type = 'text') {
     try {
       const instance = this.instances.get(instanceId);
       if (!instance || !instance.connected) {
         throw new Error(`Instance ${instanceId} not available`);
+      }
+      if (instance.tenantId !== tenantId) {
+        throw new Error('Unauthorized access to instance');
       }
 
       // Send via UAZAPI
@@ -242,6 +305,7 @@ export class InboxManager {
       const message = {
         id: result.messageId,
         instanceId,
+        tenantId,
         sender: instance.phone,
         receiver: recipient,
         content,
@@ -254,7 +318,7 @@ export class InboxManager {
       this.messages.set(`${instanceId}_${result.messageId}`, message);
       await this.storeMessageInBubble(message);
 
-      console.log(`[Inbox] Message sent: ${result.messageId}`);
+      console.log(`[Inbox] Message sent: ${result.messageId} (Tenant: ${tenantId})`);
       return result;
     } catch (error) {
       console.error(`[Inbox] Error sending message:`, error.message);
@@ -263,17 +327,20 @@ export class InboxManager {
   }
 
   /**
-   * Get inbox summary
+   * Get inbox summary for a tenant
    */
-  async getInboxSummary() {
+  async getInboxSummary(tenantId) {
     const summary = {
-      totalInstances: this.instances.size,
+      totalInstances: 0,
       connectedInstances: 0,
       totalUnread: 0,
       instances: []
     };
 
     for (const [instanceId, instance] of this.instances) {
+      if (instance.tenantId !== tenantId) continue;
+
+      summary.totalInstances++;
       if (instance.connected) {
         summary.connectedInstances++;
       }
@@ -310,3 +377,4 @@ export class InboxManager {
 // Export singleton instance
 export const inboxManager = new InboxManager();
 export default inboxManager;
+

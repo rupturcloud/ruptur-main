@@ -64,11 +64,27 @@ class BubbleClient {
    * @param {Object} options Query options (filters, constraints, etc)
    * @returns {Promise<Array>} Data records
    */
+  /**
+   * Get data from a database thing
+   *
+   * @param {string} dataType Data type name
+   * @param {Object} options Query options (filters, constraints, etc)
+   * @returns {Promise<Array>} Data records
+   */
   async getThings(dataType, options = {}) {
     const queryParams = new URLSearchParams();
+    const constraints = options.constraints || [];
 
-    if (options.constraints) {
-      queryParams.append('constraints', JSON.stringify(options.constraints));
+    if (options.tenantId) {
+      constraints.push({
+        key: 'tenant_id',
+        constraint_type: 'equals',
+        value: options.tenantId,
+      });
+    }
+
+    if (constraints.length > 0) {
+      queryParams.append('constraints', JSON.stringify(constraints));
     }
 
     if (options.sorting) {
@@ -104,13 +120,20 @@ class BubbleClient {
    *
    * @param {string} dataType Data type name
    * @param {Object} data Record data
+   * @param {string} tenantId Optional tenant ID
    * @returns {Promise<Object>} Created record
    */
-  async createThing(dataType, data) {
+  async createThing(dataType, data, tenantId) {
     const endpoint = `/obj/${dataType}`;
+    const payload = { ...data };
+    
+    if (tenantId) {
+      payload.tenant_id = tenantId;
+    }
+
     return this.request(endpoint, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -174,10 +197,12 @@ class BubbleClient {
    *
    * @param {string} dataType Data type name
    * @param {string} query Search query
+   * @param {string} tenantId Optional tenant ID
    * @returns {Promise<Array>} Search results
    */
-  async search(dataType, query) {
+  async search(dataType, query, tenantId) {
     return this.getThings(dataType, {
+      tenantId,
       constraints: [
         {
           key: 'search_term',

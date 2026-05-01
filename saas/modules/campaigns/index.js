@@ -8,6 +8,7 @@
 import UaZAPIClient from '../../integrations/uazapi/client.js';
 import BubbleClient from '../../integrations/bubble/client.js';
 import { inboxManager } from '../inbox/index.js';
+import { walletManager } from '../wallet/index.js';
 
 const uazapiClient = new UaZAPIClient();
 const bubbleClient = new BubbleClient();
@@ -64,7 +65,8 @@ export class CampaignManager {
         },
         createdAt: new Date(),
         updatedAt: new Date(),
-        createdBy: campaignData.createdBy
+        createdBy: campaignData.createdBy,
+        tenantId: campaignData.tenantId
       };
 
       // Store in local cache
@@ -97,6 +99,13 @@ export class CampaignManager {
 
       // Get recipients
       const recipients = await this.getRecipients(campaign);
+      
+      // Multi-tenant check: Check if tenant has enough credits
+      const hasCredits = await walletManager.hasEnoughCredits(campaign.tenantId, 1);
+      if (!hasCredits) {
+        throw new Error(`Insufficient credits for tenant ${campaign.tenantId} to launch campaign`);
+      }
+
       campaign.metrics.totalRecipients = recipients.length;
 
       if (recipients.length === 0) {
@@ -259,9 +268,21 @@ export class CampaignManager {
       campaign.content.variables
     );
 
-    // Send message
+    // 1. Verify and deduct credit BEFORE sending
+    try {
+      await walletManager.deductCredit(campaign.tenantId, 1, {
+        campaignId: campaign.id,
+        description: `Campaign message to ${recipient.phone}`
+      });
+    } catch (walletError) {
+      console.error(`[Campaigns] Message blocked due to credit failure:`, walletError.message);
+      throw new Error(`Credit deduction failed: ${walletError.message}`);
+    }
+
+    // 2. Send message ONLY if credit was successfully deducted
     const result = await inboxManager.sendMessage(
       senderInstance.id,
+      campaign.tenantId,
       recipient.phone,
       personalizedMessage,
       campaign.content.media.length > 0 ? 'media' : 'text'
@@ -274,6 +295,7 @@ export class CampaignManager {
     // Store sent message record
     await bubbleClient.createRecord('CampaignMessage', {
       campaignId: campaign.id,
+      tenantId: campaign.tenantId,
       recipientPhone: recipient.phone,
       senderInstanceId: senderInstance.id,
       message: personalizedMessage,
@@ -321,11 +343,11 @@ export class CampaignManager {
         }
         return instances;
       } else {
-        // Use pool of available instances
-        const allInstances = await uazapiClient.getInstances();
-        return allInstances
+        // Use pool of available instances for this tenant
+        const inboxSummary = await inboxManager.getInboxSummary(campaign.tenantId);
+        return inboxSummary.instances
           .filter(instance => instance.connected)
-          .slice(0, 10); // Limit to 10 instances
+          .slice(0, 10);
       }
     } catch (error) {
       console.error(`[Campaigns] Error getting sender instances:`, error.message);
@@ -416,7 +438,7 @@ export class CampaignManager {
 
   async getAllCampaigns(options = {}) {
     try {
-      const { status, limit = 50, offset = 0 } = options;
+      const { status, tenantId, limit = 50, offset = 0 } = options;
       
       // Get campaigns from Bubble
       const constraints = [];
@@ -425,6 +447,14 @@ export class CampaignManager {
           key: 'status',
           constraint_type: 'equals',
           value: status
+        });
+      }
+
+      if (tenantId) {
+        constraints.push({
+          key: 'tenantId',
+          constraint_type: 'equals',
+          value: tenantId
         });
       }
       
