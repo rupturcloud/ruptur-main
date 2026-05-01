@@ -27,11 +27,14 @@ import Inbox from './pages/Inbox';
 import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
+import LandingPage from './pages/LandingPage';
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Rotas públicas */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/signup" element={<SignUp />} />
 
