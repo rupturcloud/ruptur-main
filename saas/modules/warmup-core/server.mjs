@@ -3250,6 +3250,36 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // Client Area - Área do Usuário
+    if (url.pathname.startsWith("/client-area")) {
+      const served = await serveStaticFromDir(req, res, {
+        distDir: "./web/client-area",
+        stripPrefix: "/client-area",
+        htmlTransform: (html) => injectEcosystemChrome(html, { includeWarmupButton: false }),
+      });
+      if (served) return;
+    }
+
+    // Dashboard SaaS - Área Admin
+    if (url.pathname.startsWith("/dashboard")) {
+      const served = await serveStaticFromDir(req, res, {
+        distDir: "./web/dashboard-dist",
+        stripPrefix: "/dashboard",
+        htmlTransform: (html) => injectEcosystemChrome(html, { includeWarmupButton: false }),
+      });
+      if (served) return;
+    }
+
+    // Manager Interface - Admin Avançado
+    if (url.pathname.startsWith("/manager")) {
+      const served = await serveStaticFromDir(req, res, {
+        distDir: "./web/manager-dist",
+        stripPrefix: "/manager",
+        htmlTransform: (html) => injectEcosystemChrome(html, { includeWarmupButton: false }),
+      });
+      if (served) return;
+    }
+
     createResponse(res, 404, { error: "Não encontrado" });
   } catch (err) {
     createResponse(res, 500, { error: err.message });

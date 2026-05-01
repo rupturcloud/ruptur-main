@@ -1,6 +1,83 @@
 {
   "history": [
     {
+      "timestamp": "2026-05-01T15:43:24.752Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T15:33:24.736Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T15:23:24.710Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T15:13:28.535Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T15:03:24.587Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T14:53:24.909Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T14:43:24.845Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T14:33:24.855Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T14:23:25.065Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T14:13:24.899Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 25
+    },
+    {
+      "timestamp": "2026-05-01T14:03:24.750Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 25
+    },
+    {
       "timestamp": "2026-05-01T13:53:25.412Z",
       "type": "pulse",
       "heatScore": 70,
@@ -247,5 +324,5 @@
     }
   ],
   "firstSeenAt": "2026-04-30T15:42:28.034Z",
-  "lastUpdatedAt": "2026-05-01T13:53:25.412Z"
+  "lastUpdatedAt": "2026-05-01T15:43:24.752Z"
 }

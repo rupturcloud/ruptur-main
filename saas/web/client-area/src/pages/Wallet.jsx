@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUpRight, ArrowDownLeft, History, CreditCard,
   TrendingUp, TrendingDown, Zap, Search, Plus, X,
-  CheckCircle2, ArrowRightLeft, Filter
+  CheckCircle2, ArrowRightLeft, Filter, Loader2, ShieldCheck, AlertCircle
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 // Tipos de transação Ruptur (créditos, não dinheiro)
 const TX_TYPES = ['ALL', 'credit', 'debit', 'campaign', 'refund'];
@@ -18,18 +19,23 @@ const TX_STYLE = {
   refund:   { bg: 'rgba(0,242,255,0.08)',  border: 'rgba(0,242,255,0.2)',  color: '#00f2ff', icon: <TrendingUp size={22} /> },
 };
 
-const Wallet = ({ tenantId }) => {
+const Wallet = () => {
+  const { tenantId } = useAuth();
   const [balance, setBalance] = useState(null);
   const [history, setHistory] = useState([]);
   const [sendsToday, setSendsToday] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
   const [modal, setModal] = useState(null); // 'buy' | null
-  const [creditAmount, setCreditAmount] = useState('');
+  const [packages, setPackages] = useState([]);
+  const [selectedPkg, setSelectedPkg] = useState(null);
+  const [buyLoading, setBuyLoading] = useState(false);
+  const [buyError, setBuyError] = useState('');
 
   useEffect(() => {
     if (!tenantId) return;
     loadData();
+    loadPackages();
   }, [tenantId]);
 
   const loadData = async () => {
@@ -54,12 +60,43 @@ const Wallet = ({ tenantId }) => {
     }
   };
 
-  const handleBuyCredits = async () => {
-    const { checkoutUrl } = await apiService.addCredits(tenantId, Number(creditAmount) || 100);
-    window.open(checkoutUrl, '_blank');
-    setModal(null);
-    setCreditAmount('');
+  const loadPackages = async () => {
+    try {
+      const data = await apiService.getPackages();
+      const pkgs = data.packages || data;
+      // Normalizar para array
+      if (typeof pkgs === 'object' && !Array.isArray(pkgs)) {
+        setPackages(Object.entries(pkgs).map(([id, pkg]) => ({ id, ...pkg })));
+      } else {
+        setPackages(pkgs);
+      }
+    } catch (err) {
+      console.error('[Wallet] Erro ao carregar pacotes:', err);
+    }
   };
+
+  const handleBuyCredits = useCallback(async () => {
+    if (!selectedPkg) return;
+    setBuyError('');
+    setBuyLoading(true);
+    try {
+      const result = await apiService.createCheckout(tenantId, selectedPkg);
+      // Getnet retorna URL de pagamento ou payment_id
+      if (result.checkoutUrl || result.redirect_url) {
+        window.location.href = result.checkoutUrl || result.redirect_url;
+      } else {
+        // Pagamento processado inline (ex: cartão já no cofre)
+        setModal(null);
+        setSelectedPkg(null);
+        loadData(); // Recarregar saldo
+      }
+    } catch (err) {
+      console.error('[Wallet] Erro no checkout:', err);
+      setBuyError(err.message || 'Erro ao processar pagamento. Tente novamente.');
+    } finally {
+      setBuyLoading(false);
+    }
+  }, [selectedPkg, tenantId]);
 
   const filteredHistory = history.filter(tx =>
     activeTab === 'ALL' ? true : tx.type === activeTab
@@ -238,42 +275,40 @@ const Wallet = ({ tenantId }) => {
                 <button className="close-btn" onClick={() => setModal(null)}><X size={18} /></button>
               </div>
 
-              <p className="buy-modal-sub">Escolha um pacote ou informe um valor personalizado</p>
+              <p className="buy-modal-sub">Escolha um pacote de créditos para recarga.</p>
 
-              {/* Pacotes rápidos */}
+              {/* Pacotes reais da API Getnet */}
               <div className="credit-presets">
-                {[100, 500, 1000, 5000].map(v => (
+                {packages.length > 0 ? packages.map(pkg => (
                   <button
-                    key={v}
-                    className={`preset-btn ${creditAmount === String(v) ? 'active' : ''}`}
-                    onClick={() => setCreditAmount(String(v))}
+                    key={pkg.id}
+                    className={`preset-btn ${selectedPkg === pkg.id ? 'active' : ''}`}
+                    onClick={() => { setSelectedPkg(pkg.id); setBuyError(''); }}
                   >
-                    <span className="preset-credits">{v.toLocaleString('pt-BR')}</span>
+                    <span className="preset-credits">{(pkg.credits || 0).toLocaleString('pt-BR')}</span>
                     <span className="preset-label">créditos</span>
+                    <span className="preset-price">R$ {((pkg.price_cents || 0) / 100).toFixed(2).replace('.', ',')}</span>
                   </button>
-                ))}
+                )) : (
+                  <div className="loading-state" style={{ gridColumn: '1/-1' }}>Carregando pacotes...</div>
+                )}
               </div>
 
-              <div className="form-group" style={{ marginTop: 20 }}>
-                <label>Valor personalizado</label>
-                <input
-                  type="number"
-                  value={creditAmount}
-                  onChange={e => setCreditAmount(e.target.value)}
-                  placeholder="Ex: 2500"
-                  min="1"
-                />
-              </div>
+              {buyError && (
+                <div className="buy-error">
+                  <AlertCircle size={14} /> {buyError}
+                </div>
+              )}
 
               <div className="buy-info-box">
-                <CheckCircle2 size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <p>Você será redirecionado para o checkout seguro. Os créditos serão aplicados automaticamente após o pagamento.</p>
+                <ShieldCheck size={18} style={{ color: '#00ff88', flexShrink: 0 }} />
+                <p>Pagamento seguro via <strong>Getnet Santander</strong>. Créditos liberados automaticamente após confirmação.</p>
               </div>
 
               <div className="wizard-actions">
-                <button className="btn-secondary" onClick={() => setModal(null)}>Cancelar</button>
-                <button className="btn-primary" onClick={handleBuyCredits} disabled={!creditAmount}>
-                  <CreditCard size={16} /> Ir para Checkout
+                <button className="btn-secondary" onClick={() => { setModal(null); setBuyError(''); setSelectedPkg(null); }}>Cancelar</button>
+                <button className="btn-primary" onClick={handleBuyCredits} disabled={!selectedPkg || buyLoading}>
+                  {buyLoading ? <Loader2 size={16} className="spin" /> : <><CreditCard size={16} /> Comprar</>}
                 </button>
               </div>
             </motion.div>
@@ -433,14 +468,24 @@ const Wallet = ({ tenantId }) => {
         .preset-btn.active { border-color: var(--primary); background: rgba(0,242,255,0.1); }
         .preset-credits { font-size: 1.4rem; font-weight: 900; font-family: 'Outfit', sans-serif; }
         .preset-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .preset-price { font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-top: 4px; }
+
+        .buy-error {
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 14px; margin-top: 16px;
+          background: rgba(255,0,80,0.08); border: 1px solid rgba(255,0,80,0.2);
+          border-radius: 10px; color: #ff4d6a; font-size: 0.82rem;
+        }
 
         .buy-info-box {
           display: flex; align-items: flex-start; gap: 12px;
           padding: 14px 16px; border-radius: 12px;
-          background: rgba(0,242,255,0.05); border: 1px solid rgba(0,242,255,0.1);
+          background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.12);
           margin: 20px 0;
         }
         .buy-info-box p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+        .buy-info-box strong { color: #00ff88; }
+        @keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin .8s linear infinite}
 
         @media (max-width: 900px) {
           .wallet-summary-grid { grid-template-columns: 1fr; }

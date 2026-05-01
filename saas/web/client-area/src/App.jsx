@@ -1,70 +1,61 @@
-import React, { useState, useCallback } from 'react';
-import Sidebar from './components/Sidebar';
+/**
+ * App.jsx — Roteamento principal com React Router
+ *
+ * Domínio: saas.ruptur.cloud
+ * Estrutura:
+ *   /login       → LoginScreen
+ *   /signup      → SignUp (criar conta)
+ *   /onboarding  → Wizard 3 passos (pós sign-up)
+ *   /dashboard   → Dashboard do cliente
+ *   /campanhas   → Gestão de campanhas
+ *   /carteira    → Wallet + comprar créditos
+ *   /inbox       → Mensagens
+ *   /config      → Configurações
+ *   /admin       → Painel administrativo (apenas admins)
+ */
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import DashboardLayout from './components/DashboardLayout';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginScreen from './pages/LoginScreen';
+import SignUp from './pages/SignUp';
+import Onboarding from './pages/Onboarding';
 import DashboardHome from './pages/DashboardHome';
 import Campaigns from './pages/Campaigns';
 import Wallet from './pages/Wallet';
 import Inbox from './pages/Inbox';
-import LoginScreen from './pages/LoginScreen';
 import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
-const ADMIN_ID = 'admin-demo';
-
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [tenantId, setTenantId] = useState(() => {
-    return localStorage.getItem('ruptur_tenant_id') || null;
-  });
-
-  const handleLogin = useCallback((id) => {
-    localStorage.setItem('ruptur_tenant_id', id);
-    setTenantId(id);
-  }, []);
-
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('ruptur_tenant_id');
-    setTenantId(null);
-    setActiveTab('dashboard');
-  }, []);
-
-  // Tela de login se não há tenant identificado
-  if (!tenantId) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
-  // Admin Panel — rota especial
-  if (tenantId === ADMIN_ID) {
-    return <AdminDashboard onLogout={handleLogout} />;
-  }
-
-  // Client Dashboard
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':  return <DashboardHome tenantId={tenantId} />;
-      case 'campaigns':  return <Campaigns tenantId={tenantId} />;
-      case 'wallet':     return <Wallet tenantId={tenantId} />;
-      case 'inbox':      return <Inbox tenantId={tenantId} />;
-      default:           return <DashboardHome tenantId={tenantId} />;
-    }
-  };
-
   return (
-    <div className="app-container">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} tenantId={tenantId} />
-      <main className="main-content">
-        <header className="top-header glass">
-          <div className="header-right">
-            <div className="tenant-pill">
-              <span className="tenant-dot" />
-              <span className="tenant-label">{tenantId}</span>
-            </div>
-          </div>
-        </header>
-        <div className="page-container">
-          {renderContent()}
-        </div>
-      </main>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        {/* Rotas públicas */}
+        <Route path="/login" element={<LoginScreen />} />
+        <Route path="/signup" element={<SignUp />} />
+
+        {/* Rotas autenticadas — Cliente */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<DashboardHome />} />
+            <Route path="/campanhas" element={<Campaigns />} />
+            <Route path="/carteira" element={<Wallet />} />
+            <Route path="/inbox" element={<Inbox />} />
+          </Route>
+        </Route>
+
+        {/* Rotas autenticadas — Admin */}
+        <Route element={<ProtectedRoute requireAdmin />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
+
+        {/* Fallbacks */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
