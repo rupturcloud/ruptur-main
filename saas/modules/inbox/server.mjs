@@ -112,24 +112,101 @@ export async function syncMessagesFromUazapi(instanceToken) {
 
 /**
  * Send a message from inbox
+ * Supports: text, media (image/video/audio), buttons, menus, spintext
  */
 export async function sendMessage(instanceToken, conversationId, messageData) {
-  const { text, mediaUrl, mediaType, replyTo } = messageData;
+  const { 
+    text, 
+    mediaUrl, 
+    mediaType = 'text', 
+    replyTo,
+    to,
+    buttons,
+    menuType,
+    sections,
+    footerText,
+    latitude,
+    longitude,
+    address,
+    contactName,
+    spinTextEnabled = true
+  } = messageData;
    
   try {
-    // Send via UAZAPI
-    const result = await uazapiClient.sendMessage(instanceToken, {
-      number: messageData.to || '', // Número de destino
-      body: text,
-      // UAZAPI pode aceitar outros parâmetros dependendo do tipo de mensagem
-    });
+    let result;
+    let processedText = text;
+   
+    // Process spintext if enabled
+    if (spinTextEnabled && text) {
+      processedText = uazapiClient.processSpinText(text);
+    }
+   
+    // Determine message type and send accordingly
+    if (mediaType !== 'text') {
+      // Media message (image, video, videoplay, audio, myaudio, ptt, ptv, document, sticker)
+      const mediaOptions = {
+        number: to || '',
+        type: mediaType,
+        file: mediaUrl,
+        text: processedText, // Caption
+        replyid: replyTo,
+        viewOnce: mediaType === 'image' || mediaType === 'video' || mediaType === 'ptv'
+      };
+     
+      result = await uazapiClient.sendMedia(instanceToken, mediaOptions);
+     
+    } else if (menuType && (buttons || sections)) {
+      // Interactive menu/button message
+      const menuOptions = {
+        number: to || '',
+        type: menuType, // 'button' or 'list'
+        text: processedText,
+        buttons: buttons, // For button type: [{buttonId, buttonText}]
+        sections: sections, // For list type: [{title, rows: [{title, description, rowId}]}]
+        footerText,
+        replyid: replyTo
+      };
+     
+      result = await uazapiClient.sendMenu(instanceToken, menuOptions);
+     
+    } else if (latitude && longitude) {
+      // Location with button
+      const locationOptions = {
+        number: to || '',
+        latitude,
+        longitude,
+        name: contactName || '',
+        address: address || '',
+        replyid: replyTo
+      };
+     
+      result = await uazapiClient.sendLocationButton(instanceToken, locationOptions);
+     
+    } else if (to && (to.includes('@g.us') || to.includes('@newsletter'))) {
+      // Contact card(s)
+      result = await uazapiClient.sendContact(instanceToken, {
+        number: messageData.from || '',
+        contacts: to // Can be string or array
+      });
+     
+    } else {
+      // Regular text message (supports placeholders and spintext)
+      const textOptions = {
+        number: to || '',
+        text: processedText,
+        replyid: replyTo,
+        linkPreview: true
+      };
+     
+      result = await uazapiClient.sendText(instanceToken, textOptions);
+    }
    
     const message = {
-      id: result.id || crypto.randomUUID(),
+      id: result.id || result.messageId || crypto.randomUUID(),
       conversationId,
       instanceToken,
       direction: 'outbound',
-      text,
+      text: processedText,
       mediaUrl,
       mediaType,
       replyTo,
@@ -137,7 +214,8 @@ export async function sendMessage(instanceToken, conversationId, messageData) {
       timestamp: new Date().toISOString(),
       sentAt: new Date().toISOString(),
       deliveredAt: null,
-      readAt: null
+      readAt: null,
+      uazapiId: result.id || result.messageId
     };
    
     // Add to messages
@@ -153,7 +231,7 @@ export async function sendMessage(instanceToken, conversationId, messageData) {
       conv.lastMessageAt = message.timestamp;
     }
    
-    console.log(`[inbox:send] Message sent successfully: ${message.id}`);
+    console.log(`[inbox:send] Message sent successfully via UAZAPI: ${message.id} (type: ${mediaType})`);
     return message;
   } catch (error) {
     console.error(`[inbox:send] Failed to send message: ${error.message}`);
@@ -164,7 +242,7 @@ export async function sendMessage(instanceToken, conversationId, messageData) {
       conversationId,
       instanceToken,
       direction: 'outbound',
-      text,
+      text: processedText || text,
       mediaUrl,
       mediaType,
       replyTo,
@@ -172,7 +250,8 @@ export async function sendMessage(instanceToken, conversationId, messageData) {
       timestamp: new Date().toISOString(),
       sentAt: null,
       deliveredAt: null,
-      readAt: null
+      readAt: null,
+      error: error.message
     };
    
     // Add to messages

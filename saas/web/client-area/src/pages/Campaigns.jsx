@@ -11,7 +11,13 @@ const Campaigns = ({ tenantId }) => {
     name: '',
     message: '',
     list: 'leads',
-    interval: 15
+    interval: 15,
+    mediaType: 'text', // 'text', 'image', 'video', 'videoplay', 'audio', 'myaudio', 'ptt', 'ptv', 'document', 'sticker'
+    mediaUrl: '',
+    enableSpinText: true,
+    buttonType: '', // '', 'button', 'list'
+    buttons: [{ buttonId: '', buttonText: '' }],
+    sections: [{ title: '', rows: [{ title: '', description: '', rowId: '' }] }]
   });
   const [csvContacts, setCsvContacts] = useState([]);
   const fileInputRef = useRef(null);
@@ -97,13 +103,147 @@ const Campaigns = ({ tenantId }) => {
                 <div className="form-group">
                   <label>Mensagem Principal</label>
                   <textarea 
-                    placeholder="Use {{name}} para personalizar..." 
+                    placeholder="Use {{name}} para personalizar... Use {opção1|opção2} para spintext" 
                     rows="5"
                     value={newCampaign.message}
                     onChange={e => setNewCampaign({...newCampaign, message: e.target.value})}
                   ></textarea>
-                  <span className="hint">Dica: Use variações para evitar bloqueios.</span>
+                  <span className="hint">Dica: Use variações {opção1|opção2|opção3} para evitar bloqueios por spam. Suporta {{name}}, {{phone}}, {{email}}.</span>
                 </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Tipo de Mensagem</label>
+                    <select 
+                      value={newCampaign.mediaType}
+                      onChange={e => setNewCampaign({...newCampaign, mediaType: e.target.value})}
+                    >
+                      <option value="text">Texto Simples</option>
+                      <option value="image">Imagem (JPG)</option>
+                      <option value="video">Vídeo (MP4)</option>
+                      <option value="videoplay">Vídeo com Autoplay</option>
+                      <option value="audio">Áudio (MP3/OGG)</option>
+                      <option value="myaudio">Mensagem de Voz (WhatsApp)</option>
+                      <option value="ptt">Vídeo Push-to-Talk</option>
+                      <option value="document">Documento (PDF, DOCX, XLSX)</option>
+                      <option value="sticker">Figurinha/Sticker</option>
+                    </select>
+                  </div>
+
+                  {newCampaign.mediaType !== 'text' && (
+                    <div className="form-group">
+                      <label>URL da Mídia</label>
+                      <input 
+                        type="text" 
+                        placeholder="https://exemplo.com/arquivo.jpg"
+                        value={newCampaign.mediaUrl}
+                        onChange={e => setNewCampaign({...newCampaign, mediaUrl: e.target.value})}
+                      />
+                      <span className="hint">URL pública ou base64 da mídia</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox"
+                      checked={newCampaign.enableSpinText}
+                      onChange={e => setNewCampaign({...newCampaign, enableSpinText: e.target.checked})}
+                    />
+                    <span>Ativar SpinText (rotação de variações)</span>
+                  </label>
+                  <span className="hint">Use {opção1|opção2} na mensagem para variações automáticas</span>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Tipo de Botão</label>
+                    <select 
+                      value={newCampaign.buttonType}
+                      onChange={e => setNewCampaign({...newCampaign, buttonType: e.target.value})}
+                    >
+                      <option value="">Sem Botão</option>
+                      <option value="button">Botões de Resposta Rápida</option>
+                      <option value="list">Lista de Opções</option>
+                    </select>
+                  </div>
+                </div>
+
+                {newCampaign.buttonType === 'button' && (
+                  <div className="form-group">
+                    <label>Botões (máximo 3)</label>
+                    {newCampaign.buttons.map((btn, idx) => (
+                      <div key={idx} className="button-config">
+                        <input 
+                          type="text" 
+                          placeholder="ID do botão"
+                          value={btn.buttonId}
+                          onChange={e => {
+                            const newBtns = [...newCampaign.buttons];
+                            newBtns[idx] = {...btn, buttonId: e.target.value};
+                            setNewCampaign({...newCampaign, buttons: newBtns});
+                          }}
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Texto do botão"
+                          value={btn.buttonText}
+                          onChange={e => {
+                            const newBtns = [...newCampaign.buttons];
+                            newBtns[idx] = {...btn, buttonText: e.target.value};
+                            setNewCampaign({...newCampaign, buttons: newBtns});
+                          }}
+                        />
+                        {idx < 2 && (
+                          <button type="button" onClick={() => {
+                            const newBtns = [...newCampaign.buttons, { buttonId: '', buttonText: '' }];
+                            setNewCampaign({...newCampaign, buttons: newBtns});
+                          }>+</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {newCampaign.buttonType === 'list' && (
+                  <div className="form-group">
+                    <label>Seções da Lista</label>
+                    {newCampaign.sections.map((section, sIdx) => (
+                      <div key={sIdx} className="section-config">
+                        <input 
+                          type="text" 
+                          placeholder="Título da seção"
+                          value={section.title}
+                          onChange={e => {
+                            const newSects = [...newCampaign.sections];
+                            newSects[sIdx] = {...section, title: e.target.value};
+                            setNewCampaign({...newCampaign, sections: newSects});
+                          }}
+                        />
+                        {section.rows.map((row, rIdx) => (
+                          <div key={rIdx} className="row-config">
+                            <input placeholder="ID da linha" value={row.rowId} onChange={e => {
+                              const newSects = [...newCampaign.sections];
+                              newSects[sIdx].rows[rIdx] = {...row, rowId: e.target.value};
+                              setNewCampaign({...newCampaign, sections: newSects});
+                            }} />
+                            <input placeholder="Título" value={row.title} onChange={e => {
+                              const newSects = [...newCampaign.sections];
+                              newSects[sIdx].rows[rIdx] = {...row, title: e.target.value};
+                              setNewCampaign({...newCampaign, sections: newSects});
+                            }} />
+                            <input placeholder="Descrição" value={row.description} onChange={e => {
+                              const newSects = [...newCampaign.sections];
+                              newSects[sIdx].rows[rIdx] = {...row, description: e.target.value};
+                              setNewCampaign({...newCampaign, sections: newSects});
+                            }} />
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                  <div className="form-row">
                    <div className="form-group">

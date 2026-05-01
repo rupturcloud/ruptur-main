@@ -261,12 +261,16 @@ export class CampaignManager {
     // Select sender instance (round-robin)
     const senderInstance = senderInstances[campaign.metrics.sentCount % senderInstances.length];
 
-    // Personalize message
-    const personalizedMessage = this.personalizeMessage(
-      campaign.content.message,
+    // Process message with spintext and variables
+    const messageText = this.personalizeMessage(
+      campaign.content.message || campaign.messageText,
       recipient,
-      campaign.content.variables
+      campaign.content.variables || campaign.variables || []
     );
+
+    // Determine media type for this recipient
+    const mediaType = recipient.mediaType || campaign.content.mediaType || 'text';
+    const mediaUrl = recipient.mediaUrl || (campaign.content.media && campaign.content.media[0]);
 
     // 1. Verify and deduct credit BEFORE sending
     try {
@@ -279,36 +283,76 @@ export class CampaignManager {
       throw new Error(`Credit deduction failed: ${walletError.message}`);
     }
 
-    // 2. Send message ONLY if credit was successfully deducted
-    const result = await inboxManager.sendMessage(
-      senderInstance.id,
-      campaign.tenantId,
-      recipient.phone,
-      personalizedMessage,
-      campaign.content.media.length > 0 ? 'media' : 'text'
-    );
+    // 2. Send message based on type
+    let result;
+    try {
+      if (mediaType !== 'text') {
+        // Media message (image, video, videoplay, audio, myaudio, ptt, pttv, document, sticker)
+        result = await uazapiClient.sendMedia(senderInstance.token || senderInstance.id, {
+          number: recipient.phone,
+          type: mediaType,
+          file: mediaUrl,
+          text: messageText, // Caption
+          viewOnce: mediaType === 'image' || mediaType === 'video' || mediaType === 'ptv',
+          replyid: recipient.replyTo
+        });
+      } else if (recipient.menuType && (recipient.buttons || recipient.sections)) {
+        // Interactive menu/button message
+        result = await uazapiClient.sendMenu(senderInstance.token || senderInstance.id, {
+          number: recipient.phone,
+          type: recipient.menuType, // 'button' or 'list'
+          text: messageText,
+          buttons: recipient.buttons, // For button type: [{buttonId, buttonText}]
+          sections: recipient.sections, // For list type: [{title, rows: [{title, description, rowId}]}]
+          footerText: recipient.footerText,
+          replyid: recipient.replyTo
+        });
+      } else if (recipient.latitude && recipient.longitude) {
+        // Location with button
+        result = await uazapiClient.sendLocationButton(senderInstance.token || senderInstance.id, {
+          number: recipient.phone,
+          latitude: recipient.latitude,
+          longitude: recipient.longitude,
+          name: recipient.locationName || '',
+          address: recipient.address || '',
+          replyid: recipient.replyTo
+        });
+      } else {
+        // Regular text message (supports placeholders and spintext)
+        result = await uazapiClient.sendText(senderInstance.token || senderInstance.id, {
+          number: recipient.phone,
+          text: messageText,
+          replyid: recipient.replyTo,
+          linkPreview: true
+        });
+      }
 
-    // Update metrics
-    campaign.metrics.sentCount++;
-    await this.updateCampaignMetrics(campaign.id);
+      // Update metrics
+      campaign.metrics.sentCount++;
+      await this.updateCampaignMetrics(campaign.id);
 
-    // Store sent message record
-    await bubbleClient.createRecord('CampaignMessage', {
-      campaignId: campaign.id,
-      tenantId: campaign.tenantId,
-      recipientPhone: recipient.phone,
-      senderInstanceId: senderInstance.id,
-      message: personalizedMessage,
-      messageId: result.messageId,
-      sentAt: new Date(),
-      status: 'sent'
-    });
+      // Store sent message record
+      await bubbleClient.createRecord('CampaignMessage', {
+        campaignId: campaign.id,
+        tenantId: campaign.tenantId,
+        recipientPhone: recipient.phone,
+        senderInstanceId: senderInstance.id,
+        message: messageText,
+        messageId: result.id || result.messageId,
+        sentAt: new Date(),
+        status: 'sent',
+        mediaType: mediaType
+      });
 
-    console.log(`[Campaigns] Message sent to ${recipient.phone} via ${senderInstance.id}`);
+      console.log(`[Campaigns] Message sent to ${recipient.phone} via ${senderInstance.id} (type: ${mediaType})`);
+    } catch (sendError) {
+      console.error(`[Campaigns] Failed to send message:`, sendError.message);
+      throw sendError; // Re-throw for retry logic
+    }
   }
 
   /**
-   * Personalize message with variables
+   * Personalize message with variables and spintext
    */
   personalizeMessage(template, recipient, variables) {
     let message = template;
@@ -323,6 +367,18 @@ export class CampaignManager {
       const value = recipient.variables?.[variable.name] || variable.defaultValue || '';
       message = message.replace(new RegExp(`\\{${variable.name}\\}`, 'g'), value);
     }
+
+    // Process spintext syntax: {option1|option2|option3}
+    const spinRegex = /\{([^{}]*)\}/g;
+    message = message.replace(spinRegex, (match, options) => {
+      if (!options) return match;
+      
+      const choices = options.split('|').map(s => s.trim()).filter(Boolean);
+      if (choices.length === 0) return match;
+      
+      const randomIndex = Math.floor(Math.random() * choices.length);
+      return choices[randomIndex];
+    });
 
     return message;
   }
