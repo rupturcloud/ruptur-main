@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 // Import new modules
 import { inboxManager } from '../inbox/index.js';
 import { campaignManager } from '../campaigns/index.js';
-import { walletManager } from '../wallet/index.js';
+import { getWalletManager } from '../wallet/index.js';
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);

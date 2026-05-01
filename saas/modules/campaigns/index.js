@@ -8,7 +8,7 @@
 import UaZAPIClient from '../../integrations/uazapi/client.js';
 import BubbleClient from '../../integrations/bubble/client.js';
 import { inboxManager } from '../inbox/index.js';
-import { walletManager } from '../wallet/index.js';
+import { getWalletManager } from '../wallet/index.js';
 
 const uazapiClient = new UaZAPIClient();
 const bubbleClient = new BubbleClient();
