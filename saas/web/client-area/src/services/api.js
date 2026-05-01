@@ -39,7 +39,16 @@ export const apiService = {
     const response = await fetch(`${API_BASE_URL}/api/campaigns`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-tenant-id': tenantId },
-      body: JSON.stringify({ ...campaignData, tenantId })
+      body: JSON.stringify({
+        ...campaignData,
+        tenantId,
+        enableSpinText: campaignData.enableSpinText !== false,
+        mediaType: campaignData.mediaType || 'text',
+        mediaUrl: campaignData.mediaUrl || '',
+        buttonType: campaignData.buttonType || '',
+        buttons: campaignData.buttons || [],
+        sections: campaignData.sections || []
+      })
     });
     if (!response.ok) throw new Error('Falha ao criar campanha');
     return await response.json();

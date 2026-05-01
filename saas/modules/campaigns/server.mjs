@@ -316,10 +316,11 @@ export async function listMessageTemplates(options = {}) {
 }
 
 /**
- * Compose message with variables
+ * Compose message with variables and spintext support
  */
-export function composeMessage(templateText, variables = {}, recipientData = {}) {
+export function composeMessage(templateText, variables = {}, recipientData = {}, options = {}) {
   let composed = templateText;
+  const { enableSpinText = true } = options;
   
   // Replace template variables
   for (const [key, value] of Object.entries(variables)) {
@@ -329,6 +330,11 @@ export function composeMessage(templateText, variables = {}, recipientData = {})
   // Replace recipient data variables
   for (const [key, value] of Object.entries(recipientData)) {
     composed = composed.replace(new RegExp(`{{recipient.${key}}}`, 'g'), value || '');
+  }
+  
+  // Process spintext syntax: {option1|option2|option3}
+  if (enableSpinText) {
+    composed = uazapiClient.processSpinText(composed);
   }
   
   return composed;
@@ -436,19 +442,70 @@ async function processQueue() {
         campaignId: campaign.id
       });
 
-       // 3. Send via UAZAPI
+       // 3. Send via UAZAPI (supports mixed media, spintext, buttons)
        try {
-         const result = await uazapiClient.sendMessage(item.instanceToken, {
-           number: item.recipient.number,
-           body: composedMessage // Usa a mensagem já composta com variáveis
-         });
+         let result;
+         const recipient = item.recipient;
+         const mediaType = recipient.mediaType || item.campaignMediaType || 'text';
+         const mediaUrl = recipient.mediaUrl || item.campaignMediaUrl;
+         
+         // Process message with spintext and variables
+         const processedMessage = composeMessage(
+           item.campaign.messageText || item.campaign.message,
+           item.campaign.variables || {},
+           recipient,
+           { enableSpinText: item.campaign.enableSpinText !== false }
+         );
+         
+         // Determine message type and send accordingly
+         if (mediaType !== 'text') {
+           // Media message (image, video, videoplay, audio, myaudio, ptt, ptv, document, sticker)
+           result = await uazapiClient.sendMedia(item.instanceToken, {
+             number: recipient.number,
+             type: mediaType,
+             file: mediaUrl,
+             text: processedMessage, // Caption
+             viewOnce: mediaType === 'image' || mediaType === 'video' || mediaType === 'ptv',
+             replyid: recipient.replyTo
+           });
+           
+         } else if (recipient.menuType && (recipient.buttons || recipient.sections)) {
+           // Interactive menu/button message
+           result = await uazapiClient.sendMenu(item.instanceToken, {
+             number: recipient.number,
+             type: recipient.menuType, // 'button' or 'list'
+             text: processedMessage,
+             buttons: recipient.buttons, // For button type: [{buttonId, buttonText}]
+             sections: recipient.sections, // For list type: [{title, rows: [{title, description, rowId}]}]
+             footerText: recipient.footerText
+           });
+           
+         } else if (recipient.latitude && recipient.longitude) {
+           // Location with button
+           result = await uazapiClient.sendLocationButton(item.instanceToken, {
+             number: recipient.number,
+             latitude: recipient.latitude,
+             longitude: recipient.longitude,
+             name: recipient.locationName || '',
+             address: recipient.address || ''
+           });
+           
+         } else {
+           // Regular text message (supports placeholders and spintext)
+           result = await uazapiClient.sendText(item.instanceToken, {
+             number: recipient.number,
+             text: processedMessage,
+             replyid: recipient.replyTo,
+             linkPreview: true
+           });
+         }
          
          // Mark as sent
          item.recipient.sentAt = now.toISOString();
          item.recipient.status = 'sent';
-         item.recipient.uaZapiId = result.id; // Salva ID da mensagem no UAZAPI para rastreamento
+         item.recipient.uazapiId = result.id || result.messageId; // Save UAZAPI message ID
          
-         console.log(`[campaigns:send] Message sent via UAZAPI: ${result.id}`);
+         console.log(`[campaigns:send] Message sent via UAZAPI: ${item.recipient.uazapiId} (type: ${mediaType})`);
        } catch (error) {
          console.error(`[campaigns:send] Failed to send via UAZAPI: ${error.message}`);
          item.recipient.status = 'failed';
