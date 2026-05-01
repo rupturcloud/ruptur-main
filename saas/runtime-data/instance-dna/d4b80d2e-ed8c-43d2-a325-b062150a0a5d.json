@@ -1,6 +1,27 @@
 {
   "history": [
     {
+      "timestamp": "2026-05-01T18:53:25.501Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-01T18:43:27.355Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-01T18:33:25.834Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "disconnected",
+      "sentToday": 0
+    },
+    {
       "timestamp": "2026-05-01T18:23:26.613Z",
       "type": "pulse",
       "heatScore": 70,
@@ -436,5 +457,5 @@
     }
   ],
   "firstSeenAt": "2026-04-30T15:42:27.966Z",
-  "lastUpdatedAt": "2026-05-01T18:23:26.613Z"
+  "lastUpdatedAt": "2026-05-01T18:53:25.501Z"
 }
