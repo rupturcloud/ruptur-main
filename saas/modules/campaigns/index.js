@@ -355,19 +355,81 @@ export class CampaignManager {
     }
   }
 
-  /**
-   * Get contacts from list
-   */
-  async getContactsFromList(listId) {
-    try {
-      // This would integrate with Bubble or your contact management system
-      const contacts = await bubbleClient.getRecords('Contact', { listId });
-      return contacts;
-    } catch (error) {
-      console.error(`[Campaigns] Error getting contacts from list ${listId}:`, error.message);
-      return [];
-    }
-  }
+   /**
+    * Get contacts from list
+    */
+   async getContactsFromList(listId) {
+     try {
+       // This would integrate with Bubble or your contact management system
+       const contacts = await bubbleClient.getRecords('Contact', { listId });
+       return contacts;
+     } catch (error) {
+       console.error(`[Campaigns] Error getting contacts from list ${listId}:`, error.message);
+       return [];
+     }
+   }
+
+   /**
+    * Process CSV file for contacts
+    */
+   async processCsvFile(fileBuffer) {
+     try {
+       // Convert buffer to string
+       const csvContent = fileBuffer.toString('utf8');
+       
+       // Parse CSV (simple implementation - can be enhanced with proper CSV parser)
+       const lines = csvContent.trim().split('\n');
+       if (lines.length === 0) return [];
+       
+       // Assume first line is header
+       const headers = lines[0].split(',').map(h => h.trim());
+       const contacts = [];
+       
+       // Process each line
+       for (let i = 1; i < lines.length; i++) {
+         const values = lines[i].split(',').map(v => v.trim());
+         const contact = {};
+         
+         // Map values to headers
+         headers.forEach((header, index) => {
+           contact[header] = values[index] || '';
+         });
+         
+         // Standardize phone field (support different column names)
+         const phoneFields = ['phone', 'number', 'telefone', 'celular', 'whatsapp'];
+         let phoneNumber = '';
+         
+         for (const field of phoneFields) {
+           if (contact[field]) {
+             phoneNumber = contact[field];
+             break;
+           }
+         }
+         
+         if (phoneNumber && this.isValidPhoneNumber(phoneNumber)) {
+           contacts.push({
+             phone: phoneNumber,
+             name: contact.name || contact.Nome || contact.nome || phoneNumber,
+             email: contact.email || contact.Email || contact.email || '',
+             // Preserve any additional fields as variables
+             ...Object.keys(contact)
+               .filter(key => !phoneFields.includes(key.toLowerCase()) && 
+                           !['name', 'email'].includes(key.toLowerCase()))
+               .reduce((obj, key) => {
+                 obj[key] = contact[key];
+                 return obj;
+               }, {})
+           });
+         }
+       }
+       
+       console.log(`[Campaigns] Processed CSV: ${contacts.length} valid contacts found`);
+       return contacts;
+     } catch (error) {
+       console.error(`[Campaigns] Error processing CSV file:`, error.message);
+       return [];
+     }
+   }
 
   /**
    * Update campaign metrics

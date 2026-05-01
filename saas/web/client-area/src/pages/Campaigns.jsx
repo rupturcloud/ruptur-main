@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Plus, Users, MessageSquare, Clock, Filter, Trash2, Play, Pause } from 'lucide-react';
+import { Send, Plus, Users, MessageSquare, Clock, Filter, Trash2, Play, Pause, Upload, Layout, List } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,19 +13,36 @@ const Campaigns = ({ tenantId }) => {
     list: 'leads',
     interval: 15
   });
+  const [csvContacts, setCsvContacts] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchCampaigns(tenantId);
   }, [tenantId, fetchCampaigns]);
 
-  const handleCreate = async () => {
-    if (!newCampaign.name || !newCampaign.message) return alert("Preencha os campos obrigatórios");
-    
-    await apiService.createCampaign(tenantId, newCampaign);
-    setShowWizard(false);
-    fetchCampaigns(tenantId);
-    setNewCampaign({ name: '', message: '', list: 'leads', interval: 15 });
-  };
+   const handleCreate = async () => {
+     if (!newCampaign.name || !newCampaign.message) return alert("Preencha os campos obrigatórios");
+     
+     // Prepare campaign data with CSV contacts if applicable
+     const campaignData = {
+       ...newCampaign,
+       list: newCampaign.list === 'custom' && csvContacts.length > 0 ? 'custom' : newCampaign.list,
+       customNumbers: newCampaign.list === 'custom' ? csvContacts.map(c => c.phone) : []
+     };
+
+     try {
+       await apiService.createCampaign(tenantId, campaignData);
+       setShowWizard(false);
+       fetchCampaigns(tenantId);
+       setNewCampaign({ name: '', message: '', list: 'leads', interval: 15 });
+       setCsvContacts([]);
+       if (fileInputRef.current) {
+         fileInputRef.current.value = '';
+       }
+     } catch (err) {
+       alert(err.message);
+     }
+   };
 
   const handleLaunch = async (campaignId) => {
     try {
@@ -88,30 +105,55 @@ const Campaigns = ({ tenantId }) => {
                   <span className="hint">Dica: Use variações para evitar bloqueios.</span>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Público Alvo</label>
-                    <select 
-                      value={newCampaign.list}
-                      onChange={e => setNewCampaign({...newCampaign, list: e.target.value})}
-                    >
-                      <option value="leads">Leads Orgânicos (1.2k)</option>
-                      <option value="clients">Clientes Base (450)</option>
-                      <option value="custom">Upload Manual (.csv)</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Intervalo entre envios</label>
-                    <div className="input-with-unit">
-                      <input 
-                        type="number" 
-                        value={newCampaign.interval}
-                        onChange={e => setNewCampaign({...newCampaign, interval: parseInt(e.target.value)})}
-                      />
-                      <span>seg</span>
-                    </div>
-                  </div>
-                </div>
+                 <div className="form-row">
+                   <div className="form-group">
+                     <label>Público Alvo</label>
+                     <select 
+                       value={newCampaign.list}
+                       onChange={e => setNewCampaign({...newCampaign, list: e.target.value})}
+                     >
+                       <option value="leads">Leads Orgânicos (1.2k)</option>
+                       <option value="clients">Clientes Base (450)</option>
+                       <option value="custom">Upload Manual (.csv)</option>
+                     </select>
+                   </div>
+                   {newCampaign.list === 'custom' && (
+                     <div className="form-group">
+                       <label>Upload Contatos CSV</label>
+                       <div className="upload-area glass" onClick={() => fileInputRef.current?.click()}>
+                         <Upload size={24} />
+                         <p>Arraste e solte ou clique para selecionar</p>
+                         <p className="text-muted">Formato CSV com colunas: phone, name, email</p>
+                         <input
+                           type="file"
+                           accept=".csv"
+                           ref={fileInputRef}
+                           onChange={handleFileUpload}
+                           style={{ display: 'none' }}
+                         />
+                       </div>
+                       {csvContacts && (
+                         <div className="upload-results">
+                           <p>{csvContacts.length} contatos carregados do CSV</p>
+                           <button className="btn-secondary" onClear={handleClearCsv}>
+                             Limpar
+                           </button>
+                         </div>
+                       )}
+                     </div>
+                   )}
+                   <div className="form-group">
+                     <label>Intervalo entre envios</label>
+                     <div className="input-with-unit">
+                       <input 
+                         type="number" 
+                         value={newCampaign.interval}
+                         onChange={e => setNewCampaign({...newCampaign, interval: parseInt(e.target.value)})}
+                       />
+                       <span>seg</span>
+                     </div>
+                   </div>
+                 </div>
               </div>
 
               <div className="wizard-actions">

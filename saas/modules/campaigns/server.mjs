@@ -8,6 +8,7 @@
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { walletManager } from '../wallet/index.js';
+import UaZAPIClient from '../../integrations/uazapi/client.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,6 +39,9 @@ const state = {
   },
   scheduler: null
 };
+
+// UAZAPI Client
+const uazapiClient = new UaZAPIClient();
 
 /**
  * Create a new campaign
@@ -432,14 +436,52 @@ async function processQueue() {
         campaignId: campaign.id
       });
 
-      // 3. TODO: Integrate with UAZAPI to send message
-      // Actually, let's implement the send logic here if we have access to UAZAPI config
-      // For now, let's simulate and log
-      console.log(`[campaigns:send] Sending to ${item.recipient.number} via ${item.instanceToken} for Tenant ${campaign.tenantId}`);
-      
-      // Mark as sent
-      item.recipient.sentAt = now.toISOString();
-      item.recipient.status = 'sent';
+       // 3. Send via UAZAPI
+       try {
+         const result = await uazapiClient.sendMessage(item.instanceToken, {
+           number: item.recipient.number,
+           body: composedMessage // Usa a mensagem já composta com variáveis
+         });
+         
+         // Mark as sent
+         item.recipient.sentAt = now.toISOString();
+         item.recipient.status = 'sent';
+         item.recipient.uaZapiId = result.id; // Salva ID da mensagem no UAZAPI para rastreamento
+         
+         console.log(`[campaigns:send] Message sent via UAZAPI: ${result.id}`);
+       } catch (error) {
+         console.error(`[campaigns:send] Failed to send via UAZAPI: ${error.message}`);
+         item.recipient.status = 'failed';
+         item.recipient.error = error.message;
+         
+         // Ainda conta como tentativa para o limite de retentativas
+         item.attempts++;
+         
+         if (item.attempts >= 3) {
+           // Desiste após 3 tentativas
+           item.recipient.status = 'failed';
+           item.recipient.error = error.message;
+           
+           const campaign = state.campaigns.get(item.campaignId);
+           if (campaign) {
+             campaign.progress.failed++;
+             campaign.progress.remaining--;
+           }
+           
+           state.stats.totalFailed++;
+           
+           // Remove da fila
+           const index = state.queue.indexOf(item);
+           if (index > -1) {
+             state.queue.splice(index, 1);
+           }
+           
+           continue; // Vai para o próximo item da fila
+         }
+         
+         // Se ainda tem tentativas, continua no loop para tentar novamente
+         continue;
+       }
       
       // Update campaign progress
       campaign.progress.sent++;
