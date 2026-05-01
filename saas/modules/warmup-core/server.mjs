@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 // Import new modules
 import { inboxManager } from '../inbox/index.js';
 import { campaignManager } from '../campaigns/index.js';
+import { walletManager } from '../wallet/index.js';
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -271,7 +272,7 @@ function getDefaultSettings() {
     supabaseUrl: process.env.VITE_SUPABASE_URL || "https://axrwlboyowoskdxeogba.supabase.co",
     supabaseKey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4cndsYm95b3dvc2tkeGVvZ2JhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzkzNTYsImV4cCI6MjA4OTUxNTM1Nn0.jrVy7OzLgidDYlK2rFuF1NX2SRP0EVmQycx3d_s7vV8",
     defaultDelay: 3000,
-    warmupMinIntervalMs: 15 * 60 * 1000,
+    warmupMinIntervalMs: 2 * 60 * 1000,
     warmupMaxDailyPerInstance: 250,
     warmupCooldownRounds: 1,
     warmupReadChat: false,
@@ -630,9 +631,9 @@ function getCooldownRemaining(instanceState, round) {
 function calculateHealthScore(params) {
   let score = 100;
 
-  if (params.instance.status !== "connected") score -= 50;
+  if (params.instance.status !== "connected") score -= 30; // Reduzido de 50 para 30 para permitir estado 'waiting' em vez de 'blocked'
   if (params.instance.isBusiness === false) score -= 10;
-  if (params.state.proxyStatus === "error") score -= 30;
+  if (params.state.proxyStatus === "error") score -= 20; // Reduzido de 30 para 20
 
   const usageRatio = params.state.sentToday / params.settings.warmupMaxDailyPerInstance;
   if (usageRatio >= 0.9) score -= 25;
@@ -702,6 +703,8 @@ function normalizeInstanceState({ currentState, instance, round, now, resolvedNu
             : "unknown",
     updatedAt: now.toISOString(),
     nextEligibleAt: undefined,
+    tenantId: instanceData?.bubble_user_id || instanceData?.tenantId || base.tenantId, // Multi-tenant: Vincula a instância ao cliente
+    lastReconnectAttemptAt: base.lastReconnectAttemptAt,
   };
 
   // Limpeza da janela móvel de 24h
@@ -1110,6 +1113,27 @@ async function setInstancePresence(token, presence) {
     },
     body: JSON.stringify({ presence }),
   }, "Erro ao alterar presença da instância");
+}
+
+/**
+ * Watchdog: Tenta reconectar uma instância que caiu
+ */
+async function connectInstance(token) {
+  try {
+    const result = await fetchJson(`${state.config.settings.serverUrl}/instance/connect`, {
+      method: "POST",
+      headers: {
+        token,
+        admintoken: state.config.settings.adminToken,
+      },
+    }, "Erro ao tentar reconectar instância");
+    console.log(`[warmup:connect] Sucesso ao solicitar reconexão para ${token}`);
+    return result;
+  } catch (err) {
+    // Se falhar, logamos o erro detalhado
+    console.error(`[warmup:watchdog] FALHA na reconexão para ${token}:`, err.message);
+    return null;
+  }
 }
 
 function buildPersistentPool(instances, tickStartedAt) {
@@ -1553,8 +1577,40 @@ async function executePoolEntry(entry, instancesByToken, round) {
     return { sentCount: 0 };
   }
 
-
-
+  // Integração com Wallet: Verifica e debita créditos antes de enviar
+  const tenantId = senderState.tenantId;
+  if (tenantId) {
+    try {
+      const hasCredits = await walletManager.hasEnoughCredits(tenantId, 1);
+      if (!hasCredits) {
+        addRuntimeLog({
+          type: "wallet",
+          status: "error",
+          message: `Bloqueio: Tenant ${tenantId} sem saldo para warmup.`,
+          instanceName: sender.name,
+          originToken: entry.senderToken
+        });
+        entry.status = "error";
+        entry.error = "Saldo insuficiente";
+        entry.updatedAt = now.toISOString();
+        return { sentCount: 0 };
+      }
+      
+      // Debita o crédito
+      await walletManager.deductCredit(tenantId, 1, { 
+        type: 'warmup', 
+        instanceToken: entry.senderToken,
+        trackId: entry.trackId,
+        routineId: entry.routineId
+      });
+    } catch (walletErr) {
+      console.error(`[warmup:wallet] Erve ao processar débito para ${tenantId}:`, walletErr.message);
+      entry.status = "error";
+      entry.error = `Erro Wallet: ${walletErr.message}`;
+      entry.updatedAt = now.toISOString();
+      return { sentCount: 0 };
+    }
+  }
   try {
     const receiverNumber = entry.activityKind === "group" ? entry.receiverNumber : state.instanceStates[entry.receiverToken]?.resolvedNumber;
 
@@ -1815,6 +1871,27 @@ async function tick(reason = "interval") {
           }
         })
       );
+
+      // --- WATCHDOG: Reconexão Proativa ---
+      const nowTs = tickStartedAt.getTime();
+      const disconnected = instances.filter(i => i.status !== 'connected');
+      
+      for (const instance of disconnected) {
+        const istate = state.instanceStates[instance.token];
+        if (!istate) continue;
+
+        // Tenta reconectar se não tentou nos últimos 10 minutos
+        const lastAttempt = istate.lastReconnectAttemptAt ? new Date(istate.lastReconnectAttemptAt).getTime() : 0;
+        if (nowTs - lastAttempt > 10 * 60 * 1000) {
+          console.log(`[Watchdog] Instância ${instance.name || instance.token} desconectada. Tentando reconexão...`);
+          istate.lastReconnectAttemptAt = tickStartedAt.toISOString();
+          
+          connectInstance(instance.token).then(res => {
+            if (res) console.log(`[Watchdog] Sucesso ao solicitar reconexão para ${instance.name}`);
+          }).catch(() => {});
+        }
+      }
+      // -----------------------------------
 
       // DNA & Kill Switch (Registro e Monitoramento)
       instances.forEach(instance => {
@@ -2626,33 +2703,74 @@ function resolveManualActor(payload = {}) {
 }
 
 // Inbox Route Handler
+// Wallet Route Handler
+async function handleWalletRoute(req, res, url) {
+  try {
+    const tenantId = url.searchParams.get('tenantId') || req.headers['x-tenant-id'];
+    if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
+
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // GET /api/wallet/balance
+    if (pathParts[2] === 'balance' && req.method === 'GET') {
+      const balance = await walletManager.getBalance(tenantId);
+      return createResponse(res, 200, { balance, tenantId });
+    }
+    
+    // GET /api/wallet/transactions
+    if (pathParts[2] === 'transactions' && req.method === 'GET') {
+      const transactions = await walletManager.getTransactions(tenantId);
+      return createResponse(res, 200, { transactions, tenantId });
+    }
+
+    // POST /api/wallet/add-credits (Admin or Internal)
+    if (pathParts[2] === 'add-credits' && req.method === 'POST') {
+      const body = await parseBody(req);
+      const amount = Number(body.amount);
+      if (isNaN(amount)) return createResponse(res, 400, { error: 'Invalid amount' });
+      
+      const newBalance = await walletManager.addCredits(tenantId, amount, body.description);
+      return createResponse(res, 200, { balance: newBalance, tenantId });
+    }
+
+    createResponse(res, 404, { error: 'Wallet endpoint not found' });
+  } catch (error) {
+    console.error('[Wallet API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
 async function handleInboxRoute(req, res, url) {
   try {
+    const tenantId = url.searchParams.get('tenantId') || req.headers['x-tenant-id'];
     const pathParts = url.pathname.split('/').filter(Boolean);
     
     // GET /api/inbox/summary
     if (pathParts[2] === 'summary' && req.method === 'GET') {
-      const summary = await inboxManager.getInboxSummary();
+      if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
+      const summary = await inboxManager.getInboxSummary(tenantId);
       return createResponse(res, 200, summary);
     }
     
     // POST /api/inbox/initialize/:instanceId
     if (pathParts[2] === 'initialize' && req.method === 'POST') {
       const instanceId = pathParts[3];
-      const success = await inboxManager.initializeInstance(instanceId);
-      return createResponse(res, 200, { success, instanceId });
+      if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
+      const success = await inboxManager.initializeInstance(instanceId, tenantId);
+      return createResponse(res, 200, { success, instanceId, tenantId });
     }
     
     // GET /api/inbox/messages/:instanceId
     if (pathParts[2] === 'messages' && req.method === 'GET') {
       const instanceId = pathParts[3];
+      if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
       const options = {
         limit: parseInt(url.searchParams.get('limit') || '50'),
         offset: parseInt(url.searchParams.get('offset') || '0'),
         unreadOnly: url.searchParams.get('unreadOnly') === 'true',
         since: url.searchParams.get('since')
       };
-      const result = await inboxManager.getMessages(instanceId, options);
+      const result = await inboxManager.getMessages(instanceId, tenantId, options);
       return createResponse(res, 200, result);
     }
     
@@ -2660,15 +2778,17 @@ async function handleInboxRoute(req, res, url) {
     if (pathParts[2] === 'messages' && pathParts[4] === 'read' && req.method === 'PUT') {
       const instanceId = pathParts[3];
       const messageId = pathParts[4];
-      const success = await inboxManager.markAsRead(instanceId, messageId);
+      if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
+      const success = await inboxManager.markAsRead(instanceId, tenantId, messageId);
       return createResponse(res, 200, { success });
     }
     
     // POST /api/inbox/send/:instanceId
     if (pathParts[2] === 'send' && req.method === 'POST') {
       const instanceId = pathParts[3];
+      if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
       const body = await parseBody(req);
-      const result = await inboxManager.sendMessage(instanceId, body.recipient, body.content, body.type);
+      const result = await inboxManager.sendMessage(instanceId, tenantId, body.recipient, body.content, body.type);
       return createResponse(res, 200, result);
     }
     
@@ -2707,8 +2827,15 @@ async function handleCampaignRoute(req, res, url) {
     // GET /api/campaigns/:campaignId
     if (pathParts.length === 3 && req.method === 'GET') {
       const campaignId = pathParts[2];
+      const tenantId = url.searchParams.get('tenantId') || req.headers['x-tenant-id'];
       const campaign = await campaignManager.getCampaign(campaignId);
       if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      
+      // Safety check for tenant
+      if (tenantId && campaign.tenantId !== tenantId) {
+        return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
+      }
+      
       return createResponse(res, 200, campaign);
     }
     
@@ -2730,6 +2857,34 @@ async function handleCampaignRoute(req, res, url) {
     createResponse(res, 404, { error: 'Campaign endpoint not found' });
   } catch (error) {
     console.error('[Campaign API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
+// Dashboard Route Handler
+async function handleDashboardRoute(req, res, url) {
+  try {
+    const tenantId = url.searchParams.get('tenantId') || req.headers['x-tenant-id'];
+    if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
+
+    const balance = await walletManager.getBalance(tenantId);
+    const campaigns = await campaignManager.getAllCampaigns({ tenantId, limit: 100 });
+    const inboxSummary = await inboxManager.getInboxSummary(tenantId);
+
+    // Aggregate stats
+    const stats = {
+      walletBalance: balance,
+      activeCampaignsCount: campaigns.campaigns.filter(c => c.status === 'active' || c.status === 'running').length,
+      totalCampaigns: campaigns.total,
+      connectedInstances: inboxSummary.instances.filter(i => i.connected).length,
+      totalInstances: inboxSummary.instances.length,
+      sendsToday: campaigns.campaigns.reduce((acc, c) => acc + (c.metrics?.sentCount || 0), 0),
+      queueCount: campaignManager.sendingQueue.filter(item => item.campaign.tenantId === tenantId).length
+    };
+
+    return createResponse(res, 200, stats);
+  } catch (error) {
+    console.error('[Dashboard API] Error:', error.message);
     createResponse(res, 500, { error: error.message });
   }
 }
@@ -2773,10 +2928,19 @@ const server = http.createServer(async (req, res) => {
       return handleInboxRoute(req, res, url);
     }
 
+    // Wallet API Routes
+    if (normalizedPathname.startsWith("/api/wallet/")) {
+      return handleWalletRoute(req, res, url);
+    }
+
     // Campaigns API Routes
     if (normalizedPathname.startsWith("/api/campaigns")) {
-      console.log(`[Server] Routing to campaign handler: ${normalizedPathname}`);
       return handleCampaignRoute(req, res, url);
+    }
+
+    // Dashboard API Routes
+    if (normalizedPathname.startsWith("/api/dashboard")) {
+      return handleDashboardRoute(req, res, url);
     }
     if (normalizedPathname === "/api/local/uazapi/instance/all") {
       if (!state.config.settings.adminToken?.trim()) {
@@ -3020,6 +3184,20 @@ const server = http.createServer(async (req, res) => {
       return createResponse(res, 200, await tick("manual-restart"));
     }
     if (normalizedPathname === "/api/local/warmup/tick") return createResponse(res, 200, await tick("manual"));
+
+    // Dark theme version of warmup manager
+    if (url.pathname === `${WARMUP_BASE_PATH}/dark` || url.pathname.startsWith(`${WARMUP_BASE_PATH}/dark/`)) {
+      const darkIndexPath = path.join(MANAGER_DIST_DIR, 'index-dark.html');
+      try {
+        const darkHtml = await readFile(darkIndexPath, 'utf8');
+        const transformedHtml = injectEcosystemChrome(injectWarmupManagerSettingsActions(darkHtml));
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(transformedHtml);
+        return;
+      } catch (error) {
+        console.error('[Warmup] Error serving dark theme:', error.message);
+      }
+    }
 
     if (url.pathname === WARMUP_BASE_PATH || url.pathname.startsWith(`${WARMUP_BASE_PATH}/`)) {
       if (await serveStaticFromDir(req, res, {
