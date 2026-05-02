@@ -2091,14 +2091,6 @@ function buildPublicSettings(settings = {}) {
   };
 }
 
-async function parseBody(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  if (!chunks.length) return {};
-  const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? JSON.parse(raw) : {};
-}
-
 function stripRoutePrefix(pathname, prefix) {
   if (!prefix) return pathname;
   if (pathname === prefix) return "/";
