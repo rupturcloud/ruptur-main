@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Wallet, Send, Users, AlertCircle, TrendingUp, Zap } from 'lucide-react';
+import { Wallet, Send, Users, AlertCircle, TrendingUp, Zap, Sparkles } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';

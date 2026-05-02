@@ -39,18 +39,24 @@ git commit -m "deploy: atualização completa $(date '+%Y-%m-%d %H:%M:%S')" || t
 git push origin main
 
 # 3. Sincronizar arquivos críticos
-echo -e "${YELLOW}📦 Sincronizando arquivos críticos...${NC}"
+echo -e "${YELLOW}📦 Sincronizando arquivos críticos via rsync...${NC}"
 
-# Módulos completos
-scp -i "$SSH_KEY" -r modules/ "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
-
-# Web assets completos
-scp -i "$SSH_KEY" -r web/ "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
-
-# Configurações
-scp -i "$SSH_KEY" docker-compose.yml "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
-scp -i "$SSH_KEY" Dockerfile "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
-scp -i "$SSH_KEY" package.json "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
+# Usando rsync para sincronização incremental e rápida
+rsync -avz --exclude 'node_modules' --exclude '.git' \
+    -e "ssh -i $SSH_KEY" \
+    "$LOCAL_DIR/modules" \
+    "$LOCAL_DIR/web" \
+    "$LOCAL_DIR/dist-client" \
+    "$LOCAL_DIR/runtime-data" \
+    "$LOCAL_DIR/shared" \
+    "$LOCAL_DIR/middleware" \
+    "$LOCAL_DIR/routes" \
+    "$LOCAL_DIR/api" \
+    "$LOCAL_DIR/integrations" \
+    "$LOCAL_DIR/docker-compose.yml" \
+    "$LOCAL_DIR/Dockerfile" \
+    "$LOCAL_DIR/package.json" \
+    "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
 
 # 4. Parar e reconstruir container
 echo -e "${YELLOW}🔧 Reconstruindo container em produção...${NC}"
