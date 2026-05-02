@@ -24,9 +24,9 @@ const menuItems = [
   { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare size={20} /> },
 ];
 
-const Sidebar = ({ collapsed = false, onToggleCollapse, onLogout, tenantId, tenantName }) => {
+const Sidebar = ({ collapsed = false, mobileOpen = false, onMobileClose, onToggleCollapse, onLogout, tenantId, tenantName }) => {
   return (
-    <aside className={`sidebar glass ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={`sidebar glass ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Logo */}
       <div className="logo-container">
         <div className="logo-icon-wrap">
@@ -55,6 +55,7 @@ const Sidebar = ({ collapsed = false, onToggleCollapse, onLogout, tenantId, tena
             key={item.to}
             to={item.to}
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={onMobileClose}
           >
             <span className="icon">{item.icon}</span>
             <span className="label">{item.label}</span>
@@ -75,7 +76,7 @@ const Sidebar = ({ collapsed = false, onToggleCollapse, onLogout, tenantId, tena
             </div>
           </div>
         )}
-        <button className="nav-item logout" onClick={onLogout}>
+        <button className="nav-item logout" onClick={() => { onMobileClose?.(); onLogout?.(); }}>
           <span className="icon"><LogOut size={18} /></span>
           <span className="label">Sair</span>
         </button>
@@ -279,13 +280,28 @@ const Sidebar = ({ collapsed = false, onToggleCollapse, onLogout, tenantId, tena
         }
 
         @media (max-width: 1024px) {
-          .sidebar {
-            transform: translateX(-100%);
+          .sidebar,
+          .sidebar.collapsed {
+            width: min(82vw, var(--sidebar-width));
+            transform: translateX(-105%);
+            padding: 24px 16px;
+            box-shadow: 24px 0 60px rgba(0,0,0,0.38);
           }
 
-          .sidebar.collapsed {
-            transform: translateX(-100%);
+          .sidebar.mobile-open,
+          .sidebar.collapsed.mobile-open {
+            transform: translateX(0);
           }
+
+          .sidebar.collapsed .logo-container { justify-content: flex-start; padding: 0 8px; }
+          .sidebar.collapsed .logo-copy,
+          .sidebar.collapsed .nav-item .label,
+          .sidebar.collapsed .tenant-text {
+            opacity: 1; width: auto; transform: none; pointer-events: auto; overflow: hidden;
+          }
+          .sidebar.collapsed .nav-item { justify-content: flex-start; padding: 11px 14px; gap: 12px; }
+          .sidebar.collapsed .tenant-info { justify-content: flex-start; padding: 10px 12px; }
+          .collapse-toggle { display: none; }
         }
       `}</style>
     </aside>
