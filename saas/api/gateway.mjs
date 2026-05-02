@@ -292,6 +292,93 @@ async function handler(req, res) {
     }
   }
 
+  // --- Referral: Obter/gerar link de referral ---
+  if (pathname === '/api/referrals/my-link' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const tenantId = url.searchParams.get('tenant_id') || user.user_metadata?.default_tenant_id;
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      // Verificar acesso ao tenant
+      const { data: membership } = await supabase
+        .from('user_tenant_memberships')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (!membership) return json(res, 403, { error: 'Acesso negado' }, req);
+
+      // Buscar link existente ativo
+      let { data: refLink } = await supabase
+        .from('referral_links')
+        .select('id, ref_code, created_at')
+        .eq('referrer_tenant_id', tenantId)
+        .eq('status', 'active')
+        .single();
+
+      // Se não existe, gerar novo
+      if (!refLink) {
+        const { randomBytes } = await import('node:crypto');
+        const random = randomBytes(4).toString('hex').slice(0, 6).toUpperCase();
+        const refCode = `${tenantId.slice(0, 8)}_${random}`;
+
+        const { data: newLink } = await supabase
+          .from('referral_links')
+          .insert({
+            referrer_tenant_id: tenantId,
+            ref_code: refCode,
+            status: 'active',
+          })
+          .select('id, ref_code, created_at')
+          .single();
+        refLink = newLink;
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://app.ruptur.cloud';
+      return json(res, 200, {
+        refCode: refLink.ref_code,
+        link: `${frontendUrl}/ref/${refLink.ref_code}`,
+        createdAt: refLink.created_at,
+      }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Referral: Resumo de indicações ---
+  if (pathname === '/api/referrals/summary' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const tenantId = url.searchParams.get('tenant_id') || user.user_metadata?.default_tenant_id;
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      const { data: summary } = await supabase
+        .from('referral_summary')
+        .select('*')
+        .eq('referrer_tenant_id', tenantId)
+        .single();
+
+      return json(res, 200, summary || {
+        referrer_tenant_id: tenantId,
+        total_referrals: 0,
+        active_referrals: 0,
+        paying_referrals: 0,
+        total_commission_cents: 0,
+        commission_30d_cents: 0,
+        last_commission_date: null,
+      }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
   // --- Webhook Getnet (público) ---
   if (pathname === '/api/webhooks/getnet' && req.method === 'POST') {
     const rawBodyChunks = [];
@@ -373,8 +460,77 @@ async function handler(req, res) {
     }
   }
 
+  // --- Referral: Reivindicar via código (quando novo usuário se inscreve) ---
+  if (pathname.match(/^\/api\/referrals\/claim\/[a-zA-Z0-9_]+$/) && req.method === 'POST') {
+    const refCode = pathname.split('/').pop();
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    const body = await parseBody(req);
+    const { newTenantId } = body;
+    if (!newTenantId) return json(res, 400, { error: 'newTenantId obrigatório' }, req);
+
+    try {
+      // Buscar referral_link
+      const { data: refLink } = await supabase
+        .from('referral_links')
+        .select('id, referrer_tenant_id, referee_tenant_id, status')
+        .eq('ref_code', refCode)
+        .single();
+
+      if (!refLink) return json(res, 404, { error: 'Código de referral inválido' }, req);
+      if (refLink.status !== 'active') return json(res, 400, { error: 'Código não está ativo' }, req);
+      if (refLink.referee_tenant_id && refLink.referee_tenant_id !== newTenantId) {
+        return json(res, 400, { error: 'Código já foi utilizado' }, req);
+      }
+
+      // Atualizar com o novo tenant
+      await supabase
+        .from('referral_links')
+        .update({ referee_tenant_id: newTenantId })
+        .eq('id', refLink.id);
+
+      return json(res, 200, {
+        success: true,
+        referrerTenantId: refLink.referrer_tenant_id,
+      }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Referral: Registrar clique (tracking) ---
+  if (pathname.match(/^\/api\/referrals\/click\/[a-zA-Z0-9_]+$/) && req.method === 'POST') {
+    const refCode = pathname.split('/').pop();
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const { data: refLink } = await supabase
+        .from('referral_links')
+        .select('id')
+        .eq('ref_code', refCode)
+        .single();
+
+      if (refLink) {
+        const userAgent = req.headers['user-agent'];
+        const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+
+        await supabase.from('referral_clicks').insert({
+          referral_link_id: refLink.id,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+        });
+      }
+
+      return json(res, 200, { ok: true }, req);
+    } catch (e) {
+      // Falha silenciosa em tracking
+      console.log('[Referral] Aviso de tracking:', e.message);
+      return json(res, 200, { ok: true }, req);
+    }
+  }
+
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals')) {
     // Proxy para o Warmup Manager existente
     try {
       const proxyUrl = `${WARMUP_URL}${pathname}${url.search}`;

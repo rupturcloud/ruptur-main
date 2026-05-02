@@ -429,6 +429,9 @@ class BillingService {
           description: `Créditos (Getnet webhook #${paymentId})`,
         });
       }
+
+      // Processar comissão de referral se aplicável
+      await this.processReferralCommission(dbPayment.tenant_id, paymentId, dbPayment.amount_cents);
     }
 
     return { ok: true, action: 'payment_approved', paymentId };
@@ -452,6 +455,8 @@ class BillingService {
    */
   async handleSubscriptionPayment(body) {
     const subscriptionId = body.subscription_id || body.data?.subscription_id;
+    const paymentId = body.payment_id || body.data?.payment_id;  // Pode vir no webhook
+    const amount = body.amount || body.data?.amount;             // Valor do pagamento
 
     const { data: dbSub } = await this.supabase
       .from('subscriptions')
@@ -472,6 +477,11 @@ class BillingService {
           reference_id: subscriptionId,
           description: `Renovação - Plano ${plan.name}`,
         });
+      }
+
+      // Processar comissão de referral se aplicável
+      if (paymentId && amount) {
+        await this.processReferralCommission(dbSub.tenant_id, paymentId, amount);
       }
 
       await this.supabase.from('subscriptions').update({
@@ -504,9 +514,106 @@ class BillingService {
         monthly_credits: 0,
         getnet_subscription_id: null,
       }).eq('id', dbSub.tenant_id);
+
+      // Pausar comissões de referral (futuras cobranças deixarão de gerar comissão)
+      const { data: referralLink } = await this.supabase
+        .from('referral_links')
+        .select('id')
+        .eq('referee_tenant_id', dbSub.tenant_id)
+        .eq('status', 'active')
+        .single();
+
+      if (referralLink) {
+        await this.supabase.from('referral_links').update({
+          status: 'expired',
+        }).eq('id', referralLink.id);
+        console.log(`[Billing:Referral] Link de referral pausado para ${dbSub.tenant_id}`);
+      }
     }
 
     return { ok: true, action: 'subscription_cancelled', subscriptionId };
+  }
+
+  // ========================================================================
+  //  Comissões de Referral
+  // ========================================================================
+
+  /**
+   * Processar comissão de referral (25% de créditos)
+   * Chamado quando um tenant que foi indicado por outro realiza um pagamento/assinatura
+   */
+  async processReferralCommission(refereeTenantId, paymentId, amountCents) {
+    try {
+      // Verificar se já existe comissão para este pagamento (evita duplicação em replay de webhook)
+      const { data: existingCommission } = await this.supabase
+        .from('referral_commissions')
+        .select('id')
+        .eq('getnet_payment_id', paymentId)
+        .single();
+
+      if (existingCommission) {
+        console.log(`[Billing:Referral] Comissão já existe para payment_id ${paymentId}, ignorando replay`);
+        return { ok: true, action: 'commission_duplicate' };
+      }
+
+      // Buscar referral_link ativo para este referee
+      const { data: referralLink } = await this.supabase
+        .from('referral_links')
+        .select('id, referrer_tenant_id')
+        .eq('referee_tenant_id', refereeTenantId)
+        .eq('status', 'active')
+        .single();
+
+      if (!referralLink) {
+        console.log(`[Billing:Referral] Nenhum referral ativo para referee ${refereeTenantId}`);
+        return { ok: true, action: 'no_referral_found' };
+      }
+
+      // Calcular comissão: 25% em centavos
+      const commissionAmount = Math.floor(amountCents * 0.25);
+
+      // Inserir na tabela de comissões (imutável, histórico completo)
+      const { data: commission, error } = await this.supabase
+        .from('referral_commissions')
+        .insert({
+          referrer_tenant_id: referralLink.referrer_tenant_id,
+          referee_tenant_id: refereeTenantId,
+          referral_link_id: referralLink.id,
+          getnet_payment_id: paymentId,
+          payment_amount: amountCents,
+          commission_rate: 0.25,
+          commission_amount: commissionAmount,
+          status: 'credited',
+          credited_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error(`[Billing:Referral] Erro ao inserir comissão:`, error);
+        return { ok: false, action: 'commission_insert_failed', error: error.message };
+      }
+
+      // Creditar comissão para o referrer
+      await this.addCreditsToTenant(referralLink.referrer_tenant_id, commissionAmount, {
+        source: 'referral',
+        reference_id: commission.id,
+        reference_type: 'referral_commission',
+        description: `Comissão de referral (25% de R$${(amountCents / 100).toFixed(2)})`,
+      });
+
+      console.log(`[Billing:Referral] Comissão creditada: R$${(commissionAmount / 100).toFixed(2)} para ${referralLink.referrer_tenant_id}`);
+      return {
+        ok: true,
+        action: 'commission_credited',
+        commissionId: commission.id,
+        commissionAmount,
+        referrerTenantId: referralLink.referrer_tenant_id,
+      };
+    } catch (error) {
+      console.error(`[Billing:Referral] Erro ao processar comissão:`, error);
+      return { ok: false, action: 'commission_processing_failed', error: error.message };
+    }
   }
 
   // ========================================================================
@@ -531,11 +638,12 @@ class BillingService {
 
     await this.supabase.from('wallet_transactions').insert({
       tenant_id: tenantId,
-      type: 'credit',
+      type: txData.type || 'credit',
       amount,
       balance_after: newBalance,
       source: txData.source || 'system',
       reference_id: txData.reference_id || null,
+      reference_type: txData.reference_type || null,
       description: txData.description || `+${amount} créditos`,
     });
 
