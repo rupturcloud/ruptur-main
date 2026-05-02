@@ -9,6 +9,7 @@ import { handleDevRoute, logDevModeWarning } from '../../routes/dev.js';
 import { createGoogleOAuthManager } from '../../modules/auth/google-oauth.js';
 import { createJWTManager } from '../../modules/auth/jwt-manager.js';
 import { createProviderManager } from '../../modules/provider-adapter/provider-manager.js';
+import { createAPIRouter, findAPIHandler } from '../../modules/api/endpoints.js';
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || '0.0.0.0';
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -17,6 +18,24 @@ const ENABLE_DEV_MODE = process.env.ENABLE_DEV_MODE === 'true';
 const jwtSecret = process.env.JWT_SECRET || generateSecretKey();
 const jwtManager = createJWTManager(jwtSecret);
 const providerManager = createProviderManager();
+
+// Inicializar Supabase se credenciais disponíveis
+let supabase = null;
+if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(
+      process.env.VITE_SUPABASE_URL,
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    );
+    console.log('✅ Supabase inicializado');
+  } catch (error) {
+    console.warn('⚠️  Supabase não disponível:', error.message);
+  }
+}
+
+// Criar roteador de APIs
+const apiRouter = createAPIRouter(supabase, providerManager);
 
 let googleOAuthManager = null;
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -208,7 +227,13 @@ export async function createSecureServer() {
         }
       }
 
-      // TODO: Integrar endpoints existentes (inbox, campaigns, wallet, etc)
+      // Rotas de API autenticadas
+      const apiHandler = findAPIHandler(pathname, apiRouter);
+      if (apiHandler) {
+        return await apiHandler(req, res, url);
+      }
+
+      // TODO: Integrar endpoints existentes (inbox, campaigns, etc)
       // Por enquanto, retorna 404 pra rotas não encontradas
       createResponse(res, 404, { error: 'Endpoint not found' });
     } catch (error) {
