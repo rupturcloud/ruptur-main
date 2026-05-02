@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, Check, ArrowRight, Shield, 
@@ -7,6 +6,8 @@ import {
   ChevronDown, Smartphone, Globe, Building2,
   Lock, ZapOff, Cloud
 } from 'lucide-react';
+
+const APP_URL = 'https://app.ruptur.cloud';
 
 const LandingPage = () => {
   const [openFaq, setOpenFaq] = useState(null);
@@ -76,12 +77,12 @@ const LandingPage = () => {
             <a href="#faq">FAQ</a>
           </div>
           <div className="nav-actions">
-            <Link to="/login" className="nav-link-premium">
+            <a href={`${APP_URL}/login`} className="nav-link-premium">
               <span>Entrar</span>
-            </Link>
-            <Link to="/signup" className="nav-btn-signup-premium">
+            </a>
+            <a href={`${APP_URL}/signup`} className="nav-btn-signup-premium">
               Começar Agora Grátis <ArrowRight size={18} />
-            </Link>
+            </a>
           </div>
         </div>
       </nav>
@@ -108,12 +109,12 @@ const LandingPage = () => {
               <p>A plataforma mais completa para automatizar envios, gerenciar campanhas e escalar seu atendimento com inteligência artificial e zero bloqueios.</p>
               
               <div className="hero-btns">
-                <Link to="/signup" className="btn-primary-lg">
+                <a href={`${APP_URL}/signup`} className="btn-primary-lg">
                   Iniciar Teste Grátis <ArrowRight size={20} />
-                </Link>
-                <Link to="/login" className="btn-secondary-lg">
+                </a>
+                <a href={`${APP_URL}/login`} className="btn-secondary-lg">
                   Acessar Minha Conta <ArrowRight size={20} />
-                </Link>
+                </a>
               </div>
 
               <div className="hero-trust">
@@ -193,19 +194,19 @@ const LandingPage = () => {
               <div className="icon-wrap cyan"><Users size={24} /></div>
               <h3>Para Afiliados</h3>
               <p>Escala seus lançamentos e automatiza o funil de vendas via WhatsApp.</p>
-              <Link to="/signup">Criar conta agora <ArrowRight size={16} /></Link>
+              <a href={`${APP_URL}/signup`}>Criar conta agora <ArrowRight size={16} /></a>
             </motion.div>
             <motion.div className="action-card glass" variants={itemVariants} whileHover={{ y: -8, backgroundColor: "rgba(255,255,255,0.05)" }}>
               <div className="icon-wrap purple"><Building2 size={24} /></div>
               <h3>Para Empresas</h3>
               <p>Centralize seu atendimento e recupere carrinhos abandonados no automático.</p>
-              <Link to="/signup">Iniciar configuração <ArrowRight size={16} /></Link>
+              <a href={`${APP_URL}/signup`}>Iniciar configuração <ArrowRight size={16} /></a>
             </motion.div>
             <motion.div className="action-card glass" variants={itemVariants} whileHover={{ y: -8, backgroundColor: "rgba(255,255,255,0.05)" }}>
               <div className="icon-wrap pink"><Rocket size={24} /></div>
               <h3>Para Agências</h3>
               <p>Gerencie múltiplos clientes com instâncias separadas e relatórios avançados.</p>
-              <Link to="/signup">Ver planos agência <ArrowRight size={16} /></Link>
+              <a href={`${APP_URL}/signup`}>Ver planos agência <ArrowRight size={16} /></a>
             </motion.div>
           </motion.div>
         </div>
@@ -285,7 +286,7 @@ const LandingPage = () => {
                 <li><Check size={16} /> Dashboard completa</li>
                 <li><Check size={16} /> Suporte via Discord</li>
               </ul>
-              <Link to="/signup" className="btn-outline-plan">Experimentar Agora</Link>
+              <a href={`${APP_URL}/signup`} className="btn-outline-plan">Experimentar Agora</a>
             </motion.div>
 
             {/* Plano Starter - Destaque */}
@@ -301,7 +302,7 @@ const LandingPage = () => {
                 <li><Check size={16} /> Relatórios de entrega</li>
                 <li><Check size={16} /> Multi-agentes (Inbox)</li>
               </ul>
-              <Link to="/signup" className="btn-primary-plan">Assinar Starter</Link>
+              <a href={`${APP_URL}/signup`} className="btn-primary-plan">Assinar Starter</a>
             </motion.div>
 
             {/* Plano Pro */}
@@ -316,7 +317,7 @@ const LandingPage = () => {
                 <li><Check size={16} /> Webhooks & API</li>
                 <li><Check size={16} /> Suporte Prioritário</li>
               </ul>
-              <Link to="/signup" className="btn-outline-plan">Assinar Pro</Link>
+              <a href={`${APP_URL}/signup`} className="btn-outline-plan">Assinar Pro</a>
             </motion.div>
           </motion.div>
         </div>
@@ -377,8 +378,8 @@ const LandingPage = () => {
               <span>RUPTUR<strong>CLOUD</strong></span>
             </div>
             <div className="footer-links">
-              <Link to="/login">Login</Link>
-              <Link to="/signup">Cadastro</Link>
+              <a href={`${APP_URL}/login`}>Login</a>
+              <a href={`${APP_URL}/signup`}>Cadastro</a>
               <a href="#pricing">Planos</a>
               <a href="#">Termos</a>
             </div>

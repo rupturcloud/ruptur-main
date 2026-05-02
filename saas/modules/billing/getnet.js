@@ -714,6 +714,191 @@ class BillingService {
   }
 
   // ========================================================================
+  //  Grace Period — Cancelamento com Período de Carência
+  // ========================================================================
+
+  /**
+   * Cancelar assinatura com período de graça de 24h
+   * Usuário pode desistir durante este período
+   * @param {string} subscriptionId - ID da assinatura (getnet_subscription_id)
+   * @param {string} reason - Motivo do cancelamento (opcional)
+   */
+  async cancelSubscriptionWithGracePeriod(subscriptionId, reason = 'User requested') {
+    if (!this.supabase) throw new Error('Supabase client necessário');
+
+    // Buscar assinatura (por getnet_subscription_id)
+    const { data: dbSub, error: fetchError } = await this.supabase
+      .from('subscriptions')
+      .select('id, tenant_id, status')
+      .eq('getnet_subscription_id', subscriptionId)
+      .single();
+
+    if (fetchError || !dbSub) {
+      console.error('[Billing:GracePeriod] Subscription não encontrada:', subscriptionId);
+      return {
+        ok: false,
+        action: 'subscription_not_found',
+        subscriptionId,
+      };
+    }
+
+    // Validar se não está já cancelled
+    if (dbSub.status === 'cancelled') {
+      return {
+        ok: false,
+        action: 'already_cancelled',
+        subscriptionId,
+      };
+    }
+
+    // Chamar função Supabase para marcar com grace period
+    const { data: result, error: cancelError } = await this.supabase.rpc(
+      'cancel_subscription_with_grace_period',
+      {
+        p_subscription_id: dbSub.id,
+        p_reason: reason,
+      }
+    );
+
+    if (cancelError) {
+      console.error('[Billing:GracePeriod] Erro ao cancelar com grace period:', cancelError);
+      return {
+        ok: false,
+        action: 'cancellation_failed',
+        error: cancelError.message,
+      };
+    }
+
+    console.log(`[Billing:GracePeriod] Cancelamento agendado: ${subscriptionId} (${dbSub.tenant_id})`);
+
+    // Enviar email ao usuário notificando sobre grace period
+    // TODO: Integrar com sistema de emails
+    // await this.notifyUserGracePeriod(dbSub.tenant_id, result.grace_period_until);
+
+    return {
+      ok: true,
+      action: 'cancellation_scheduled',
+      subscriptionId,
+      gracePeriodUntil: result.grace_period_until,
+      canBeResumedUntil: result.can_be_resumed_until,
+    };
+  }
+
+  /**
+   * Resumir assinatura (desistir do cancelamento)
+   * Só funciona durante o grace period
+   * @param {string} subscriptionId - ID da assinatura (getnet_subscription_id)
+   */
+  async resumeSubscription(subscriptionId) {
+    if (!this.supabase) throw new Error('Supabase client necessário');
+
+    // Buscar assinatura
+    const { data: dbSub, error: fetchError } = await this.supabase
+      .from('subscriptions')
+      .select('id, tenant_id, pending_cancellation, grace_period_until')
+      .eq('getnet_subscription_id', subscriptionId)
+      .single();
+
+    if (fetchError || !dbSub) {
+      console.error('[Billing:GracePeriod] Subscription não encontrada:', subscriptionId);
+      return {
+        ok: false,
+        action: 'subscription_not_found',
+        subscriptionId,
+      };
+    }
+
+    // Validar se está com cancelamento pendente
+    if (!dbSub.pending_cancellation) {
+      return {
+        ok: false,
+        action: 'not_pending_cancellation',
+        subscriptionId,
+      };
+    }
+
+    // Validar se ainda está dentro do grace period
+    const gracePeriodExpired = new Date(dbSub.grace_period_until) < new Date();
+    if (gracePeriodExpired) {
+      return {
+        ok: false,
+        action: 'grace_period_expired',
+        subscriptionId,
+      };
+    }
+
+    // Chamar função Supabase para resumir
+    const { data: result, error: resumeError } = await this.supabase.rpc(
+      'resume_subscription',
+      { p_subscription_id: dbSub.id }
+    );
+
+    if (resumeError) {
+      console.error('[Billing:GracePeriod] Erro ao resumir:', resumeError);
+      return {
+        ok: false,
+        action: 'resume_failed',
+        error: resumeError.message,
+      };
+    }
+
+    console.log(`[Billing:GracePeriod] Assinatura resumida: ${subscriptionId} (${dbSub.tenant_id})`);
+
+    // TODO: Enviar email confirmando resumo
+
+    return {
+      ok: true,
+      action: 'subscription_resumed',
+      subscriptionId,
+    };
+  }
+
+  /**
+   * Processar cancelamentos com grace period expirado
+   * Deve ser chamado periodicamente (cron job a cada hora)
+   */
+  async processPendingCancellations() {
+    if (!this.supabase) throw new Error('Supabase client necessário');
+
+    try {
+      console.log('[Billing:GracePeriod] Iniciando processamento de cancelamentos expirados...');
+
+      // Chamar função Supabase que processa todos os grace periods expirados
+      const { data: result, error } = await this.supabase.rpc(
+        'process_expired_grace_periods'
+      );
+
+      if (error) {
+        console.error('[Billing:GracePeriod] Erro ao processar:', error);
+        return {
+          ok: false,
+          action: 'processing_failed',
+          error: error.message,
+        };
+      }
+
+      console.log(
+        `[Billing:GracePeriod] Processamento completo: ${result.processed_count} processados, ${result.failed_count} erros`
+      );
+
+      return {
+        ok: true,
+        action: 'grace_periods_processed',
+        processedCount: result.processed_count,
+        failedCount: result.failed_count,
+        details: result.details,
+      };
+    } catch (error) {
+      console.error('[Billing:GracePeriod] Exceção ao processar:', error);
+      return {
+        ok: false,
+        action: 'processing_exception',
+        error: error.message,
+      };
+    }
+  }
+
+  // ========================================================================
   //  Consultas
   // ========================================================================
 
@@ -746,6 +931,201 @@ class BillingService {
    */
   async getPaymentStatus(paymentId) {
     return this.apiFetch(`/v1/payments/credit/${paymentId}`);
+  }
+
+  // ========================================================================
+  //  Reconciliação Financeira
+  // ========================================================================
+
+  /**
+   * Reconciliar pagamentos entre banco local e Getnet API
+   * Compara status dos pagamentos e corrige discrepâncias
+   * Deve rodar periodicamente (a cada 6h) via cron job
+   *
+   * @param {object} options
+   *   - daysBack: quantos dias no passado procurar (padrão: 7)
+   *   - autoFix: corrigir discrepâncias automaticamente (padrão: true)
+   *   - notifyOnDifference: notificar admin se houver diff (padrão: true)
+   */
+  async reconcilePayments(options = {}) {
+    if (!this.supabase) throw new Error('Supabase client necessário');
+
+    const {
+      daysBack = 7,
+      autoFix = true,
+      notifyOnDifference = true,
+    } = options;
+
+    console.log(`[Billing:Reconciliation] Iniciando reconciliação (últimos ${daysBack} dias)...`);
+
+    const reconciliationResult = {
+      totalPayments: 0,
+      matchedPayments: 0,
+      discrepancies: [],
+      corrected: [],
+      errors: [],
+      startTime: new Date().toISOString(),
+    };
+
+    try {
+      // 1. Buscar todos os pagamentos no banco dos últimos N dias
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+
+      const { data: localPayments, error: fetchError } = await this.supabase
+        .from('payments')
+        .select('id, getnet_payment_id, status, amount_cents, created_at, credits_granted')
+        .gte('created_at', cutoffDate.toISOString())
+        .eq('payment_type', 'credit_purchase');
+
+      if (fetchError) {
+        console.error('[Reconciliation] Erro ao buscar pagamentos:', fetchError);
+        throw fetchError;
+      }
+
+      reconciliationResult.totalPayments = localPayments?.length || 0;
+
+      // 2. Para cada pagamento, validar status na Getnet
+      for (const localPayment of localPayments || []) {
+        try {
+          // Ignorar pagamentos iniciados há menos de 1h (podem estar em processamento)
+          const ageMinutes = (Date.now() - new Date(localPayment.created_at).getTime()) / 60000;
+          if (ageMinutes < 60) {
+            reconciliationResult.matchedPayments++;
+            continue;
+          }
+
+          // Buscar status na Getnet
+          const getnetPayment = await this.getPaymentStatus(localPayment.getnet_payment_id);
+
+          // Comparar status
+          const localStatus = localPayment.status;
+          const getnetStatus = getnetPayment.status;
+
+          if (localStatus !== getnetStatus) {
+            // 🚨 DISCREPÂNCIA ENCONTRADA
+            console.warn(
+              `[Reconciliation] ⚠️ Discrepância em ${localPayment.getnet_payment_id}: ` +
+              `local=${localStatus}, getnet=${getnetStatus}`
+            );
+
+            const discrepancy = {
+              paymentId: localPayment.getnet_payment_id,
+              localStatus,
+              getnetStatus,
+              amount_cents: localPayment.amount_cents,
+              creditsGranted: localPayment.credits_granted,
+              detectedAt: new Date().toISOString(),
+            };
+
+            reconciliationResult.discrepancies.push(discrepancy);
+
+            // Auto-correção se habilitada
+            if (autoFix) {
+              try {
+                // Atualizar status local para corresponder à Getnet
+                await this.supabase
+                  .from('payments')
+                  .update({ status: getnetStatus })
+                  .eq('getnet_payment_id', localPayment.getnet_payment_id);
+
+                // Se Getnet diz APPROVED mas localmente não creditou, adicionar créditos
+                if (getnetStatus === 'APPROVED' && localStatus !== 'APPROVED' && localPayment.credits_granted > 0) {
+                  const tenantId = (
+                    await this.supabase
+                      .from('payments')
+                      .select('tenant_id')
+                      .eq('getnet_payment_id', localPayment.getnet_payment_id)
+                      .single()
+                  ).data?.tenant_id;
+
+                  if (tenantId) {
+                    await this.addCreditsToTenant(tenantId, localPayment.credits_granted, {
+                      source: 'reconciliation',
+                      reference_id: localPayment.getnet_payment_id,
+                      description: `Reconciliação: Créditos corrigidos (${localPayment.credits_granted} créditos)`,
+                    });
+
+                    console.log(
+                      `[Reconciliation] ✅ Corrigido: ${localPayment.getnet_payment_id} ` +
+                      `(${localPayment.credits_granted} créditos re-creditados)`
+                    );
+                  }
+                }
+
+                reconciliationResult.corrected.push({
+                  paymentId: localPayment.getnet_payment_id,
+                  action: 'status_updated',
+                  from: localStatus,
+                  to: getnetStatus,
+                });
+              } catch (fixError) {
+                console.error('[Reconciliation] Erro ao corrigir:', fixError);
+                reconciliationResult.errors.push({
+                  paymentId: localPayment.getnet_payment_id,
+                  error: fixError.message,
+                });
+              }
+            }
+          } else {
+            // ✅ Status coincide
+            reconciliationResult.matchedPayments++;
+          }
+        } catch (paymentError) {
+          console.warn(`[Reconciliation] Erro ao validar ${localPayment.getnet_payment_id}:`, paymentError.message);
+          reconciliationResult.errors.push({
+            paymentId: localPayment.getnet_payment_id,
+            error: paymentError.message,
+          });
+        }
+      }
+
+      // 3. Registrar resultado na auditoria
+      await this.supabase.from('reconciliation_logs').insert({
+        reconciled_at: new Date().toISOString(),
+        days_back: daysBack,
+        total_checked: reconciliationResult.totalPayments,
+        matched_count: reconciliationResult.matchedPayments,
+        discrepancy_count: reconciliationResult.discrepancies.length,
+        corrected_count: reconciliationResult.corrected.length,
+        error_count: reconciliationResult.errors.length,
+        auto_fix_enabled: autoFix,
+        details: reconciliationResult,
+      }).catch(err => {
+        console.warn('[Reconciliation] Aviso: Não consegui registrar log:', err.message);
+      });
+
+      reconciliationResult.endTime = new Date().toISOString();
+
+      // 4. Notificar se houver discrepâncias e notifyOnDifference = true
+      if (notifyOnDifference && reconciliationResult.discrepancies.length > 0) {
+        console.error(
+          `[Reconciliation] 🚨 ${reconciliationResult.discrepancies.length} discrepâncias encontradas! ` +
+          `${reconciliationResult.corrected.length} corrigidas.`
+        );
+        // TODO: Integrar com Slack/email para notificação ao admin
+      }
+
+      console.log(
+        `[Reconciliation] ✅ Completo: ${reconciliationResult.matchedPayments}/${reconciliationResult.totalPayments} ` +
+        `combinaram, ${reconciliationResult.discrepancies.length} discrepâncias, ` +
+        `${reconciliationResult.corrected.length} corrigidas`
+      );
+
+      return {
+        ok: true,
+        action: 'reconciliation_complete',
+        ...reconciliationResult,
+      };
+    } catch (error) {
+      console.error('[Reconciliation] Erro durante reconciliação:', error);
+      return {
+        ok: false,
+        action: 'reconciliation_failed',
+        error: error.message,
+        ...reconciliationResult,
+      };
+    }
   }
 }
 
