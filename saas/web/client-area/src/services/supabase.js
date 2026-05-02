@@ -12,6 +12,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    // Evita erro de Web Locks em navegadores/extensões que disputam o token:
+    // "Lock ... was released because another request stole it".
+    lock: async (_name, _acquireTimeout, fn) => await fn(),
   },
 });
 
