@@ -13,7 +13,8 @@ import {
   MessageSquare,
   LogOut,
   Zap,
-  Settings
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
 const menuItems = [
@@ -23,19 +24,29 @@ const menuItems = [
   { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare size={20} /> },
 ];
 
-const Sidebar = ({ onLogout, tenantId, tenantName }) => {
+const Sidebar = ({ collapsed = false, onToggleCollapse, onLogout, tenantId, tenantName }) => {
   return (
-    <aside className="sidebar glass">
+    <aside className={`sidebar glass ${collapsed ? 'collapsed' : ''}`}>
       {/* Logo */}
       <div className="logo-container">
         <div className="logo-icon-wrap">
           <Zap size={20} fill="currentColor" />
         </div>
-        <div>
+        <div className="logo-copy">
           <h2 className="logo-text">RUPTUR<span>CLOUD</span></h2>
           <p className="logo-sub">Automação WhatsApp</p>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="collapse-toggle"
+        onClick={onToggleCollapse}
+        aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+        title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+      >
+        {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+      </button>
 
       {/* Navegação */}
       <nav className="sidebar-nav">
@@ -82,6 +93,13 @@ const Sidebar = ({ onLogout, tenantId, tenantName }) => {
           border-right: 1px solid var(--border-glass);
           z-index: 100;
           background: rgba(8, 8, 14, 0.9);
+          transition: width 0.28s ease, padding 0.28s ease;
+          overflow: visible;
+        }
+
+        .sidebar.collapsed {
+          width: var(--sidebar-collapsed-width);
+          padding: 24px 12px;
         }
 
         /* Logo */
@@ -91,6 +109,7 @@ const Sidebar = ({ onLogout, tenantId, tenantName }) => {
           gap: 12px;
           margin-bottom: 40px;
           padding: 0 8px;
+          min-height: 40px;
         }
         .logo-icon-wrap {
           width: 40px; height: 40px;
@@ -112,6 +131,35 @@ const Sidebar = ({ onLogout, tenantId, tenantName }) => {
           font-size: 0.7rem;
           color: var(--text-muted);
           margin-top: 2px;
+        }
+
+        .logo-copy,
+        .nav-item .label,
+        .tenant-text {
+          transition: opacity 0.18s ease, width 0.24s ease, transform 0.24s ease;
+          white-space: nowrap;
+        }
+
+        .collapse-toggle {
+          position: absolute;
+          top: 24px;
+          right: -14px;
+          width: 32px;
+          height: 32px;
+          border-radius: 999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--primary);
+          background: rgba(8, 8, 14, 0.96);
+          border: 1px solid rgba(0, 242, 255, 0.24);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 0 16px rgba(0,242,255,0.14);
+          z-index: 2;
+        }
+
+        .collapse-toggle:hover {
+          background: rgba(0, 242, 255, 0.12);
+          transform: translateX(1px);
         }
 
         /* Nav */
@@ -158,6 +206,37 @@ const Sidebar = ({ onLogout, tenantId, tenantName }) => {
         }
         .nav-item .label { font-size: 0.92rem; }
 
+        .sidebar.collapsed .logo-container {
+          justify-content: center;
+          padding: 0;
+        }
+
+        .sidebar.collapsed .logo-copy,
+        .sidebar.collapsed .nav-item .label,
+        .sidebar.collapsed .tenant-text {
+          opacity: 0;
+          width: 0;
+          transform: translateX(-8px);
+          pointer-events: none;
+          overflow: hidden;
+        }
+
+        .sidebar.collapsed .nav-item {
+          justify-content: center;
+          padding: 12px;
+          gap: 0;
+        }
+
+        .sidebar.collapsed .tenant-info {
+          justify-content: center;
+          padding: 10px;
+        }
+
+        .sidebar.collapsed .tenant-avatar {
+          width: 38px;
+          height: 38px;
+        }
+
         /* Footer */
         .sidebar-footer {
           margin-top: auto;
@@ -197,6 +276,16 @@ const Sidebar = ({ onLogout, tenantId, tenantName }) => {
         .nav-item.logout:hover {
           color: var(--accent);
           background: rgba(255, 0, 122, 0.08);
+        }
+
+        @media (max-width: 1024px) {
+          .sidebar {
+            transform: translateX(-100%);
+          }
+
+          .sidebar.collapsed {
+            transform: translateX(-100%);
+          }
         }
       `}</style>
     </aside>
