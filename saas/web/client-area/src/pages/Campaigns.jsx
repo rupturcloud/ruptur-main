@@ -1,32 +1,88 @@
-import React, { useState, useEffect } from 'react';
-import { Send, Plus, Users, MessageSquare, Clock, Filter, Trash2, Play, Pause, Upload, Layout, List } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Upload } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const initialCampaignState = {
+  name: '',
+  message: '',
+  list: 'leads',
+  interval: 15,
+  mediaType: 'text',
+  mediaUrl: '',
+  enableSpinText: true,
+  buttonType: '',
+  buttons: [{ buttonId: '', buttonText: '' }],
+  sections: [{ title: '', rows: [{ title: '', description: '', rowId: '' }] }]
+};
+
+const parseCsvContacts = (csvText) => {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return [];
+
+  const firstColumns = lines[0].split(',').map((column) => column.trim().toLowerCase());
+  const hasHeader = firstColumns.some((column) => ['phone', 'telefone', 'name', 'nome', 'email'].includes(column));
+  const headers = hasHeader ? firstColumns : ['phone', 'name', 'email'];
+  const rows = hasHeader ? lines.slice(1) : lines;
+
+  return rows
+    .map((line) => {
+      const values = line.split(',').map((value) => value.trim());
+      const contact = headers.reduce((acc, header, index) => {
+        acc[header] = values[index] || '';
+        return acc;
+      }, {});
+
+      return {
+        phone: contact.phone || contact.telefone || values[0] || '',
+        name: contact.name || contact.nome || values[1] || '',
+        email: contact.email || values[2] || ''
+      };
+    })
+    .filter((contact) => contact.phone);
+};
+
 const Campaigns = () => {
   const { tenantId } = useAuth();
   const [showWizard, setShowWizard] = useState(false);
   const { data: campaigns, loading, request: fetchCampaigns } = useApi(apiService.getCampaigns);
-  const [newCampaign, setNewCampaign] = useState({
-    name: '',
-    message: '',
-    list: 'leads',
-    interval: 15,
-    mediaType: 'text', // 'text', 'image', 'video', 'videoplay', 'audio', 'myaudio', 'ptt', 'ptv', 'document', 'sticker'
-    mediaUrl: '',
-    enableSpinText: true,
-    buttonType: '', // '', 'button', 'list'
-    buttons: [{ buttonId: '', buttonText: '' }],
-    sections: [{ title: '', rows: [{ title: '', description: '', rowId: '' }] }]
-  });
+  const [newCampaign, setNewCampaign] = useState(initialCampaignState);
   const [csvContacts, setCsvContacts] = useState([]);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (tenantId) fetchCampaigns(tenantId);
   }, [tenantId, fetchCampaigns]);
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const contacts = parseCsvContacts(text);
+      setCsvContacts(contacts);
+
+      if (contacts.length === 0) {
+        alert('Nenhum contato válido encontrado no CSV. Use colunas: phone, name, email.');
+      }
+    } catch (err) {
+      alert(`Não foi possível ler o CSV: ${err.message}`);
+    }
+  };
+
+  const handleClearCsv = () => {
+    setCsvContacts([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
    const handleCreate = async () => {
      if (!newCampaign.name || !newCampaign.message) return alert("Preencha os campos obrigatórios");
@@ -42,7 +98,7 @@ const Campaigns = () => {
        await apiService.createCampaign(tenantId, campaignData);
        setShowWizard(false);
        fetchCampaigns(tenantId);
-       setNewCampaign({ name: '', message: '', list: 'leads', interval: 15 });
+       setNewCampaign(initialCampaignState);
        setCsvContacts([]);
        if (fileInputRef.current) {
          fileInputRef.current.value = '';
@@ -274,10 +330,10 @@ const Campaigns = () => {
                            style={{ display: 'none' }}
                          />
                        </div>
-                       {csvContacts && (
+                       {csvContacts.length > 0 && (
                          <div className="upload-results">
                            <p>{csvContacts.length} contatos carregados do CSV</p>
-                           <button className="btn-secondary" onClear={handleClearCsv}>
+                           <button type="button" className="btn-secondary" onClick={handleClearCsv}>
                              Limpar
                            </button>
                          </div>
@@ -325,6 +381,17 @@ const Campaigns = () => {
                 </tr>
               </thead>
               <tbody>
+                {campaigns?.length === 0 && (
+                  <tr>
+                    <td colSpan="5">
+                      <div className="campaign-empty-state">
+                        <MessageSquare size={34} />
+                        <strong>Nenhuma campanha criada ainda</strong>
+                        <span>Clique em “Nova Campanha” para configurar seu primeiro disparo.</span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {campaigns?.map((c) => {
                   const sent = c.metrics?.sentCount || 0;
                   const total = c.metrics?.totalRecipients || 1;
@@ -420,6 +487,25 @@ const Campaigns = () => {
 
         .wizard-header { margin-bottom: 25px; }
         .wizard-body { display: flex; flex-direction: column; gap: 20px; }
+        .campaign-empty-state {
+          min-height: 220px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          color: var(--text-muted);
+          text-align: center;
+        }
+        .campaign-empty-state svg { color: var(--primary); filter: drop-shadow(0 0 12px var(--primary-glow)); }
+        .campaign-empty-state strong { color: white; font-size: 1rem; }
+        .upload-results { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+
+        @media (max-width: 768px) {
+          .page-header { align-items: stretch; flex-direction: column; gap: 16px; }
+          .table-container { overflow-x: auto; }
+          table { min-width: 720px; }
+        }
       `}</style>
     </div>
   );
