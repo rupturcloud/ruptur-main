@@ -18,9 +18,9 @@ services:
       traefik.enable: "true"
       traefik.docker.network: "ruptur-edge"
       traefik.http.routers.saas-web-http.entrypoints: web
-      traefik.http.routers.saas-web-http.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`) || Host(`saas.ruptur.cloud`) || Host(`hitl.ruptur.cloud`)"
+      traefik.http.routers.saas-web-http.rule: "Host(`saas.ruptur.cloud`)"
       traefik.http.routers.saas-web.entrypoints: websecure
-      traefik.http.routers.saas-web.rule: "Host(`app.ruptur.cloud`) || Host(`ruptur.cloud`) || Host(`saas.ruptur.cloud`) || Host(`hitl.ruptur.cloud`)"
+      traefik.http.routers.saas-web.rule: "Host(`saas.ruptur.cloud`)"
       traefik.http.routers.saas-web.tls.certresolver: letsencrypt
       traefik.http.services.saas-web.loadbalancer.server.port: "4173"
 
