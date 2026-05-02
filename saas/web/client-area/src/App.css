@@ -468,3 +468,76 @@
     flex: 1;
   }
 }
+
+@media (max-width: 640px) {
+  .dashboard-home .quick-start-checklist {
+    padding: 18px !important;
+  }
+
+  .dashboard-home .checklist-header {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .dashboard-home .badge-outline {
+    align-self: flex-start;
+  }
+
+  .dashboard-home .checklist-grid {
+    gap: 10px !important;
+  }
+
+  .dashboard-home .check-item {
+    padding: 14px !important;
+    min-height: auto !important;
+  }
+
+  .dashboard-home .check-item.done {
+    opacity: 0.9 !important;
+  }
+
+  .dashboard-home .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .dashboard-home .stat-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 16px !important;
+    min-height: 142px;
+  }
+
+  .dashboard-home .stat-label {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .dashboard-home .stat-value-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .dashboard-home .stat-unit {
+    margin-left: 0 !important;
+    font-size: 0.72rem !important;
+  }
+
+  .dashboard-home .activity-item .time {
+    display: block;
+    line-height: 1.35;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-page .orb,
+  .login-page .orb,
+  .orb.orb-1,
+  .orb.orb-2,
+  .orb.orb-3 {
+    display: none !important;
+  }
+}

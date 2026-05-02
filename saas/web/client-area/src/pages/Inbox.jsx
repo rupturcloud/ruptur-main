@@ -243,7 +243,7 @@ const Inbox = () => {
           ) : (
             <div className="empty-chat-state">
               <MessageSquare size={52} style={{ opacity: 0.2 }} />
-              <p className="text-muted">Selecione uma instância à esquerda</p>
+              <p className="text-muted">Selecione uma instância acima para abrir as mensagens</p>
             </div>
           )}
         </div>
@@ -452,6 +452,32 @@ const Inbox = () => {
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
           gap: 16px;
+          text-align: center;
+          padding: 24px;
+        }
+
+        @media (max-width: 640px) {
+          .inbox-page { min-height: calc(100vh - 100px); height: auto; }
+          .inbox-layout { display: flex; flex-direction: column; min-height: calc(100vh - 116px); height: auto; }
+          .inbox-sidebar { max-height: 270px; border-right: 0; border-bottom: 1px solid var(--border-glass); }
+          .inbox-sidebar-header { padding: 18px 18px 10px; }
+          .instances-list { max-height: 168px; }
+          .instance-item { padding: 12px 16px; }
+          .chat-window { min-height: 430px; }
+          .chat-header { padding: 14px; gap: 12px; align-items: flex-start; flex-direction: column; }
+          .chat-user-info { width: 100%; min-width: 0; }
+          .chat-user-info > div:last-child { min-width: 0; }
+          .chat-user-info h4 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px; }
+          .chat-user-info .text-muted { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+          .connection-badge { align-self: flex-start; }
+          .messages-container { min-height: 280px; padding: 14px; }
+          .message-bubble { max-width: 88%; }
+          .message-bubble .message-content { padding: 10px 12px; }
+          .msg-text { overflow-wrap: anywhere; word-break: break-word; }
+          .chat-footer { margin: 10px; align-items: center; }
+          .chat-footer textarea { min-width: 0; font-size: 0.86rem; }
+          .send-btn { width: 42px; height: 42px; }
+          .empty-chat-state { min-height: 340px; }
         }
       `}</style>
     </div>
