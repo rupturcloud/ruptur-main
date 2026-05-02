@@ -8,6 +8,7 @@ import crypto from "node:crypto";
 import { inboxManager } from '../inbox/index.js';
 import { campaignManager } from '../campaigns/index.js';
 import { getWalletManager } from '../wallet/index.js';
+import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.js';
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -2889,6 +2890,160 @@ async function handleDashboardRoute(req, res, url) {
   }
 }
 
+// Authenticated Wallet Route Handler
+async function handleAuthenticatedWalletRoute(req, res, url) {
+  try {
+    // Aplica autenticação e tenant
+    const authResult = await new Promise((resolve, reject) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return; // Autenticação falhou, resposta já enviada
+
+    const { tenant } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // GET /api/wallet/balance
+    if (pathParts[2] === 'balance' && req.method === 'GET') {
+      const balance = await walletManager.getBalance(tenant.id);
+      return createResponse(res, 200, { 
+        balance, 
+        tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+        credits_balance: tenant.credits_balance
+      });
+    }
+    
+    createResponse(res, 404, { error: 'Wallet endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Wallet API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
+// Authenticated Instances Route Handler
+async function handleAuthenticatedInstancesRoute(req, res, url) {
+  try {
+    // Aplica autenticação e tenant
+    const authResult = await new Promise((resolve, reject) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return; // Autenticação falhou, resposta já enviada
+
+    const { tenant } = authResult;
+    
+    // GET /api/instances
+    if (req.method === 'GET') {
+      const inboxSummary = await inboxManager.getInboxSummary(tenant.id);
+      const instances = inboxSummary.instances || [];
+      
+      return createResponse(res, 200, {
+        instances: instances.map(instance => ({
+          id: instance.id,
+          name: instance.name,
+          token: instance.token,
+          connected: instance.connected,
+          phone: instance.phone,
+          profile: instance.profile,
+          lastSeen: instance.lastSeen,
+          messagesCount: instance.messagesCount
+        })),
+        total: instances.length,
+        connected: instances.filter(i => i.connected).length,
+        tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name }
+      });
+    }
+    
+    createResponse(res, 404, { error: 'Instances endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Instances API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
+// Authenticated Send Message Route Handler
+async function handleAuthenticatedSendMessageRoute(req, res, url) {
+  try {
+    // Aplica autenticação e tenant
+    const authResult = await new Promise((resolve, reject) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return; // Autenticação falhou, resposta já enviada
+
+    const { tenant } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // POST /api/send-message
+    if (pathParts[2] === 'send-message' && req.method === 'POST') {
+      const body = await parseBody(req);
+      
+      const { instanceId, recipient, message, type = 'text' } = body;
+      
+      if (!instanceId || !recipient || !message) {
+        return createResponse(res, 400, { 
+          error: 'Campos obrigatórios: instanceId, recipient, message' 
+        });
+      }
+
+      // Verifica se a instância pertence ao tenant
+      const inboxSummary = await inboxManager.getInboxSummary(tenant.id);
+      const instance = inboxSummary.instances.find(i => i.id === instanceId || i.token === instanceId);
+      
+      if (!instance) {
+        return createResponse(res, 404, { 
+          error: 'Instância não encontrada ou não pertence ao tenant' 
+        });
+      }
+
+      if (!instance.connected) {
+        return createResponse(res, 400, { 
+          error: 'Instância não está conectada' 
+        });
+      }
+
+      // Envia mensagem via inbox manager
+      const result = await inboxManager.sendMessage(instanceId, {
+        recipient,
+        message,
+        type
+      });
+
+      if (result.success) {
+        return createResponse(res, 200, {
+          success: true,
+          messageId: result.messageId,
+          instance: { id: instance.id, name: instance.name },
+          recipient,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        return createResponse(res, 500, {
+          success: false,
+          error: result.error || 'Falha ao enviar mensagem'
+        });
+      }
+    }
+    
+    createResponse(res, 404, { error: 'Send message endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Send Message API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
 await bootstrapProtectedRoutine();
 
 const server = http.createServer(async (req, res) => {
@@ -2928,9 +3083,24 @@ const server = http.createServer(async (req, res) => {
       return handleInboxRoute(req, res, url);
     }
 
-    // Wallet API Routes
-    if (normalizedPathname.startsWith("/api/wallet/")) {
+    // Wallet API Routes (Legacy - sem autenticação)
+    if (normalizedPathname.startsWith("/api/wallet/") && !normalizedPathname.startsWith("/api/wallet/balance")) {
       return handleWalletRoute(req, res, url);
+    }
+
+    // Authenticated Wallet API Routes
+    if (normalizedPathname.startsWith("/api/wallet/balance")) {
+      return handleAuthenticatedWalletRoute(req, res, url);
+    }
+
+    // Authenticated Instances API Routes
+    if (normalizedPathname.startsWith("/api/instances")) {
+      return handleAuthenticatedInstancesRoute(req, res, url);
+    }
+
+    // Authenticated Send Message API Routes
+    if (normalizedPathname.startsWith("/api/send-message")) {
+      return handleAuthenticatedSendMessageRoute(req, res, url);
     }
 
     // Campaigns API Routes

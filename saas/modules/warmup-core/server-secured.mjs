@@ -6,10 +6,12 @@
 import http from 'node:http';
 import { createAuthMiddleware, createTenantValidationMiddleware, createRateLimitMiddleware, createResponse, parseBody } from '../../middleware/auth.js';
 import { handleDevRoute, logDevModeWarning } from '../../routes/dev.js';
+import { createWebhookRouter, findWebhookHandler } from '../../routes/webhooks.js';
 import { createGoogleOAuthManager } from '../../modules/auth/google-oauth.js';
 import { createJWTManager } from '../../modules/auth/jwt-manager.js';
 import { createProviderManager } from '../../modules/provider-adapter/provider-manager.js';
 import { createAPIRouter, findAPIHandler } from '../../modules/api/endpoints.js';
+import { BillingService } from '../../modules/billing/getnet.js';
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || '0.0.0.0';
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -36,6 +38,19 @@ if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_PUBLISHABLE_KEY) 
 
 // Criar roteador de APIs
 const apiRouter = createAPIRouter(supabase, providerManager);
+
+// Inicializar BillingService (Getnet)
+const billingService = new BillingService({
+  clientId: process.env.GETNET_CLIENT_ID,
+  clientSecret: process.env.GETNET_CLIENT_SECRET,
+  sellerId: process.env.GETNET_SELLER_ID,
+  webhookSecret: process.env.GETNET_WEBHOOK_SECRET,
+  sandbox: process.env.GETNET_SANDBOX !== 'false',
+  supabase,
+});
+
+// Criar roteador de webhooks
+const webhookRouter = createWebhookRouter(billingService);
 
 let googleOAuthManager = null;
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -166,6 +181,14 @@ export async function createSecureServer() {
           return createResponse(res, 403, { error: 'Dev mode disabled' });
         }
         return handleDevRoute(req, res, url);
+      }
+
+      // Webhooks (sem auth, mas com validação de assinatura)
+      if (pathname.startsWith('/api/webhooks/')) {
+        const webhookHandler = findWebhookHandler(pathname, webhookRouter);
+        if (webhookHandler) {
+          return await webhookHandler(req, res, url);
+        }
       }
 
       // Health check (sem auth)

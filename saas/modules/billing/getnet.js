@@ -24,14 +24,15 @@ const CREDIT_PACKAGES = {
 
 class BillingService {
   constructor(config = {}) {
-    this.clientId     = config.clientId     || process.env.GETNET_CLIENT_ID;
-    this.clientSecret = config.clientSecret || process.env.GETNET_CLIENT_SECRET;
-    this.sellerId     = config.sellerId     || process.env.GETNET_SELLER_ID;
-    this.isSandbox    = (config.sandbox ?? process.env.GETNET_SANDBOX !== 'false');
-    this.baseUrl      = this.isSandbox
+    this.clientId       = config.clientId       || process.env.GETNET_CLIENT_ID;
+    this.clientSecret   = config.clientSecret   || process.env.GETNET_CLIENT_SECRET;
+    this.sellerId       = config.sellerId       || process.env.GETNET_SELLER_ID;
+    this.webhookSecret  = config.webhookSecret  || process.env.GETNET_WEBHOOK_SECRET;
+    this.isSandbox      = (config.sandbox ?? process.env.GETNET_SANDBOX !== 'false');
+    this.baseUrl        = this.isSandbox
       ? 'https://api-sandbox.getnet.com.br'
       : 'https://api.getnet.com.br';
-    this.supabase     = config.supabase || null;
+    this.supabase       = config.supabase || null;
 
     // Cache do token OAuth2
     this._token       = null;
@@ -371,11 +372,73 @@ class BillingService {
   // ========================================================================
 
   /**
+   * Validar assinatura de webhook Getnet
+   * Getnet usa HMAC-SHA256 para assinatura
+   * @param {string} body - Body bruto do webhook (JSON string)
+   * @param {string} signature - Header X-Signature do webhook
+   * @returns {boolean}
+   */
+  validateWebhookSignature(body, signature) {
+    if (!this.webhookSecret) {
+      console.warn('[Webhook] AVISO: webhookSecret não configurado! Pulando validação.');
+      return true; // Permitir em dev se secret não configurado
+    }
+
+    if (!signature) {
+      console.error('[Webhook] Erro: X-Signature header não fornecido');
+      return false;
+    }
+
+    try {
+      // Getnet usa HMAC-SHA256
+      const crypto = require('crypto');
+      const hash = crypto
+        .createHmac('sha256', this.webhookSecret)
+        .update(body)
+        .digest('hex');
+
+      const isValid = hash === signature;
+
+      if (!isValid) {
+        console.error('[Webhook] Erro: Assinatura inválida', {
+          expected: hash.substring(0, 16) + '...',
+          received: signature.substring(0, 16) + '...',
+        });
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('[Webhook] Erro ao validar assinatura:', error);
+      return false;
+    }
+  }
+
+  /**
    * Processar webhook da Getnet
    * A Getnet envia notificações para URLs configuradas no painel do seller
+   * @param {string} rawBody - Body bruto (para validação de assinatura)
+   * @param {object} body - Body parseado
+   * @param {object} headers - Headers do webhook
    */
-  async handleWebhook(body, query = {}) {
+  async handleWebhook(body, query = {}, headers = {}) {
     if (!this.supabase) throw new Error('Supabase client necessário');
+
+    // Validar assinatura
+    const signature = headers['x-signature'] || headers['X-Signature'];
+    const rawBody = headers['_rawBody']; // Deve ser injetado pelo middleware
+
+    if (signature && rawBody) {
+      const isValid = this.validateWebhookSignature(rawBody, signature);
+      if (!isValid) {
+        console.error('[Webhook] Assinatura inválida - webhook rejeitado');
+        throw new Error('Invalid webhook signature');
+      }
+      console.log('[Webhook] ✅ Assinatura validada');
+    } else if (!process.env.ENABLE_DEV_MODE) {
+      // Em produção, assinatura é obrigatória
+      console.error('[Webhook] Assinatura obrigatória em produção');
+      throw new Error('Missing webhook signature');
+    }
 
     const eventType = body.event || body.type;
     const paymentId = body.payment_id || body.data?.payment_id;
