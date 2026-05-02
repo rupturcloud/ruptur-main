@@ -6,7 +6,11 @@
  * ⚠️  APENAS quando ENABLE_DEV_MODE=true
  */
 
+import { createJWTManager } from '../modules/auth/jwt-manager.js';
+
 export async function handleDevRoute(req, res, url) {
+  const jwtSecret = process.env.JWT_SECRET || 'temporary-dev-secret-change-in-production-' + Math.random().toString(36).substr(2, 32);
+  const jwtManager = createJWTManager(jwtSecret);
   if (process.env.NODE_ENV === 'production') {
     res.writeHead(403, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ error: 'Dev mode disabled in production' }));
@@ -124,25 +128,27 @@ export async function handleDevRoute(req, res, url) {
     });
   }
 
-  // GET /dev/mock/token - Gera JWT fake pra testes
+  // GET /dev/mock/token - Gera JWT válido pra testes
   if (pathParts[1] === 'mock' && pathParts[2] === 'token' && req.method === 'GET') {
-    const fakeJwt = Buffer.from(JSON.stringify({
+    const token = jwtManager.sign({
       userId: 'dev-user',
       tenantId: 'dev-tenant',
       email: 'dev@ruptur.local',
+      name: 'Dev User',
+      providerId: ['uazapi'],
       role: 'admin',
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 86400,
-    })).toString('base64');
+    }, '24h');
 
     return res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({
-      token: `dev.${fakeJwt}.signature`,
+      token,
       decoded: {
         userId: 'dev-user',
         tenantId: 'dev-tenant',
+        email: 'dev@ruptur.local',
         role: 'admin',
       },
       usage: 'Use no header: Authorization: Bearer <token>',
+      expiresIn: '24h',
     }));
   }
 

@@ -161,18 +161,51 @@ export async function createSecureServer() {
 
       // Aplica middlewares de segurança pra tudo mais
       if (!ENABLE_DEV_MODE || !pathname.startsWith('/dev/')) {
+        let middlewareCompleted = false;
+
         // Autenticação obrigatória
-        try {
-          authMiddleware(req, res, () => {});
-        } catch {
-          return createResponse(res, 401, { error: 'Authentication failed' });
+        await new Promise((resolve) => {
+          authMiddleware(req, res, () => {
+            middlewareCompleted = true;
+            resolve();
+          });
+          // Se response já foi enviada, resolve logo
+          if (res.writableEnded || res.headersSent) {
+            resolve();
+          }
+        });
+
+        if (res.writableEnded || res.headersSent) {
+          return;
         }
 
         // Validação de tenant
-        tenantMiddleware(req, res, () => {});
+        await new Promise((resolve) => {
+          tenantMiddleware(req, res, () => {
+            resolve();
+          });
+          if (res.writableEnded || res.headersSent) {
+            resolve();
+          }
+        });
+
+        if (res.writableEnded || res.headersSent) {
+          return;
+        }
 
         // Rate limiting
-        rateLimitMiddleware(req, res, () => {});
+        await new Promise((resolve) => {
+          rateLimitMiddleware(req, res, () => {
+            resolve();
+          });
+          if (res.writableEnded || res.headersSent) {
+            resolve();
+          }
+        });
+
+        if (res.writableEnded || res.headersSent) {
+          return;
+        }
       }
 
       // TODO: Integrar endpoints existentes (inbox, campaigns, wallet, etc)
@@ -198,5 +231,3 @@ if (process.env.STANDALONE === 'true') {
     console.log(`🛡️  Rate Limiting: ${ENABLE_DEV_MODE ? 'Desativado' : 'Ativado'}`);
   });
 }
-
-export { createSecureServer };

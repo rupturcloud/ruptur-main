@@ -9,7 +9,8 @@ export function createAuthMiddleware(jwtSecret) {
 
   return async (req, res, next) => {
     // Se for rota de desenvolvimento, pula autenticação
-    if (process.env.ENABLE_DEV_MODE && req.path.startsWith('/dev')) {
+    const pathname = req.url ? new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname : '';
+    if (process.env.ENABLE_DEV_MODE && pathname.startsWith('/dev')) {
       req.session = {
         userId: 'dev-user-123',
         tenantId: 'dev-tenant-123',
@@ -26,7 +27,7 @@ export function createAuthMiddleware(jwtSecret) {
                    req.headers.authorization?.replace('Bearer ', '');
 
       if (!token) {
-        return res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.writeHead(401, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'Unauthorized: No token' }));
       }
 
@@ -96,7 +97,8 @@ export function createRateLimitMiddleware(options = {}) {
   const stores = new Map(); // tenantId -> { count, resetAt }
 
   return (req, res, next) => {
-    if (process.env.ENABLE_DEV_MODE && req.path.startsWith('/dev')) {
+    const pathname = req.url ? new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname : '';
+    if (process.env.ENABLE_DEV_MODE && pathname.startsWith('/dev')) {
       return next();
     }
 
