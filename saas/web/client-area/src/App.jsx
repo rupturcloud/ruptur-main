@@ -13,7 +13,6 @@
  *   /config      → Configurações
  *   /admin       → Painel administrativo (apenas admins)
  */
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -54,9 +53,8 @@ function App() {
           <Route path="/admin" element={<AdminDashboard />} />
         </Route>
 
-        {/* Fallbacks */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Fallback: rotas desconhecidas → home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
