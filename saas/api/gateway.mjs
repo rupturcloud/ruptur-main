@@ -21,6 +21,7 @@ import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { BillingService } from '../modules/billing/getnet.js';
 import TenantService from '../modules/tenants/service.js';
+import { PlatformAdminService } from '../modules/superadmin/platform-admin.service.js';
 
 // --- Config ---
 const HOST = process.env.API_HOST || '0.0.0.0';
@@ -60,6 +61,7 @@ const billing = new BillingService({
 });
 
 const tenantService = supabase ? new TenantService(supabase) : null;
+const platformAdminService = supabase ? new PlatformAdminService(supabase, null) : null;
 
 // --- Rate Limiter (em memória, por IP) ---
 const RATE_LIMIT = {
@@ -529,8 +531,118 @@ async function handler(req, res) {
     }
   }
 
+  // --- Platform Admin: Listar superadmins ---
+  if (pathname === '/api/admin/platform/admins' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
+      if (!isPlatformAdmin) return json(res, 403, { error: 'Acesso negado: requer permissão de superadmin' }, req);
+
+      const admins = await platformAdminService.listPlatformAdmins();
+      return json(res, 200, { admins, total: admins.length }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Platform Admin: Listar convites pendentes ---
+  if (pathname === '/api/admin/platform/invites' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
+      if (!isPlatformAdmin) return json(res, 403, { error: 'Acesso negado: requer permissão de superadmin' }, req);
+
+      const invites = await platformAdminService.listPendingInvites();
+      return json(res, 200, { invites, total: invites.length }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Platform Admin: Convidar novo superadmin ---
+  if (pathname === '/api/admin/platform/invite' && req.method === 'POST') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    const body = await parseBody(req);
+    const { email } = body;
+
+    if (!email || !email.includes('@')) {
+      return json(res, 400, { error: 'Email inválido' }, req);
+    }
+
+    try {
+      const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
+      if (!isPlatformAdmin) return json(res, 403, { error: 'Acesso negado: requer permissão de superadmin' }, req);
+
+      const result = await platformAdminService.invitePlatformAdmin(email, user.id);
+      return json(res, 201, {
+        message: `Convite enviado para ${email}`,
+        invite: result.invite,
+      }, req);
+    } catch (e) {
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Platform Admin: Aceitar convite ---
+  if (pathname === '/api/admin/platform/accept-invite' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const { token, userId, email } = body;
+
+    if (!token || !userId || !email) {
+      return json(res, 400, { error: 'Token, userId e email são obrigatórios' }, req);
+    }
+
+    if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const admin = await platformAdminService.acceptInvite(token, userId, email);
+      return json(res, 201, {
+        message: `Bem-vindo como superadmin, ${email}!`,
+        admin,
+      }, req);
+    } catch (e) {
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Platform Admin: Remover superadmin ---
+  if (pathname === '/api/admin/platform/remove' && req.method === 'POST') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    const body = await parseBody(req);
+    const { adminId } = body;
+
+    if (!adminId) {
+      return json(res, 400, { error: 'adminId é obrigatório' }, req);
+    }
+
+    try {
+      const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
+      if (!isPlatformAdmin) return json(res, 403, { error: 'Acesso negado: requer permissão de superadmin' }, req);
+
+      const result = await platformAdminService.removePlatformAdmin(adminId, user.id);
+      return json(res, 200, {
+        message: `Superadmin ${result.email} foi desativado`,
+        admin: result,
+      }, req);
+    } catch (e) {
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin')) {
     // Proxy para o Warmup Manager existente
     try {
       const proxyUrl = `${WARMUP_URL}${pathname}${url.search}`;

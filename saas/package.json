@@ -18,10 +18,11 @@
     "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.0"
+    "@supabase/supabase-js": "^2.49.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1"
   }
 }
-

@@ -1,6 +1,76 @@
 {
   "history": [
     {
+      "timestamp": "2026-05-03T16:48:19.299Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T16:38:18.864Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T16:28:19.359Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T16:18:18.499Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T16:08:19.602Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T15:58:19.565Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T15:48:21.469Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T15:38:20.245Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T15:28:19.955Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T15:18:17.974Z",
+      "type": "pulse",
+      "heatScore": 50,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
       "timestamp": "2026-05-03T15:08:18.159Z",
       "type": "pulse",
       "heatScore": 50,
@@ -961,5 +1031,5 @@
     }
   ],
   "firstSeenAt": "2026-04-30T15:42:28.050Z",
-  "lastUpdatedAt": "2026-05-03T15:08:18.159Z"
+  "lastUpdatedAt": "2026-05-03T16:48:19.299Z"
 }
