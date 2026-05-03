@@ -677,6 +677,20 @@ async function handler(req, res) {
     }
   }
 
+  // --- Platform Admin: Verificar se é superadmin (sem restrição) ---
+  if (pathname === '/api/admin/platform/check' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
+      return json(res, 200, { isPlatformAdmin }, req);
+    } catch (e) {
+      return json(res, 200, { isPlatformAdmin: false }, req);
+    }
+  }
+
   // --- Platform Admin: Listar superadmins ---
   if (pathname === '/api/admin/platform/admins' && req.method === 'GET') {
     const user = await extractUser(req);
@@ -688,7 +702,7 @@ async function handler(req, res) {
       if (!isPlatformAdmin) return json(res, 403, { error: 'Acesso negado: requer permissão de superadmin' }, req);
 
       const admins = await platformAdminService.listPlatformAdmins();
-      return json(res, 200, { admins, total: admins.length }, req);
+      return json(res, 200, { data: admins, total: admins.length }, req);
     } catch (e) {
       return json(res, 500, { error: e.message }, req);
     }
