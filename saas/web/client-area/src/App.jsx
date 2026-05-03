@@ -24,6 +24,7 @@ import Campaigns from './pages/Campaigns';
 import Wallet from './pages/Wallet';
 import Inbox from './pages/Inbox';
 import AdminDashboard from './pages/AdminDashboard';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import './App.css';
 
 import LandingPage from './pages/LandingPage';
@@ -51,6 +52,11 @@ function App() {
         {/* Rotas autenticadas — Admin */}
         <Route element={<ProtectedRoute requireAdmin />}>
           <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
+
+        {/* Rotas autenticadas — Superadmin */}
+        <Route element={<ProtectedRoute requirePlatformAdmin />}>
+          <Route path="/admin/superadmin" element={<SuperAdminDashboard />} />
         </Route>
 
         {/* Fallback: rotas desconhecidas → home */}
