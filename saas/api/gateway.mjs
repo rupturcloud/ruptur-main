@@ -21,6 +21,7 @@ import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { BillingService } from '../modules/billing/getnet.js';
 import TenantService from '../modules/tenants/service.js';
+import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import { PlatformAdminService } from '../modules/superadmin/platform-admin.service.js';
 
 // --- Config ---
@@ -278,6 +279,17 @@ async function handler(req, res) {
       return json(res, 400, { error: 'tenantId e packageId obrigatórios' }, req);
     }
 
+    // SECURITY: Validar que o usuário tem acesso ao tenant (crítico!)
+    const validatedTenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!validatedTenantId || validatedTenantId !== body.tenantId) {
+      log('warn', 'Tentativa de acesso não autorizado a tenant', {
+        user: user.id,
+        requestedTenant: body.tenantId,
+        ip: clientIp,
+      });
+      return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    }
+
     try {
       const result = await billing.createCheckoutPreference(body.tenantId, body.packageId);
       return json(res, 200, result, req);
@@ -295,6 +307,17 @@ async function handler(req, res) {
       return json(res, 400, { error: 'tenantId e planId obrigatórios' }, req);
     }
 
+    // SECURITY: Validar que o usuário tem acesso ao tenant (crítico!)
+    const validatedTenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!validatedTenantId || validatedTenantId !== body.tenantId) {
+      log('warn', 'Tentativa de acesso não autorizado a tenant', {
+        user: user.id,
+        requestedTenant: body.tenantId,
+        ip: clientIp,
+      });
+      return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    }
+
     try {
       const result = await billing.createSubscription(body.tenantId, body.planId);
       return json(res, 200, result, req);
@@ -310,18 +333,18 @@ async function handler(req, res) {
     if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
 
     try {
-      const tenantId = url.searchParams.get('tenant_id') || user.user_metadata?.default_tenant_id;
-      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+      // SECURITY: Validar tenantId de forma segura
+      const requestedTenantId = url.searchParams.get('tenant_id') || url.searchParams.get('tenantId');
+      const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
 
-      // Verificar acesso ao tenant
-      const { data: membership } = await supabase
-        .from('user_tenant_memberships')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('tenant_id', tenantId)
-        .single();
-
-      if (!membership) return json(res, 403, { error: 'Acesso negado' }, req);
+      if (!tenantId) {
+        log('warn', 'Tentativa de acesso não autorizado a tenant (referral)', {
+          user: user.id,
+          requestedTenant: requestedTenantId,
+          ip: clientIp,
+        });
+        return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+      }
 
       // Buscar link existente ativo
       let { data: refLink } = await supabase
@@ -367,8 +390,18 @@ async function handler(req, res) {
     if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
 
     try {
-      const tenantId = url.searchParams.get('tenant_id') || user.user_metadata?.default_tenant_id;
-      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+      // SECURITY: Validar tenantId de forma segura
+      const requestedTenantId = url.searchParams.get('tenant_id') || url.searchParams.get('tenantId');
+      const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+
+      if (!tenantId) {
+        log('warn', 'Tentativa de acesso não autorizado a tenant (referral summary)', {
+          user: user.id,
+          requestedTenant: requestedTenantId,
+          ip: clientIp,
+        });
+        return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+      }
 
       const { data: summary } = await supabase
         .from('referral_summary')
