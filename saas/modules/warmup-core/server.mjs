@@ -23,7 +23,7 @@ function resolveAssetDir(dirname) {
   return path.resolve(process.cwd(), "web", dirname);
 }
 
-const FRONT_DIST_DIR = resolveAssetDir("dist-client"); // Front Lindona / Página de Vendas
+const FRONT_DIST_DIR = resolveAssetDir("dist"); // Front Lindona / Página de Vendas
 const DASHBOARD_DIST_DIR = resolveAssetDir("dashboard-dist"); // Legacy Dashboard SafeFlow
 const MANAGER_DIST_DIR = resolveAssetDir("manager-dist"); // Warmup Manager
 
