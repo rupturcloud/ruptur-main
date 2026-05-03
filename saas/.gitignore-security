@@ -1,0 +1,44 @@
+# ============================================
+# RUPTUR SAAS — REGRAS DE SEGURANÇA
+# ============================================
+
+# NUNCA comite credenciais ou dados sensíveis
+.env
+.env.local
+.env.*.local
+.env.backup
+.env.production.local
+.env.staging.local
+
+# Runtime data pode conter tokens
+runtime-data/warmup-state.json
+runtime-data/instance-dna/**/*.json
+
+# Caches que podem conter dados sensíveis
+.cache/
+tmp/
+temp/
+
+# Secrets
+secrets/
+private/
+credentials/
+
+# IDE / Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Build
+dist/
+build/
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
