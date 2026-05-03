@@ -13,26 +13,30 @@
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import { createClient } from '@supabase/supabase-js';
 import { WebhookService } from '../modules/billing/webhook.service.js';
+import { setupTestTenant } from './setup.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 describe('Webhooks — Semana 3', () => {
   let supabase;
   let webhookService;
   let testTenantId;
   let testPaymentId;
+  let cleanup;
 
   beforeAll(async () => {
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false }
     });
 
     webhookService = new WebhookService(supabase, null);
 
-    // TODO: Setup tenant e payment de teste
-    // testTenantId = ...
-    // testPaymentId = ...
+    // Setup tenant de teste
+    const setup = await setupTestTenant();
+    testTenantId = setup.tenantId;
+    testPaymentId = setup.paymentId;
+    cleanup = setup.cleanup;
   });
 
   // =========================================================================
@@ -196,7 +200,9 @@ describe('Webhooks — Semana 3', () => {
   });
 
   afterAll(async () => {
-    // Cleanup
+    if (cleanup) {
+      await cleanup();
+    }
   });
 });
 

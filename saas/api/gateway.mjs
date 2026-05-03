@@ -207,6 +207,15 @@ async function serveStatic(res, pathname, req) {
 async function handler(req, res) {
   const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
 
+  // Redirecionar ruptur.cloud (sem www) para www.ruptur.cloud
+  const host = (req.headers.host || '').toLowerCase();
+  if (host === 'ruptur.cloud' || host.startsWith('ruptur.cloud:')) {
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const newUrl = `${protocol}://www.ruptur.cloud${req.url}`;
+    res.writeHead(301, { 'Location': newUrl });
+    return res.end();
+  }
+
   // Rate Limiter — bloqueia antes de qualquer processamento
   if (!rateLimit(clientIp)) {
     log('warn', 'Rate limit excedido', { ip: clientIp });

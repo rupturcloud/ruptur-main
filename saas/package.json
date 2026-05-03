@@ -11,6 +11,8 @@
     "preview": "WARMUP_RUNTIME_HOST=127.0.0.1 WARMUP_RUNTIME_PORT=4173 npm start",
     "preview:playwright": "playwright open http://127.0.0.1:4173/",
     "preview:screenshot": "mkdir -p tmp/playwright && playwright screenshot --full-page http://127.0.0.1:4173/ tmp/playwright/preview-home.png",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
@@ -23,6 +25,8 @@
     "pg": "^8.20.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@jest/globals": "^30.3.0",
+    "@playwright/test": "^1.59.1",
+    "jest": "^30.3.0"
   }
 }

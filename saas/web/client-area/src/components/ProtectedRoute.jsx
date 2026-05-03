@@ -8,8 +8,8 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function ProtectedRoute({ requireAdmin = false }) {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+export default function ProtectedRoute({ requireAdmin = false, requirePlatformAdmin = false }) {
+  const { isAuthenticated, isAdmin, isPlatformAdmin, loading } = useAuth();
 
   // Enquanto verifica sessão, mostra loading
   if (loading) {
@@ -46,6 +46,11 @@ export default function ProtectedRoute({ requireAdmin = false }) {
 
   // Rota admin, mas user não é admin
   if (requireAdmin && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Rota superadmin, mas user não é superadmin
+  if (requirePlatformAdmin && !isPlatformAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
