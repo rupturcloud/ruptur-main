@@ -21,6 +21,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PermissionsService } from './permissions.service.js';
 import { AuditService } from './audit.service.js';
 import { BillingService } from './billing.service.js';
+import { WebhookService } from './webhook.service.js';
 
 const WEBHOOK_SECRET = process.env.GETNET_WEBHOOK_SECRET || '';
 const tenantRateLimits = new Map();
@@ -90,6 +91,8 @@ function extractSecurityContext(req) {
 export function registerBillingRoutes(app, { billing, authMiddleware }) {
   const permissionsService = new PermissionsService(billing.supabase);
   const auditService = new AuditService(billing.supabase);
+  const billingService = new BillingService(billing.supabase, auditService, permissionsService);
+  const webhookService = new WebhookService(billing.supabase, auditService);
 
   // Listar planos disponíveis (público)
   app.get('/api/billing/plans', async (req, res) => {
@@ -105,6 +108,35 @@ export function registerBillingRoutes(app, { billing, authMiddleware }) {
   // Listar pacotes de créditos (público)
   app.get('/api/billing/packages', (req, res) => {
     res.json({ packages: billing.getCreditPackages() });
+  });
+
+  // Obter saldo da wallet (autenticado)
+  app.get('/api/billing/wallet', authMiddleware, async (req, res) => {
+    try {
+      const { tenantId } = req.query;
+      if (!tenantId) {
+        return res.status(400).json({ error: 'tenantId é obrigatório' });
+      }
+
+      // Validar permissão de visualizar (pelo menos member)
+      try {
+        await permissionsService.requireBillingPermission(req.user.id, tenantId, 'view');
+      } catch (error) {
+        return res.status(403).json({ error: 'Você não tem permissão para visualizar este wallet' });
+      }
+
+      const wallet = await billingService.getWalletBalance(tenantId);
+
+      res.json({
+        tenantId,
+        balance: wallet.balance,
+        version: wallet.version,
+        updatedAt: wallet.updated_at
+      });
+    } catch (error) {
+      console.error(JSON.stringify({ ts: new Date().toISOString(), level: 'error', msg: 'Erro ao obter wallet', error: error.message }));
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // Criar checkout para créditos avulsos (autenticado + RBAC)
@@ -176,21 +208,27 @@ export function registerBillingRoutes(app, { billing, authMiddleware }) {
         });
       }
 
-      // 4. Criar checkout
-      const result = await billing.createCheckoutPreference(tenantId, packageId);
+      // 4. Criar checkout IDEMPOTENTE (mesma requisição = mesma resposta)
+      const checkoutResult = await billingService.createCheckoutIdempotent(
+        tenantId,
+        req.user.id,
+        packageData
+      );
 
-      // 5. Auditar sucesso
+      // 5. Auditar sucesso (usar ação diferente se foi idempotência)
       const userRole = await permissionsService.getUserRole(req.user.id, tenantId);
       await auditService.log({
         tenantId,
         userId: req.user.id,
-        action: 'checkout_created',
+        action: checkoutResult.isNew ? 'checkout_created' : 'checkout_idempotent',
         resourceType: 'payment',
-        resourceId: result.id,
+        resourceId: checkoutResult.id,
         newValue: {
-          amountCents: result.amountCents,
-          status: result.status,
-          packageId
+          amountCents: packageData.amountCents,
+          status: checkoutResult.status,
+          packageId,
+          idempotencyKey: checkoutResult.idempotencyKey,
+          isNew: checkoutResult.isNew
         },
         ipAddress: securityContext.ipAddress,
         userAgent: securityContext.userAgent,
@@ -198,7 +236,14 @@ export function registerBillingRoutes(app, { billing, authMiddleware }) {
         actingAsRole: userRole
       });
 
-      res.json(result);
+      res.json({
+        id: checkoutResult.id,
+        status: checkoutResult.status,
+        amountCents: packageData.amountCents,
+        packageId,
+        idempotencyKey: checkoutResult.idempotencyKey,
+        isNew: checkoutResult.isNew
+      });
     } catch (error) {
       console.error(JSON.stringify({ ts: new Date().toISOString(), level: 'error', msg: 'Erro no checkout', error: error.message }));
       await auditService.log({
@@ -289,11 +334,13 @@ export function registerBillingRoutes(app, { billing, authMiddleware }) {
       // Responder rápido para a Getnet (evita retry em timeout)
       res.status(200).json({ ok: true });
 
-      // 2. Processar em background com validação de tenant
-      const result = await handleGetnetWebhookWithAudit(
+      // 2. Processar em background com idempotência via webhook_events
+      const result = await handleGetnetWebhookWithIdempotency(
         req.body,
         req.query,
         billing,
+        billingService,
+        webhookService,
         auditService,
         ipAddress
       );
@@ -301,9 +348,10 @@ export function registerBillingRoutes(app, { billing, authMiddleware }) {
       console.log(JSON.stringify({
         ts: new Date().toISOString(),
         level: 'info',
-        msg: 'Webhook Getnet processado',
+        msg: 'Webhook Getnet processado (idempotente)',
         transactionId: req.body.transaction_id,
         status: req.body.status,
+        isNew: result.isNew,
         ...result,
       }));
     } catch (error) {
@@ -339,94 +387,96 @@ export function registerBillingRoutes(app, { billing, authMiddleware }) {
 }
 
 /**
- * Processar webhook da Getnet com validação de tenant
- * (Função helper para isolar lógica de webhook)
+ * Processar webhook da Getnet com idempotência
+ * Usa webhook_events para rastreamento e evita processamento duplicado
  */
-async function handleGetnetWebhookWithAudit(payload, query, billing, auditService, ipAddress) {
+async function handleGetnetWebhookWithIdempotency(
+  payload,
+  query,
+  billing,
+  billingService,
+  webhookService,
+  auditService,
+  ipAddress
+) {
   const { transaction_id, status } = payload;
 
-  // 1. Buscar transação no DB
-  const { data: txn, error: txnError } = await billing.supabase
-    .from('payments')
-    .select('id, tenant_id, amount_cents, status as current_status')
-    .eq('getnet_payment_id', transaction_id)
-    .maybeSingle();
+  // 1. Registrar webhook de forma idempotente
+  const webhookEvent = await webhookService.processWebhookIdempotent(
+    null, // tenantId será obtido do payment
+    transaction_id,
+    'payment_status_update',
+    payload
+  );
 
-  if (txnError || !txn) {
-    console.warn(`Webhook: transação ${transaction_id} não encontrada`);
-    return { status: 'not_found', transactionId: transaction_id };
+  // Se já foi processado com sucesso, retornar
+  if (!webhookEvent.isNew && webhookEvent.status === 'success') {
+    return {
+      status: 'idempotent_skip',
+      transactionId: transaction_id,
+      isNew: false
+    };
   }
 
-  const tenantId = txn.tenant_id;
+  try {
+    // 2. Buscar transação no DB
+    const { data: txn, error: txnError } = await billing.supabase
+      .from('payments')
+      .select('id, tenant_id, amount_cents, status as current_status')
+      .eq('getnet_payment_id', transaction_id)
+      .maybeSingle();
 
-  // 2. Idempotência: já processado?
-  if (txn.current_status === status) {
-    console.log(`Webhook: transação ${transaction_id} já foi processada com status ${status}`);
+    if (txnError || !txn) {
+      await webhookService.markWebhookFailed(null, webhookEvent.id, `Payment não encontrado: ${transaction_id}`);
+      return { status: 'not_found', transactionId: transaction_id, isNew: webhookEvent.isNew };
+    }
+
+    const tenantId = txn.tenant_id;
+
+    // 3. Processar payment status update
+    const updateResult = await webhookService.processPaymentStatusUpdate(
+      tenantId,
+      transaction_id,
+      status,
+      webhookEvent.id
+    );
+
+    // 4. Auditar processamento
     await auditService.log({
       tenantId,
       userId: 'system',
-      action: 'webhook_idempotent_skip',
+      action: 'webhook_processed',
       resourceType: 'webhook',
       resourceId: txn.id,
+      oldValue: { status: txn.current_status },
+      newValue: { status },
       ipAddress,
-      metadata: { transaction_id, status, reason: 'already_processed' }
-    });
-    return { status: 'idempotent_skip', transactionId: transaction_id };
-  }
-
-  // 3. Atualizar transação (com validação de tenant)
-  const { error: updateError } = await billing.supabase
-    .from('payments')
-    .update({
-      status,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', txn.id)
-    .eq('tenant_id', tenantId); // Validação crucial: garantir que atualiza do tenant certo
-
-  if (updateError) {
-    console.error(`Webhook: erro ao atualizar transação ${transaction_id}`, updateError);
-    return { status: 'update_error', transactionId: transaction_id };
-  }
-
-  // 4. Se aprovado, creditar wallet
-  if (status === 'APPROVED') {
-    try {
-      const creditsToAdd = Math.floor(txn.amount_cents / 100);
-      const { error: creditError } = await billing.supabase.rpc('add_wallet_credits', {
-        p_tenant_id: tenantId,
-        p_amount: creditsToAdd,
-        p_reference: transaction_id,
-        p_description: `Pagamento aprovado via Getnet: ${transaction_id}`
-      });
-
-      if (creditError) {
-        console.error(`Webhook: erro ao creditar wallet do tenant ${tenantId}`, creditError);
+      metadata: {
+        transaction_id,
+        webhook_payload_status: status,
+        reason: updateResult.reason,
+        webhook_event_id: webhookEvent.id
       }
-    } catch (error) {
-      console.error(`Webhook: erro ao chamar add_wallet_credits:`, error.message);
-    }
+    });
+
+    return {
+      status: 'success',
+      transactionId: transaction_id,
+      tenantId,
+      newStatus: status,
+      isNew: webhookEvent.isNew,
+      reason: updateResult.reason
+    };
+
+  } catch (error) {
+    await webhookService.markWebhookFailed(null, webhookEvent.id, error.message);
+    return {
+      status: 'error',
+      transactionId: transaction_id,
+      error: error.message,
+      isNew: webhookEvent.isNew
+    };
   }
-
-  // 5. Auditar processamento do webhook
-  await auditService.log({
-    tenantId,
-    userId: 'system',
-    action: 'webhook_processed',
-    resourceType: 'webhook',
-    resourceId: txn.id,
-    oldValue: { status: txn.current_status },
-    newValue: { status },
-    ipAddress,
-    metadata: { transaction_id, webhook_payload_status: status }
-  });
-
-  return {
-    status: 'success',
-    transactionId: transaction_id,
-    tenantId,
-    newStatus: status
-  };
 }
 
 export default registerBillingRoutes;
