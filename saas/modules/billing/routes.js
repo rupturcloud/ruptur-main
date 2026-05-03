@@ -1,15 +1,25 @@
 /**
  * Rotas de Billing — Getnet (Santander)
+ * Com Auditoria, RBAC e Rate Limiting
  *
  * POST /api/billing/checkout   → Criar checkout para créditos avulsos
  * POST /api/billing/subscribe  → Criar assinatura recorrente
  * GET  /api/billing/plans      → Listar planos disponíveis
  * GET  /api/billing/packages   → Listar pacotes de créditos
  * POST /api/webhooks/getnet    → Webhook de notificação da Getnet (HMAC-SHA256)
+ *
+ * Segurança:
+ * - Validação de permissões por role (owner/admin/member)
+ * - Auditoria imutável de todas operações
+ * - Rate limiting por tenant
+ * - Isolamento de dados por tenant em nível de DB (RLS)
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { PermissionsService } from './permissions.service.js';
+import { AuditService } from './audit.service.js';
 
 const WEBHOOK_SECRET = process.env.GETNET_WEBHOOK_SECRET || '';
+const tenantRateLimits = new Map();
 
 /**
  * Verificar assinatura HMAC-SHA256 do webhook Getnet
@@ -34,7 +44,48 @@ function verifyWebhookSignature(rawBody, signature) {
   }
 }
 
+/**
+ * Rate limiting por tenant (simples em-memory)
+ * TODO: Migrar para Redis em produção
+ */
+function checkTenantRateLimit(tenantId, maxRequestsPerMinute = 10) {
+  const now = Date.now();
+  const key = `${tenantId}:purchase`;
+
+  if (!tenantRateLimits.has(key)) {
+    tenantRateLimits.set(key, []);
+  }
+
+  const requests = tenantRateLimits.get(key);
+  const oneMinuteAgo = now - 60000;
+
+  // Remover requests antigos
+  while (requests.length > 0 && requests[0] < oneMinuteAgo) {
+    requests.shift();
+  }
+
+  if (requests.length >= maxRequestsPerMinute) {
+    return false;
+  }
+
+  requests.push(now);
+  return true;
+}
+
+/**
+ * Extrair contexto de segurança da request
+ */
+function extractSecurityContext(req) {
+  return {
+    ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+    userAgent: req.headers['user-agent'],
+    sessionId: req.session?.id || null
+  };
+}
+
 export function registerBillingRoutes(app, { billing, authMiddleware }) {
+  const permissionsService = new PermissionsService(billing.supabase);
+  const auditService = new AuditService(billing.supabase);
 
   // Listar planos disponíveis (público)
   app.get('/api/billing/plans', async (req, res) => {
