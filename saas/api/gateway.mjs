@@ -91,19 +91,33 @@ setInterval(() => {
   }
 }, 300_000);
 
-// --- Origens CORS permitidas ---
+// --- Origens CORS permitidas (WHITELIST RIGOROSA) ---
 const ALLOWED_ORIGINS = new Set([
   'https://ruptur.cloud',
   'https://www.ruptur.cloud',
+  'https://app.ruptur.cloud', // SaaS principal
   'https://saas.ruptur.cloud',
-  'http://localhost:5173',   // Vite dev
-  'http://localhost:3000',
-  'http://localhost:3001',
+  ...(process.env.NODE_ENV === 'development' ? [
+    'http://localhost:5173',   // Vite dev
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ] : []),
 ]);
 
+/**
+ * CORS: Rejeitar se origin não está na whitelist
+ * NUNCA usar "*" em produção
+ */
 function corsOrigin(req) {
   const origin = req.headers.origin || '';
-  return ALLOWED_ORIGINS.has(origin) ? origin : ALLOWED_ORIGINS.values().next().value;
+
+  if (!ALLOWED_ORIGINS.has(origin)) {
+    // Rejeitar cross-origin não autorizado
+    log('warn', 'CORS: Origin não autorizado', { origin, ip: req.socket.remoteAddress });
+    return null; // Não enviar Access-Control-Allow-Origin
+  }
+
+  return origin;
 }
 
 // --- Structured Logger ---
@@ -122,15 +136,22 @@ function log(level, msg, meta = {}) {
 const MAX_BODY_SIZE = 1_048_576; // 1MB limite de body
 
 function json(res, status, data, req) {
-  const origin = req ? corsOrigin(req) : '*';
-  res.writeHead(status, {
+  const origin = req ? corsOrigin(req) : null;
+  const headers = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
-  });
+    'X-XSS-Protection': '1; mode=block',
+  };
+
+  // Apenas enviar CORS headers se origin está na whitelist
+  if (origin) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+  }
+
+  res.writeHead(status, headers);
   res.end(JSON.stringify(data));
 }
 
@@ -224,14 +245,26 @@ async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'Too many requests' }));
   }
 
-  // CORS Preflight — origens específicas
+  // CORS Preflight — rejeitar se não autorizado
   if (req.method === 'OPTIONS') {
     const origin = corsOrigin(req);
+
+    if (!origin) {
+      // Origin não está na whitelist
+      log('warn', 'CORS Preflight rejeitado', {
+        origin: req.headers.origin,
+        ip: clientIp,
+      });
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Origin not allowed' }));
+    }
+
     res.writeHead(204, {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Max-Age': '86400',
+      'Vary': 'Origin',
     });
     return res.end();
   }
