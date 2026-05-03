@@ -81,20 +81,40 @@ async function addDiegoAsAdmin() {
   console.log('📧 PASSO 2: Adicionando diegoizac@gmail.com...\n');
 
   try {
-    const diegoId = crypto.randomUUID();
+    // Criar usuário no auth.users primeiro (ou obter ID se já existe)
+    let diegoId;
 
-    // Inserir direto (sem user_id validado)
+    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    const diegoUser = users.find(u => u.email === 'diegoizac@gmail.com');
+
+    if (diegoUser) {
+      diegoId = diegoUser.id;
+      console.log('   ℹ️  Usuário diegoizac@gmail.com já existe no auth');
+    } else {
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email: 'diegoizac@gmail.com',
+        password: crypto.randomBytes(32).toString('hex'),
+        email_confirm: true,
+      });
+
+      if (createError) throw createError;
+      diegoId = newUser.user.id;
+      console.log('   ✅ Usuário criado no auth: diegoizac@gmail.com');
+    }
+
+    // Verificar se já é superadmin
     const { data: existing } = await supabase
       .from('platform_admins')
       .select('id')
       .eq('email', 'diegoizac@gmail.com')
-      .single();
+      .maybeSingle();
 
     if (existing) {
       console.log('   ⚠️  diegoizac@gmail.com já é superadmin');
       return diegoId;
     }
 
+    // Inserir na tabela platform_admins
     const { data: admin, error } = await supabase
       .from('platform_admins')
       .insert({
@@ -107,7 +127,6 @@ async function addDiegoAsAdmin() {
       .single();
 
     if (error) {
-      // Se for erro de duplicate, só ignorar
       if (error.code === '23505') {
         console.log('   ⚠️  diegoizac@gmail.com já é superadmin');
         return diegoId;
@@ -117,7 +136,7 @@ async function addDiegoAsAdmin() {
 
     console.log('   ✅ Superadmin criado: diegoizac@gmail.com');
     console.log(`      ID: ${admin.id}`);
-    return admin.user_id;
+    return diegoId;
   } catch (error) {
     console.error('   ❌ Erro:', error.message);
     throw error;
