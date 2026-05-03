@@ -1,6 +1,48 @@
 {
   "history": [
     {
+      "timestamp": "2026-05-03T15:08:18.151Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T14:58:21.868Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T14:48:19.010Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T14:38:18.663Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T14:28:18.701Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
+      "timestamp": "2026-05-03T14:18:18.324Z",
+      "type": "pulse",
+      "heatScore": 70,
+      "status": "connecting",
+      "sentToday": 0
+    },
+    {
       "timestamp": "2026-05-03T14:08:18.021Z",
       "type": "pulse",
       "heatScore": 70,
@@ -919,5 +961,5 @@
     }
   ],
   "firstSeenAt": "2026-04-30T15:42:27.968Z",
-  "lastUpdatedAt": "2026-05-03T14:08:18.021Z"
+  "lastUpdatedAt": "2026-05-03T15:08:18.151Z"
 }

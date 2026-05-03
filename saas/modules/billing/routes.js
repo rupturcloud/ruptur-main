@@ -1,11 +1,12 @@
 /**
  * Rotas de Billing — Getnet (Santander)
- * Com Auditoria, RBAC e Rate Limiting
+ * Com Auditoria, RBAC, Idempotência e Lock Otimista
  *
- * POST /api/billing/checkout   → Criar checkout para créditos avulsos
+ * POST /api/billing/checkout   → Criar checkout para créditos avulsos (idempotente)
  * POST /api/billing/subscribe  → Criar assinatura recorrente
  * GET  /api/billing/plans      → Listar planos disponíveis
  * GET  /api/billing/packages   → Listar pacotes de créditos
+ * GET  /api/billing/wallet     → Obter saldo da wallet
  * POST /api/webhooks/getnet    → Webhook de notificação da Getnet (HMAC-SHA256)
  *
  * Segurança:
@@ -13,10 +14,13 @@
  * - Auditoria imutável de todas operações
  * - Rate limiting por tenant
  * - Isolamento de dados por tenant em nível de DB (RLS)
+ * - Idempotência via idempotency_key (SHA256)
+ * - Lock otimista em wallet (version column)
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PermissionsService } from './permissions.service.js';
 import { AuditService } from './audit.service.js';
+import { BillingService } from './billing.service.js';
 
 const WEBHOOK_SECRET = process.env.GETNET_WEBHOOK_SECRET || '';
 const tenantRateLimits = new Map();
