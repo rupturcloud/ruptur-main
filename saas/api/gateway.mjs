@@ -717,12 +717,25 @@ async function handler(req, res) {
     if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
     if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
 
-    const body = await parseBody(req);
-    const { email } = body;
-
-    if (!email || !email.includes('@')) {
-      return json(res, 400, { error: 'Email inválido' }, req);
+    // SECURITY: Validar schema do payload
+    const validation = await PlatformAdminSchemas.invite.safeParseAsync(await parseBody(req));
+    if (!validation.success) {
+      log('warn', 'Validação de payload falhou', {
+        endpoint: '/api/admin/platform/invite',
+        errors: validation.error.errors,
+        user: user.id,
+        ip: clientIp,
+      });
+      return json(res, 400, {
+        error: 'Validação falhou',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      }, req);
     }
+
+    const { email } = validation.data;
 
     try {
       const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
@@ -740,12 +753,24 @@ async function handler(req, res) {
 
   // --- Platform Admin: Aceitar convite ---
   if (pathname === '/api/admin/platform/accept-invite' && req.method === 'POST') {
-    const body = await parseBody(req);
-    const { token, userId, email } = body;
-
-    if (!token || !userId || !email) {
-      return json(res, 400, { error: 'Token, userId e email são obrigatórios' }, req);
+    // SECURITY: Validar schema do payload
+    const validation = await PlatformAdminSchemas.acceptInvite.safeParseAsync(await parseBody(req));
+    if (!validation.success) {
+      log('warn', 'Validação de payload falhou', {
+        endpoint: '/api/admin/platform/accept-invite',
+        errors: validation.error.errors,
+        ip: clientIp,
+      });
+      return json(res, 400, {
+        error: 'Validação falhou',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      }, req);
     }
+
+    const { token, userId, email } = validation.data;
 
     if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
 
@@ -766,12 +791,25 @@ async function handler(req, res) {
     if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
     if (!platformAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
 
-    const body = await parseBody(req);
-    const { adminId } = body;
-
-    if (!adminId) {
-      return json(res, 400, { error: 'adminId é obrigatório' }, req);
+    // SECURITY: Validar schema do payload
+    const validation = await PlatformAdminSchemas.remove.safeParseAsync(await parseBody(req));
+    if (!validation.success) {
+      log('warn', 'Validação de payload falhou', {
+        endpoint: '/api/admin/platform/remove',
+        errors: validation.error.errors,
+        user: user.id,
+        ip: clientIp,
+      });
+      return json(res, 400, {
+        error: 'Validação falhou',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      }, req);
     }
+
+    const { adminId } = validation.data;
 
     try {
       const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
