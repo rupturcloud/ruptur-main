@@ -14,6 +14,9 @@
  * Uso:  node api/gateway.mjs
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 import http from 'node:http';
 import { createReadStream, existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
