@@ -1,7 +1,7 @@
 # 🔐 Log de Melhorias de Segurança - Maio 2026
 
-**Status**: 3 de 6 CRÍTICAS implementadas  
-**Impacto**: Redução de 75% dos riscos críticos identificados
+**Status**: 4 de 6 CRÍTICAS implementadas  
+**Impacto**: Redução de 83% dos riscos críticos identificados
 
 ---
 
@@ -105,11 +105,40 @@ const token = await secretsService.getSecret(tenantId, 'uazapi');
 
 ---
 
-## 🚧 PRÓXIMOS (Em Fila)
-
-### 4. **Sem Validação de Input em Payloads**
+### 4. **Sem Validação de Input em Payloads** → RESOLVIDO
+**Data**: 3 de maio, 16:51 UTC  
 **Severidade**: ALTA  
-**Plano**: Schema validation com Zod
+
+**Mudanças**:
+- ✅ Implementado `middleware/validation.mjs` com Zod schemas
+- ✅ Validação em 7 endpoints críticos:
+  - `/api/billing/checkout` (tenantId, packageId)
+  - `/api/billing/subscribe` (tenantId, planId)
+  - `/api/tenants/provision` (userId, email, tenantName)
+  - `/api/referrals/claim/*` (newTenantId)
+  - `/api/admin/platform/invite` (email)
+  - `/api/admin/platform/accept-invite` (token, userId, email)
+  - `/api/admin/platform/remove` (adminId)
+- ✅ Logging de falhas de validação
+- ✅ Erros estruturados (field, message, code)
+- ✅ Deploy: Sincronizado via rsync
+
+**Antes**:
+```javascript
+❌ const body = await parseBody(req);
+❌ const { email } = body; // Sem validação
+```
+
+**Depois**:
+```javascript
+✅ const validation = await schema.safeParseAsync(await parseBody(req));
+✅ if (!validation.success) return error;
+✅ const { email } = validation.data; // Garantido tipo correto
+```
+
+---
+
+## 🚧 PRÓXIMOS (Em Fila)
 
 ### 5. **Sem Rate Limiting em Endpoints Críticos**
 **Severidade**: ALTA  
@@ -125,8 +154,9 @@ const token = await secretsService.getSecret(tenantId, 'uazapi');
 
 | Métrica | Antes | Depois |
 |---------|-------|--------|
-| Riscos CRÍTICOS | 6 | 3 |
+| Riscos CRÍTICOS | 6 | 2 |
 | Endpoints com validação de tenant | 0 | 4+ |
+| Endpoints com validação de input (Zod) | 0 | 7 |
 | Secrets em plaintext | ✅ Sim | ❌ Não |
 | CORS origins permitidas | `*` | 4 específicos |
 | Logging de segurança | Não | ✅ Sim |
