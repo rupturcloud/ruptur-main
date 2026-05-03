@@ -22,6 +22,13 @@ import { createClient } from '@supabase/supabase-js';
 import { BillingService } from '../modules/billing/getnet.js';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
+import {
+  BillingSchemas,
+  ReferralSchemas,
+  TenantSchemas,
+  WalletSchemas,
+  PlatformAdminSchemas,
+} from '../middleware/validation.mjs';
 import { PlatformAdminService } from '../modules/superadmin/platform-admin.service.js';
 
 // --- Config ---
@@ -307,24 +314,39 @@ async function handler(req, res) {
     const user = await extractUser(req);
     if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
 
-    const body = await parseBody(req);
-    if (!body.tenantId || !body.packageId) {
-      return json(res, 400, { error: 'tenantId e packageId obrigatórios' }, req);
+    // SECURITY: Validar schema do payload
+    const validation = await BillingSchemas.checkout.safeParseAsync(await parseBody(req));
+    if (!validation.success) {
+      log('warn', 'Validação de payload falhou', {
+        endpoint: '/api/billing/checkout',
+        errors: validation.error.errors,
+        user: user.id,
+        ip: clientIp,
+      });
+      return json(res, 400, {
+        error: 'Validação falhou',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      }, req);
     }
 
-    // SECURITY: Validar que o usuário tem acesso ao tenant (crítico!)
+    const { tenantId, packageId } = validation.data;
+
+    // SECURITY: Validar que o usuário tem acesso ao tenant
     const validatedTenantId = await extractAndValidateTenantId(url, req, user, supabase);
-    if (!validatedTenantId || validatedTenantId !== body.tenantId) {
+    if (!validatedTenantId || validatedTenantId !== tenantId) {
       log('warn', 'Tentativa de acesso não autorizado a tenant', {
         user: user.id,
-        requestedTenant: body.tenantId,
+        requestedTenant: tenantId,
         ip: clientIp,
       });
       return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
     }
 
     try {
-      const result = await billing.createCheckoutPreference(body.tenantId, body.packageId);
+      const result = await billing.createCheckoutPreference(tenantId, packageId);
       return json(res, 200, result, req);
     } catch (e) {
       return json(res, 500, { error: e.message }, req);
@@ -335,24 +357,39 @@ async function handler(req, res) {
     const user = await extractUser(req);
     if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
 
-    const body = await parseBody(req);
-    if (!body.tenantId || !body.planId) {
-      return json(res, 400, { error: 'tenantId e planId obrigatórios' }, req);
+    // SECURITY: Validar schema do payload
+    const validation = await BillingSchemas.subscribe.safeParseAsync(await parseBody(req));
+    if (!validation.success) {
+      log('warn', 'Validação de payload falhou', {
+        endpoint: '/api/billing/subscribe',
+        errors: validation.error.errors,
+        user: user.id,
+        ip: clientIp,
+      });
+      return json(res, 400, {
+        error: 'Validação falhou',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      }, req);
     }
 
-    // SECURITY: Validar que o usuário tem acesso ao tenant (crítico!)
+    const { tenantId, planId } = validation.data;
+
+    // SECURITY: Validar que o usuário tem acesso ao tenant
     const validatedTenantId = await extractAndValidateTenantId(url, req, user, supabase);
-    if (!validatedTenantId || validatedTenantId !== body.tenantId) {
+    if (!validatedTenantId || validatedTenantId !== tenantId) {
       log('warn', 'Tentativa de acesso não autorizado a tenant', {
         user: user.id,
-        requestedTenant: body.tenantId,
+        requestedTenant: tenantId,
         ip: clientIp,
       });
       return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
     }
 
     try {
-      const result = await billing.createSubscription(body.tenantId, body.planId);
+      const result = await billing.createSubscription(tenantId, planId);
       return json(res, 200, result, req);
     } catch (e) {
       return json(res, 500, { error: e.message }, req);
@@ -509,12 +546,31 @@ async function handler(req, res) {
     if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
     if (!tenantService) return json(res, 503, { error: 'Supabase não configurado' }, req);
 
-    const body = await parseBody(req);
+    // SECURITY: Validar schema do payload
+    const validation = await TenantSchemas.provision.safeParseAsync(await parseBody(req));
+    if (!validation.success) {
+      log('warn', 'Validação de payload falhou', {
+        endpoint: '/api/tenants/provision',
+        errors: validation.error.errors,
+        user: user.id,
+        ip: clientIp,
+      });
+      return json(res, 400, {
+        error: 'Validação falhou',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      }, req);
+    }
+
+    const { email, tenantName, userId } = validation.data;
+
     try {
       const tenant = await tenantService.provision(
-        body.userId || user.id,
-        body.email || user.email,
-        body.tenantName
+        userId || user.id,
+        email || user.email,
+        tenantName
       );
       return json(res, 200, { tenant }, req);
     } catch (e) {
@@ -542,9 +598,24 @@ async function handler(req, res) {
     const refCode = pathname.split('/').pop();
     if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
 
-    const body = await parseBody(req);
-    const { newTenantId } = body;
-    if (!newTenantId) return json(res, 400, { error: 'newTenantId obrigatório' }, req);
+    // SECURITY: Validar schema do payload
+    const validation = await ReferralSchemas.claimCode.safeParseAsync(await parseBody(req));
+    if (!validation.success) {
+      log('warn', 'Validação de payload falhou', {
+        endpoint: '/api/referrals/claim/*',
+        errors: validation.error.errors,
+        ip: clientIp,
+      });
+      return json(res, 400, {
+        error: 'Validação falhou',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      }, req);
+    }
+
+    const { newTenantId } = validation.data;
 
     try {
       // Buscar referral_link

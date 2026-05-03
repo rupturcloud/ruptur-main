@@ -3,3 +3,6 @@ node_modules/
 tmp/
 playwright-report/
 test-results/
+runtime-data/warmup-state.json
+runtime-data/warmup-state.json.backup
+runtime-data/instance-dna/**
