@@ -191,15 +191,6 @@ ALTER TABLE referral_commissions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY wallets_tenant_isolation ON wallets
   USING (tenant_id = auth.uid()::uuid);
 
-CREATE POLICY wallets_admin_override ON wallets
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.tenants
-      WHERE id = wallets.tenant_id
-      AND admin_id = auth.uid()::uuid
-    )
-  );
-
 -- Wallet transactions
 CREATE POLICY wallet_transactions_tenant_isolation ON wallet_transactions
   USING (tenant_id = auth.uid()::uuid);
