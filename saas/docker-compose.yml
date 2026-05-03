@@ -8,10 +8,10 @@ services:
     env_file:
       - .env
     environment:
-      WARMUP_RUNTIME_HOST: 0.0.0.0
-      WARMUP_RUNTIME_PORT: 4173
+      NODE_ENV: production
+      PORT: 3001
     ports:
-      - "4173:4173"
+      - "3001:3001"
     networks:
       - ruptur-edge
     labels:
@@ -22,7 +22,7 @@ services:
       traefik.http.routers.saas-web.entrypoints: websecure
       traefik.http.routers.saas-web.rule: "Host(`saas.ruptur.cloud`)"
       traefik.http.routers.saas-web.tls.certresolver: letsencrypt
-      traefik.http.services.saas-web.loadbalancer.server.port: "4173"
+      traefik.http.services.saas-web.loadbalancer.server.port: "3001"
 
 networks:
   ruptur-edge:
