@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL,
   description TEXT,
-  price_cents INTEGER NOT NULL CHECK (price_cents > 0),
+  price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
   credits_per_month INTEGER NOT NULL CHECK (credits_per_month > 0),
   max_instances INTEGER NOT NULL DEFAULT 5,
   billing_cycle_days INTEGER NOT NULL DEFAULT 30,
