@@ -187,25 +187,50 @@ ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE referral_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE referral_commissions ENABLE ROW LEVEL SECURITY;
 
--- Wallets
+-- Wallets (user pode acessar wallets do seu tenant)
 CREATE POLICY wallets_tenant_isolation ON wallets
-  USING (tenant_id = auth.uid()::uuid);
+  USING (
+    tenant_id IN (
+      SELECT tenant_id FROM user_tenant_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
 
 -- Wallet transactions
 CREATE POLICY wallet_transactions_tenant_isolation ON wallet_transactions
-  USING (tenant_id = auth.uid()::uuid);
+  USING (
+    tenant_id IN (
+      SELECT tenant_id FROM user_tenant_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
 
 -- Payments
 CREATE POLICY payments_tenant_isolation ON payments
-  USING (tenant_id = auth.uid()::uuid);
+  USING (
+    tenant_id IN (
+      SELECT tenant_id FROM user_tenant_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
 
 -- Subscriptions
 CREATE POLICY subscriptions_tenant_isolation ON subscriptions
-  USING (tenant_id = auth.uid()::uuid);
+  USING (
+    tenant_id IN (
+      SELECT tenant_id FROM user_tenant_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
 
 -- Referral links (referrer acessa seus links)
 CREATE POLICY referral_links_referrer_access ON referral_links
-  USING (referrer_tenant_id = auth.uid()::uuid);
+  USING (
+    referrer_tenant_id IN (
+      SELECT tenant_id FROM user_tenant_memberships
+      WHERE user_id = auth.uid()
+    )
+  );
 
 -- ============================================================================
 -- 9. FUNÇÕES HELPER
