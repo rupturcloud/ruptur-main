@@ -3,7 +3,7 @@
 saas_enabled: true
 saas_deploy_dir: /opt/ruptur/saas
 saas_container_name: saas-web
-saas_port: 4173
+saas_port: 3001
 saas_domains:
   - app.ruptur.cloud
   - ruptur.cloud
@@ -19,6 +19,7 @@ saas_repo_path: ruptur-main/saas
 # Runtime
 saas_runtime_host: 0.0.0.0
 saas_node_env: production
+saas_warmup_runtime_url: http://warmup-runtime:4173
 
 # Volumes
 saas_data_dir: /opt/ruptur/data/saas

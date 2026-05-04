@@ -8,8 +8,10 @@ services:
     env_file:
       - .env
     environment:
+      API_HOST: 0.0.0.0
+      PORT_API: {{ saas_port }}
       WARMUP_RUNTIME_HOST: {{ saas_runtime_host }}
-      WARMUP_RUNTIME_PORT: {{ saas_port }}
+      WARMUP_RUNTIME_URL: {{ saas_warmup_runtime_url }}
       NODE_ENV: {{ saas_node_env }}
     networks:
       - {{ saas_network }}

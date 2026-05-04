@@ -24,8 +24,14 @@ export async function handleWebhookGetnet(req, res, webhookService, auditService
     const WEBHOOK_SECRET = process.env.GETNET_WEBHOOK_SECRET || '';
     const signature = req.headers['x-getnet-signature'] || req.headers['x-signature'] || '';
 
+    if (!WEBHOOK_SECRET && process.env.NODE_ENV === 'production') {
+      return json(res, 503, { error: 'GETNET_WEBHOOK_SECRET não configurado' }, null);
+    }
+
     let isValid = true;
-    if (WEBHOOK_SECRET && signature) {
+    if (WEBHOOK_SECRET && !signature) {
+      isValid = false;
+    } else if (WEBHOOK_SECRET && signature) {
       const crypto = await import('node:crypto');
       const expected = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
       try {

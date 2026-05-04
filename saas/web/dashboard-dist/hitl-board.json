@@ -301,7 +301,7 @@
               ]
             },
             {
-              "task_id": "INFRA-031-legacy-cleanup-kvm2-hostinger-oracle-refs",
+              "task_id": "INFRA-031-legacy-cleanup-kvm2-hostinger-gcp-refs",
               "type": "change",
               "status": "in_progress",
               "mode": "FULL",
@@ -311,7 +311,7 @@
               "approval_required": true,
               "execution_policy": "human_in_the_loop",
               "expected_output": [
-                "referências a KVM2/Hostinger/Oracle classificadas como legado ou removidas",
+                "referências a KVM2/Hostinger/GCP classificadas como legado ou removidas",
                 "docs e playbooks alinhados ao Ruptur Cloud Lab/GCP",
                 "ruído operacional reduzido",
                 "state atualizado com a limpeza de legado"
@@ -1025,7 +1025,7 @@
         ]
       },
       {
-        "task_id": "INFRA-031-legacy-cleanup-kvm2-hostinger-oracle-refs",
+        "task_id": "INFRA-031-legacy-cleanup-kvm2-hostinger-gcp-refs",
         "type": "change",
         "status": "in_progress",
         "mode": "FULL",
@@ -1035,7 +1035,7 @@
         "approval_required": true,
         "execution_policy": "human_in_the_loop",
         "expected_output": [
-          "referências a KVM2/Hostinger/Oracle classificadas como legado ou removidas",
+          "referências a KVM2/Hostinger/GCP classificadas como legado ou removidas",
           "docs e playbooks alinhados ao Ruptur Cloud Lab/GCP",
           "ruído operacional reduzido",
           "state atualizado com a limpeza de legado"

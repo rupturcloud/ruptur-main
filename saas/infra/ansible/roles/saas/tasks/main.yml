@@ -30,12 +30,12 @@
     exclude:
       - node_modules
       - .git
+      - .env
       - runtime-data
       - tmp
       - web/dist
       - web/manager-dist
       - web/dashboard-dist
-  when: not saas_code_exists.stat.exists
   delegate_to: localhost
 
 - name: Criar diretório temporário no host
@@ -43,14 +43,12 @@
     path: /tmp/saas-deploy
     state: directory
     mode: '0755'
-  when: not saas_code_exists.stat.exists
 
 - name: Copiar archive para o host
   ansible.builtin.copy:
     src: /tmp/saas-deploy.tar.gz
     dest: /tmp/saas-deploy.tar.gz
     mode: '0644'
-  when: not saas_code_exists.stat.exists
   delegate_to: localhost
 
 - name: Extrair archive no host
@@ -58,7 +56,6 @@
     src: /tmp/saas-deploy.tar.gz
     dest: "{{ saas_deploy_dir }}"
     remote_src: true
-  when: not saas_code_exists.stat.exists
 
 - name: Copiar arquivo .env para o host
   ansible.builtin.copy:
@@ -69,6 +66,17 @@
     mode: '0600'
   when: not saas_code_exists.stat.exists
   delegate_to: localhost
+
+- name: Validar que .env de produção existe no host
+  ansible.builtin.stat:
+    path: "{{ saas_deploy_dir }}/.env"
+  register: saas_env_file
+
+- name: Falhar se .env de produção não existir
+  ansible.builtin.assert:
+    that:
+      - saas_env_file.stat.exists
+    fail_msg: "Arquivo {{ saas_deploy_dir }}/.env não existe no host. Crie os segredos de produção antes do deploy."
 
 - name: Garantir que network Docker existe
   community.docker.docker_network:
