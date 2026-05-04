@@ -23,6 +23,10 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { BillingService } from '../modules/billing/getnet.js';
+import { WebhookService } from '../modules/billing/webhook.service.js';
+import { MetricsService } from '../modules/billing/metrics.service.js';
+import { AuditService } from '../modules/billing/audit.service.js';
+import * as billingRoutes from './routes-billing.mjs';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import {
@@ -70,6 +74,10 @@ const billing = new BillingService({
   sandbox: process.env.GETNET_SANDBOX !== 'false',
   supabase,
 });
+
+const webhookService = supabase ? new WebhookService(supabase, null) : null;
+const metricsService = supabase ? new MetricsService(supabase, null) : null;
+const auditService = supabase ? new AuditService(supabase) : null;
 
 const tenantService = supabase ? new TenantService(supabase) : null;
 const platformAdminService = supabase ? new PlatformAdminService(supabase, null) : null;
@@ -496,51 +504,57 @@ async function handler(req, res) {
     }
   }
 
-  // --- Webhook Getnet (público) ---
+  // --- Webhooks: Processar eventos da adquirente ---
   if (pathname === '/api/webhooks/getnet' && req.method === 'POST') {
-    const rawBodyChunks = [];
-    req.on('data', c => rawBodyChunks.push(c));
-    req.on('end', async () => {
-      const rawBody = Buffer.concat(rawBodyChunks).toString();
-      
-      // Validação HMAC (se houver secret)
-      const WEBHOOK_SECRET = process.env.GETNET_WEBHOOK_SECRET || '';
-      const signature = req.headers['x-getnet-signature'] || req.headers['x-signature'] || '';
-      
-      let isValid = true;
-      if (WEBHOOK_SECRET && signature) {
-        const crypto = await import('node:crypto');
-        const expected = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
-        try {
-          const sigBuf = Buffer.from(signature, 'hex');
-          const expBuf = Buffer.from(expected, 'hex');
-          if (sigBuf.length !== expBuf.length) isValid = false;
-          else isValid = crypto.timingSafeEqual(sigBuf, expBuf);
-        } catch {
-          isValid = (signature === expected);
-        }
-      }
-
-      if (!isValid) {
-        log('error', 'Assinatura HMAC inválida no webhook Getnet', { ip: clientIp });
-        return json(res, 401, { error: 'Invalid signature' }, req);
-      }
-
-      let parsedBody;
-      try { parsedBody = JSON.parse(rawBody); } catch { parsedBody = {}; }
-
-      // Responder imediatamente para a adquirente
-      json(res, 200, { ok: true }, req);
-
-      // Processar em background
-      try {
-        const result = await billing.handleWebhook(parsedBody, Object.fromEntries(url.searchParams));
-        console.log('[Gateway] Webhook Getnet processado:', result);
-      } catch (e) {
-        console.error('[Gateway] Erro no webhook Getnet:', e);
-      }
-    });
+    billingRoutes.handleWebhookGetnet(
+      req, res, webhookService, auditService, pathname, json
+    );
     return;
+  }
+
+  // --- Webhooks: Histórico ---
+  if (pathname === '/api/billing/webhooks' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getWebhookHistory(req, res, webhookService, tenantId, json);
+  }
+
+  // --- Refunds: Histórico ---
+  if (pathname === '/api/billing/refunds' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getRefundHistory(req, res, webhookService, tenantId, json);
+  }
+
+  // --- Metrics: Estatísticas ---
+  if (pathname === '/api/billing/metrics/stats' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getMetricsStats(req, res, metricsService, tenantId, json);
+  }
+
+  // --- Billing: Health Check ---
+  if (pathname === '/api/billing/health' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getHealthCheck(req, res, metricsService, tenantId, json);
+  }
+
+  // --- Billing: Auditoria ---
+  if (pathname === '/api/billing/audit' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getAuditReport(req, res, metricsService, tenantId, json);
   }
 
   // --- Tenant: Provisioning (autenticado) ---
