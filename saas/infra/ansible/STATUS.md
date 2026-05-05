@@ -19,7 +19,7 @@ Serviço SaaS:
 
 - container: `saas-web`
 - porta interna/externa: `3001`
-- domínio alvo: `saas.ruptur.cloud`
+- domínio alvo de API: `api.ruptur.cloud`
 - health esperado: `/api/health`
 
 ## Deploy SaaS
@@ -33,8 +33,8 @@ Fluxo esperado:
    - `http://127.0.0.1:3001/api/health`
    - `http://127.0.0.1:3001/api/billing/packages`
 5. validar publicamente:
-   - `https://saas.ruptur.cloud/api/health`
-   - `https://saas.ruptur.cloud/api/billing/packages`
+   - `https://api.ruptur.cloud/api/health`
+   - `https://api.ruptur.cloud/api/billing/packages`
 
 ## Variáveis obrigatórias para Getnet
 

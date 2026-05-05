@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Upload } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
@@ -166,7 +166,7 @@ const Campaigns = () => {
                     value={newCampaign.message}
                     onChange={e => setNewCampaign({...newCampaign, message: e.target.value})}
                   ></textarea>
-                  <span className="hint">Dica: Use variações {opção1|opção2|opção3} para evitar bloqueios por spam. Suporta {{name}}, {{phone}}, {{email}}.</span>
+                  <span className="hint">{'Dica: Use variações {opção1|opção2|opção3} para evitar bloqueios por spam. Suporta {{name}}, {{phone}}, {{email}}.'}</span>
                 </div>
 
                 <div className="form-row">
@@ -211,7 +211,7 @@ const Campaigns = () => {
                     />
                     <span>Ativar SpinText (rotação de variações)</span>
                   </label>
-                  <span className="hint">Use {opção1|opção2} na mensagem para variações automáticas</span>
+                  <span className="hint">Use {'{opção1|opção2}'} na mensagem para variações automáticas</span>
                 </div>
 
                 <div className="form-row">
@@ -419,7 +419,7 @@ const Campaigns = () => {
                           <span className="percent">{sent} / {total}</span>
                         </div>
                       </td>
-                      <td className="text-muted">{new Date(c.createdAt || Date.now()).toLocaleDateString('pt-BR')}</td>
+                      <td className="text-muted">{c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
                       <td>
                         <div className="row-actions">
                           {c.status === 'draft' && (

@@ -13,21 +13,6 @@ services:
       WARMUP_RUNTIME_HOST: {{ saas_runtime_host }}
       WARMUP_RUNTIME_URL: {{ saas_warmup_runtime_url }}
       NODE_ENV: {{ saas_node_env }}
-    networks:
-      - {{ saas_network }}
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: "{{ saas_network }}"
-      traefik.http.routers.saas-web-http.entrypoints: web
-      traefik.http.routers.saas-web-http.rule: "{% for domain in saas_domains %}Host(`{{ domain }}`){% if not loop.last %} || {% endif %}{% endfor %}"
-      traefik.http.routers.saas-web.entrypoints: websecure
-      traefik.http.routers.saas-web.rule: "{% for domain in saas_domains %}Host(`{{ domain }}`){% if not loop.last %} || {% endif %}{% endfor %}"
-      traefik.http.routers.saas-web.tls.certresolver: letsencrypt
-      traefik.http.services.saas-web.loadbalancer.server.port: "{{ saas_port }}"
     volumes:
       - {{ saas_data_dir }}:/app/runtime-data
       - {{ saas_logs_dir }}:/app/logs
-
-networks:
-  {{ saas_network }}:
-    external: true

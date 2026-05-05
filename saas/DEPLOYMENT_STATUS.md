@@ -77,8 +77,8 @@ Etapas:
 ### Google Cloud Run ⏳
 ```
 Esperado em: 5-15 minutos
-URL de produção: https://saas.ruptur.cloud
-Healthcheck: https://saas.ruptur.cloud/api/health
+URL da aplicação: https://app.ruptur.cloud
+Healthcheck: https://api.ruptur.cloud/api/health
 Região: us-central1
 Memória: 512Mi
 CPU: 1
@@ -105,7 +105,7 @@ Instâncias: min=1, max=10
 
 ### 1. Health Check (deve retornar 200 OK)
 ```bash
-curl https://saas.ruptur.cloud/api/health
+curl https://api.ruptur.cloud/api/health
 ```
 
 ### 2. Login como Superadmin
@@ -123,12 +123,12 @@ Ou direto em: https://app.ruptur.cloud/admin/superadmin
 
 ### 4. Listar Superadmins (com token JWT)
 ```bash
-TOKEN=$(curl -X POST https://saas.ruptur.cloud/api/auth/login \
+TOKEN=$(curl -X POST https://api.ruptur.cloud/api/auth/login \
   -d '{"email":"diegoizac@gmail.com","password":"..."}' \
   | jq -r '.session.access_token')
 
 curl -H "Authorization: Bearer $TOKEN" \
-  https://saas.ruptur.cloud/api/admin/platform/admins
+  https://api.ruptur.cloud/api/admin/platform/admins
 ```
 
 ### 5. Aceitar Convite (ruptur.cloud@gmail.com)

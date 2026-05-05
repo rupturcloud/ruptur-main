@@ -13,7 +13,7 @@ Verificar se a API está respondendo e saudável.
 
 ### Comando
 ```bash
-curl -v https://saas.ruptur.cloud/api/health
+curl -v https://api.ruptur.cloud/api/health
 ```
 
 ### Resposta Esperada
@@ -106,13 +106,13 @@ Superadmins Ativos (1)
 ### Endpoint
 Para validar via curl:
 ```bash
-TOKEN=$(curl -s -X POST https://saas.ruptur.cloud/api/auth/token \
+TOKEN=$(curl -s -X POST https://api.ruptur.cloud/api/auth/token \
   -H "Content-Type: application/json" \
   -d '{"email":"diegoizac@gmail.com","password":"SEU_PASSWORD"}' \
   | jq -r '.access_token')
 
 curl -H "Authorization: Bearer $TOKEN" \
-  https://saas.ruptur.cloud/api/admin/platform/admins
+  https://api.ruptur.cloud/api/admin/platform/admins
 ```
 
 Resposta esperada:
@@ -160,7 +160,7 @@ Convites Pendentes (1)
 TOKEN=$(...)  # Obter token como em ETAPA 11
 
 curl -H "Authorization: Bearer $TOKEN" \
-  https://saas.ruptur.cloud/api/admin/platform/invites
+  https://api.ruptur.cloud/api/admin/platform/invites
 ```
 
 Resposta esperada:
@@ -195,7 +195,7 @@ Validar sistema de aceitação de convites.
 
 ### Opção 2: Via API
 ```bash
-curl -X POST https://saas.ruptur.cloud/api/admin/platform/accept-invite \
+curl -X POST https://api.ruptur.cloud/api/admin/platform/accept-invite \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <JWT_TOKEN_DE_RUPTUR>" \
   -d '{
@@ -236,7 +236,7 @@ curl -X POST https://saas.ruptur.cloud/api/admin/platform/accept-invite \
 API & Infraestrutura:
   ☐ /api/health retorna 200 OK
   ☐ Cloud Run service "ruptur-saas" está "Ready"
-  ☐ URL https://saas.ruptur.cloud acessível
+  ☐ URL https://api.ruptur.cloud/api/health acessível
 
 Autenticação:
   ☐ Login com diegoizac@gmail.com funciona

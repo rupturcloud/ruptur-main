@@ -7,8 +7,15 @@ http:
       service: baileys
       tls:
         certResolver: le
+    ruptur-api:
+      rule: Host(`api.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: saas-web
+      tls:
+        certResolver: le
     ruptur-backend:
-      rule: Host(`api.ruptur.cloud`) || Host(`webhook.ruptur.cloud`)
+      rule: Host(`webhook.ruptur.cloud`)
       entryPoints:
         - websecure
       service: ruptur-backend

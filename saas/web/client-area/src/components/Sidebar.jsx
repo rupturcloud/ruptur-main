@@ -3,14 +3,13 @@
  *
  * Usa NavLink para active state automático e navegação SPA.
  */
-import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Send,
   Wallet,
   MessageSquare,
+  Smartphone,
   LogOut,
   Zap,
   PanelLeftClose,
@@ -21,6 +20,7 @@ const menuItems = [
   { to: '/dashboard',  label: 'Dashboard',  icon: <LayoutDashboard size={20} /> },
   { to: '/campanhas',  label: 'Campanhas',  icon: <Send size={20} /> },
   { to: '/carteira',   label: 'Carteira',   icon: <Wallet size={20} /> },
+  { to: '/instancias', label: 'Instâncias', icon: <Smartphone size={20} /> },
   { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare size={20} /> },
 ];
 

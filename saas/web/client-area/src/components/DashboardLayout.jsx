@@ -3,7 +3,7 @@
  *
  * Renderiza Sidebar + Header + Outlet (conteúdo da rota ativa).
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, Shield } from 'lucide-react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUpRight, ArrowDownLeft, History, CreditCard,
-  TrendingUp, TrendingDown, Zap, Search, Plus, X,
-  CheckCircle2, ArrowRightLeft, Filter, Loader2, ShieldCheck, AlertCircle
+  TrendingUp, Zap, Search, Plus, X,
+  ArrowRightLeft, Loader2, ShieldCheck, AlertCircle
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,13 +32,7 @@ const Wallet = () => {
   const [buyLoading, setBuyLoading] = useState(false);
   const [buyError, setBuyError] = useState('');
 
-  useEffect(() => {
-    if (!tenantId) return;
-    loadData();
-    loadPackages();
-  }, [tenantId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [stats, txs] = await Promise.allSettled([
@@ -58,9 +52,9 @@ const Wallet = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
 
-  const loadPackages = async () => {
+  const loadPackages = useCallback(async () => {
     try {
       const data = await apiService.getPackages();
       const pkgs = data.packages || data;
@@ -73,7 +67,15 @@ const Wallet = () => {
     } catch (err) {
       console.error('[Wallet] Erro ao carregar pacotes:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    Promise.resolve().then(() => {
+      loadData();
+      loadPackages();
+    });
+  }, [tenantId, loadData, loadPackages]);
 
   const handleBuyCredits = useCallback(async () => {
     if (!selectedPkg) return;
@@ -96,7 +98,7 @@ const Wallet = () => {
     } finally {
       setBuyLoading(false);
     }
-  }, [selectedPkg, tenantId]);
+  }, [loadData, selectedPkg, tenantId]);
 
   const filteredHistory = history.filter(tx =>
     activeTab === 'ALL' ? true : tx.type === activeTab
@@ -237,7 +239,7 @@ const Wallet = () => {
                     <div className="tx-details">
                       <span className="tx-desc">{tx.description || tx.reason || 'Transação'}</span>
                       <div className="tx-meta">
-                        <span className="tx-date">{new Date(tx.date || tx.createdAt || Date.now()).toLocaleString('pt-BR')}</span>
+                        <span className="tx-date">{tx.date || tx.createdAt ? new Date(tx.date || tx.createdAt).toLocaleString('pt-BR') : '—'}</span>
                         <span className="tx-type-badge" style={{ color: style.color, borderColor: style.border }}>
                           {TX_LABELS[tx.type] || tx.type}
                         </span>

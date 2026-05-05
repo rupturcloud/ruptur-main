@@ -37,6 +37,8 @@ import {
   PlatformAdminSchemas,
 } from '../middleware/validation.mjs';
 import { PlatformAdminService } from '../modules/superadmin/platform-admin.service.js';
+import { UazapiAccountService } from '../modules/providers/uazapi-account.service.js';
+import { PaymentGatewayAccountService } from '../modules/billing/payment-gateway-account.service.js';
 
 // --- Config ---
 const HOST = process.env.API_HOST || '0.0.0.0';
@@ -81,6 +83,8 @@ const auditService = supabase ? new AuditService(supabase) : null;
 
 const tenantService = supabase ? new TenantService(supabase) : null;
 const platformAdminService = supabase ? new PlatformAdminService(supabase, null) : null;
+const uazapiAccountService = supabase ? new UazapiAccountService(supabase) : null;
+const paymentGatewayAccountService = supabase ? new PaymentGatewayAccountService(supabase) : null;
 
 // --- Rate Limiter (em memória, por IP) ---
 const RATE_LIMIT = {
@@ -214,6 +218,105 @@ async function extractUser(req) {
   } catch {
     return null;
   }
+}
+
+async function requirePlatformAdmin(req, res) {
+  const user = await extractUser(req);
+  if (!user) {
+    json(res, 401, { error: 'Não autenticado' }, req);
+    return null;
+  }
+
+  if (!platformAdminService) {
+    json(res, 503, { error: 'Supabase não configurado' }, req);
+    return null;
+  }
+
+  const isPlatformAdmin = await platformAdminService.isPlatformAdmin(user.id);
+  if (!isPlatformAdmin) {
+    json(res, 403, { error: 'Acesso negado: requer permissão de superadmin' }, req);
+    return null;
+  }
+
+  return user;
+}
+
+
+function providerMigrationError(e) {
+  const message = String(e?.message || '');
+  if (e?.code === '42P01' || e?.code === '42703' || e?.code === 'PGRST205' || message.includes('provider_accounts') || message.includes('api_leases')) {
+    return 'Migration 012 pendente: execute migrations/012_provider_accounts_and_leases.sql no Supabase antes de gerenciar APIs UAZAPI.';
+  }
+  return null;
+}
+
+function paymentGatewayMigrationError(e) {
+  const message = String(e?.message || '');
+  if (e?.code === '42P01' || e?.code === '42703' || e?.code === 'PGRST205' || message.includes('payment_gateway_accounts')) {
+    return 'Migration 013 pendente: execute migrations/013_payment_gateway_accounts.sql no Supabase antes de gerenciar gateways de pagamento.';
+  }
+  return null;
+}
+
+async function listAdminClients(search = '') {
+  let query = supabase
+    .from('tenants')
+    .select('id, slug, name, email, plan, status, credits_balance, max_instances, created_at, users(id,email,role)')
+    .order('created_at', { ascending: false });
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,slug.ilike.%${search}%`);
+  }
+
+  const { data: tenants, error } = await query;
+  if (error) throw error;
+
+  const tenantIds = (tenants || []).map((tenant) => tenant.id);
+  if (tenantIds.length === 0) return [];
+
+  const { data: providers } = await supabase
+    .from('tenant_providers')
+    .select('id, tenant_id, provider, is_active')
+    .in('tenant_id', tenantIds);
+
+  const providerIds = (providers || []).map((provider) => provider.id);
+  const { data: instances } = providerIds.length
+    ? await supabase
+      .from('instance_registry')
+      .select('id, tenant_provider_id, status, instance_number, instance_name, platform, last_seen_at')
+      .in('tenant_provider_id', providerIds)
+    : { data: [] };
+
+  const providersByTenant = new Map();
+  for (const provider of providers || []) {
+    if (!providersByTenant.has(provider.tenant_id)) providersByTenant.set(provider.tenant_id, []);
+    providersByTenant.get(provider.tenant_id).push(provider);
+  }
+
+  const instancesByProvider = new Map();
+  for (const instance of instances || []) {
+    if (!instancesByProvider.has(instance.tenant_provider_id)) instancesByProvider.set(instance.tenant_provider_id, []);
+    instancesByProvider.get(instance.tenant_provider_id).push(instance);
+  }
+
+  return (tenants || []).map((tenant) => {
+    const tenantProviders = providersByTenant.get(tenant.id) || [];
+    const tenantInstances = tenantProviders.flatMap((provider) => instancesByProvider.get(provider.id) || []);
+    return {
+      id: tenant.id,
+      slug: tenant.slug,
+      name: tenant.name,
+      email: tenant.email,
+      plan: tenant.plan,
+      status: tenant.status,
+      balance: tenant.credits_balance || 0,
+      maxInstances: tenant.max_instances || 0,
+      instances: tenantInstances.length,
+      connectedInstances: tenantInstances.filter((instance) => instance.status === 'connected').length,
+      users: tenant.users || [],
+      createdAt: tenant.created_at,
+    };
+  });
 }
 
 /**
@@ -774,8 +877,12 @@ async function handler(req, res) {
 
       const result = await platformAdminService.invitePlatformAdmin(email, user.id);
       return json(res, 201, {
-        message: `Convite enviado para ${email}`,
+        message: result.emailSent === false
+          ? `Convite criado para ${email}. Copie o link manualmente.`
+          : `Convite criado para ${email}`,
         invite: result.invite,
+        token: result.token,
+        inviteUrl: result.inviteUrl,
       }, req);
     } catch (e) {
       return json(res, 400, { error: e.message }, req);
@@ -853,6 +960,266 @@ async function handler(req, res) {
       }, req);
     } catch (e) {
       return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Admin: Estatísticas operacionais ---
+  if (pathname === '/api/admin/stats' && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+
+    try {
+      const clients = await listAdminClients('');
+      return json(res, 200, {
+        clients: clients.length,
+        active: clients.filter((client) => client.status === 'active').length,
+        suspended: clients.filter((client) => client.status === 'suspended').length,
+        credits: clients.reduce((sum, client) => sum + Number(client.balance || 0), 0),
+        instances: clients.reduce((sum, client) => sum + Number(client.instances || 0), 0),
+        connectedInstances: clients.reduce((sum, client) => sum + Number(client.connectedInstances || 0), 0),
+      }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Admin: Clientes/Tenants ---
+  if (pathname === '/api/admin/clients' && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+
+    try {
+      const clients = await listAdminClients(url.searchParams.get('search') || '');
+      return json(res, 200, { clients, total: clients.length }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Admin: Instâncias por tenant/provider ---
+  if (pathname === '/api/admin/instances' && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+
+    try {
+      let providersQuery = supabase
+        .from('tenant_providers')
+        .select('id, tenant_id, provider, account_id, is_active, tenants(id,slug,name,email)');
+
+      const tenantId = url.searchParams.get('tenantId');
+      if (tenantId) providersQuery = providersQuery.eq('tenant_id', tenantId);
+
+      const { data: providers, error: providersError } = await providersQuery;
+      if (providersError) throw providersError;
+
+      const providerIds = (providers || []).map((provider) => provider.id);
+      const { data: instances, error: instancesError } = providerIds.length
+        ? await supabase
+          .from('instance_registry')
+          .select('id, tenant_provider_id, remote_instance_id, status, instance_number, instance_name, platform, is_business, last_seen_at, updated_at')
+          .in('tenant_provider_id', providerIds)
+          .order('updated_at', { ascending: false })
+        : { data: [], error: null };
+      if (instancesError) throw instancesError;
+
+      const providerById = new Map((providers || []).map((provider) => [provider.id, provider]));
+      const rows = (instances || []).map((instance) => {
+        const provider = providerById.get(instance.tenant_provider_id);
+        return {
+          ...instance,
+          provider: provider?.provider,
+          providerActive: provider?.is_active,
+          tenant: provider?.tenants || null,
+        };
+      });
+
+      return json(res, 200, { instances: rows, total: rows.length }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+
+  // --- Admin: Contas/provedores UAZAPI ---
+  if (pathname === '/api/admin/provider-accounts' && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!uazapiAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const accounts = await uazapiAccountService.listAccounts();
+      return json(res, 200, { accounts, total: accounts.length }, req);
+    } catch (e) {
+      const migrationError = providerMigrationError(e);
+      return json(res, migrationError ? 503 : 500, { error: migrationError || e.message }, req);
+    }
+  }
+
+  if (pathname === '/api/admin/provider-accounts' && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!uazapiAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const account = await uazapiAccountService.createAccount(body, adminUser.id);
+      return json(res, 201, { account }, req);
+    } catch (e) {
+      const migrationError = providerMigrationError(e);
+      return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  const providerRotateMatch = pathname.match(/^\/api\/admin\/provider-accounts\/([^/]+)\/rotate$/);
+  if (providerRotateMatch && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!uazapiAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const account = await uazapiAccountService.rotateAccount(providerRotateMatch[1], body.adminToken || body.admin_token, adminUser.id);
+      return json(res, 200, { account }, req);
+    } catch (e) {
+      const migrationError = providerMigrationError(e);
+      return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  const providerStatusMatch = pathname.match(/^\/api\/admin\/provider-accounts\/([^/]+)\/status$/);
+  if (providerStatusMatch && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!uazapiAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const account = await uazapiAccountService.updateStatus(providerStatusMatch[1], body.status, adminUser.id);
+      return json(res, 200, { account }, req);
+    } catch (e) {
+      const migrationError = providerMigrationError(e);
+      return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  const providerSyncMatch = pathname.match(/^\/api\/admin\/provider-accounts\/([^/]+)\/sync$/);
+  if (providerSyncMatch && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!uazapiAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const result = await uazapiAccountService.syncAccount(providerSyncMatch[1], adminUser.id);
+      return json(res, 200, result, req);
+    } catch (e) {
+      const migrationError = providerMigrationError(e);
+      return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  // --- Admin: Gateways de pagamento (Getnet, Cakto, etc.) ---
+  if (pathname === '/api/admin/payment-gateways' && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!paymentGatewayAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const gateways = await paymentGatewayAccountService.listAccounts();
+      return json(res, 200, { gateways, total: gateways.length }, req);
+    } catch (e) {
+      const migrationError = paymentGatewayMigrationError(e);
+      return json(res, migrationError ? 503 : 500, { error: migrationError || e.message }, req);
+    }
+  }
+
+  if (pathname === '/api/admin/payment-gateways' && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!paymentGatewayAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const gateway = await paymentGatewayAccountService.createAccount(body, adminUser.id);
+      return json(res, 201, { gateway }, req);
+    } catch (e) {
+      const migrationError = paymentGatewayMigrationError(e);
+      return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  const paymentGatewayStatusMatch = pathname.match(/^\/api\/admin\/payment-gateways\/([^/]+)\/status$/);
+  if (paymentGatewayStatusMatch && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!paymentGatewayAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const gateway = await paymentGatewayAccountService.updateStatus(paymentGatewayStatusMatch[1], body.status);
+      return json(res, 200, { gateway }, req);
+    } catch (e) {
+      const migrationError = paymentGatewayMigrationError(e);
+      return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  if (pathname === '/api/admin/instances/create' && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!uazapiAccountService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const result = await uazapiAccountService.createManagedInstance(body, adminUser.id);
+      return json(res, 201, result, req);
+    } catch (e) {
+      const migrationError = providerMigrationError(e);
+      return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  // --- Admin: Lançar créditos ---
+  if (pathname === '/api/admin/credits' && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+
+    try {
+      const body = await parseBody(req);
+      const tenantId = String(body.tenantId || '').trim();
+      const amount = Number(body.amount || 0);
+      const description = String(body.description || 'Crédito administrativo').trim();
+
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+      if (!Number.isFinite(amount) || amount <= 0) return json(res, 400, { error: 'amount deve ser positivo' }, req);
+
+      const { data: tenant, error: readErr } = await supabase
+        .from('tenants')
+        .select('credits_balance')
+        .eq('id', tenantId)
+        .single();
+      if (readErr || !tenant) return json(res, 404, { error: 'Tenant não encontrado' }, req);
+
+      const newBalance = Number(tenant.credits_balance || 0) + amount;
+      const { error: updateErr } = await supabase
+        .from('tenants')
+        .update({ credits_balance: newBalance })
+        .eq('id', tenantId);
+      if (updateErr) throw updateErr;
+
+      await supabase.from('wallet_transactions').insert({
+        tenant_id: tenantId,
+        type: 'credit',
+        amount,
+        balance_after: newBalance,
+        source: 'admin',
+        reference_id: adminUser.id,
+        reference_type: 'platform_admin',
+        description,
+      });
+
+      return json(res, 200, { tenantId, amount, balance: newBalance }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
     }
   }
 

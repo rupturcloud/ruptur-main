@@ -176,7 +176,7 @@ git push origin v1.2.0
 
 ```bash
 # Health check
-curl https://saas.ruptur.cloud/api/local/health
+curl https://api.ruptur.cloud/api/local/health
 
 # Verificar logs
 tail -f /var/log/ruptur/app.log

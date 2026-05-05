@@ -4,15 +4,16 @@
  * Redireciona para /login se o usuário não estiver autenticado.
  * Mostra loading enquanto verifica a sessão.
  */
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProtectedRoute({ requireAdmin = false, requirePlatformAdmin = false }) {
-  const { isAuthenticated, isAdmin, isPlatformAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isPlatformAdmin, authReady } = useAuth();
+  const location = useLocation();
 
-  // Enquanto verifica sessão, mostra loading
-  if (loading) {
+  // Tela cheia apenas no bootstrap inicial da autenticação.
+  // Refresh de token/revalidações em background não devem desmontar a tela atual.
+  if (!authReady) {
     return (
       <div style={{
         display: 'flex',
@@ -41,17 +42,18 @@ export default function ProtectedRoute({ requireAdmin = false, requirePlatformAd
 
   // Não autenticado → login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const next = `${location.pathname}${location.search || ''}`;
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
   }
 
   // Rota admin, mas user não é admin
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/403" replace />;
   }
 
   // Rota superadmin, mas user não é superadmin
   if (requirePlatformAdmin && !isPlatformAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/403" replace />;
   }
 
   return <Outlet />;

@@ -78,12 +78,6 @@
       - saas_env_file.stat.exists
     fail_msg: "Arquivo {{ saas_deploy_dir }}/.env não existe no host. Crie os segredos de produção antes do deploy."
 
-- name: Garantir que network Docker existe
-  community.docker.docker_network:
-    name: "{{ saas_network }}"
-    state: present
-  when: saas_network is defined
-
 - name: Deploy docker-compose do SaaS
   community.docker.docker_compose_v2:
     project_src: "{{ saas_deploy_dir }}"

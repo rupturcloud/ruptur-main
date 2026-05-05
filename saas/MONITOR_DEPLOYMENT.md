@@ -164,7 +164,7 @@ Value: Email para notificação de deploy
 
 ### Health Check (deve retornar 200)
 ```bash
-curl -v https://saas.ruptur.cloud/api/health
+curl -v https://api.ruptur.cloud/api/health
 ```
 
 **Resposta esperada:**
@@ -220,7 +220,7 @@ Status esperado: ✅ Dashboard visível com lista de superadmins
 
 ┌─ Produção ─────────────────────────────┐
 │                                         │
-│ ☐ https://saas.ruptur.cloud respondendo│
+│ ☐ https://app.ruptur.cloud respondendo│
 │ ☐ /api/health retorna 200 OK            │
 │ ☐ https://app.ruptur.cloud carrega      │
 │ ☐ Login funcionando                     │
@@ -245,13 +245,13 @@ gcloud run services describe ruptur-saas --region us-central1
 ### Testar Endpoints
 ```bash
 # Health
-curl https://saas.ruptur.cloud/api/health
+curl https://api.ruptur.cloud/api/health
 
 # Inbox API
-curl https://saas.ruptur.cloud/api/inbox/summary
+curl https://api.ruptur.cloud/api/inbox/summary
 
 # Campaigns API  
-curl https://saas.ruptur.cloud/api/campaigns
+curl https://api.ruptur.cloud/api/campaigns
 ```
 
 ### Ver Revisions do Cloud Run

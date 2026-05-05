@@ -1059,6 +1059,143 @@ async function fetchAllInstancesForSettings(settings = {}) {
   }, "Erro ao buscar instâncias");
 }
 
+function parseMaybeJsonObject(value) {
+  if (!value || typeof value !== "string") return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function getTenantHintsFromInstance(instance = {}) {
+  const metadata =
+    (instance.metadata && typeof instance.metadata === "object" ? instance.metadata : null)
+    || parseMaybeJsonObject(instance.adminField02)
+    || parseMaybeJsonObject(instance.adminField01)
+    || parseMaybeJsonObject(instance.fieldsMap?.metadata)
+    || {};
+
+  return [
+    instance.bubble_user_id,
+    instance.tenantId,
+    instance.tenant_id,
+    instance.adminField01,
+    metadata.tenantId,
+    metadata.tenant_id,
+    metadata.bubble_user_id,
+    metadata.tenantSlug,
+    metadata.tenant_slug,
+  ]
+    .filter((value) => value !== undefined && value !== null)
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+}
+
+function isTenantUazapiInstance(instance = {}, tenant = {}) {
+  const tenantKeys = [tenant.id, tenant.slug, tenant.name]
+    .filter((value) => value !== undefined && value !== null)
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+
+  if (tenantKeys.length === 0) return false;
+  const hints = getTenantHintsFromInstance(instance);
+  return hints.some((hint) => tenantKeys.includes(hint));
+}
+
+function normalizeUazapiInstance(instance = {}) {
+  const status = String(instance.status || instance.connectionStatus || "").toLowerCase();
+  const connected = Boolean(
+    instance.connected
+    || instance.loggedIn
+    || status === "connected"
+    || status === "open"
+  );
+
+  return {
+    id: instance.id,
+    name: instance.name || instance.instanceName || instance.id || "Instância",
+    token: instance.token,
+    status: status || (connected ? "connected" : "disconnected"),
+    connected,
+    loggedIn: Boolean(instance.loggedIn || connected),
+    phone: instance.phone || instance.phoneNumber || instance.number || instance.owner || instance.jid?.user,
+    owner: instance.owner,
+    profileName: instance.profileName,
+    profilePicUrl: instance.profilePicUrl,
+    isBusiness: instance.isBusiness,
+    platform: instance.plataform || instance.platform,
+    systemName: instance.systemName,
+    paircode: instance.paircode,
+    qrcode: instance.qrcode,
+    lastDisconnect: instance.lastDisconnect,
+    lastDisconnectReason: instance.lastDisconnectReason,
+    created: instance.created,
+    updated: instance.updated,
+    adminField01: instance.adminField01,
+    adminField02: instance.adminField02,
+  };
+}
+
+async function fetchTenantUazapiInstances(tenant = {}) {
+  if (!state.config.settings.adminToken?.trim()) return [];
+  const allInstances = await fetchAllInstances();
+  return allInstances
+    .filter((instance) => isTenantUazapiInstance(instance, tenant))
+    .map(normalizeUazapiInstance);
+}
+
+async function findTenantUazapiInstance(instanceKey, tenant = {}) {
+  const key = String(instanceKey || "").trim();
+  if (!key) return null;
+
+  const instances = await fetchTenantUazapiInstances(tenant);
+  return instances.find((instance) => (
+    instance.token === key
+    || instance.id === key
+    || instance.name === key
+  )) || null;
+}
+
+function buildTenantAdminField02(tenant = {}, user = {}) {
+  return JSON.stringify({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    userId: user?.id,
+    createdFrom: "ruptur-dashboard",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+async function createUazapiInstanceForTenant({ tenant, user, payload = {} }) {
+  if (!state.config.settings.adminToken?.trim()) {
+    throw new Error("Admin token não configurado no runtime.");
+  }
+
+  const name = String(payload.name || "").trim();
+  if (!name) {
+    const error = new Error("Nome da instância é obrigatório.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return fetchJson(`${state.config.settings.serverUrl}/instance/create`, {
+    method: "POST",
+    headers: {
+      admintoken: state.config.settings.adminToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name,
+      systemName: String(payload.systemName || "ruptur-dashboard").trim(),
+      adminField01: tenant.id,
+      adminField02: buildTenantAdminField02(tenant, user),
+    }),
+  }, "Erro ao criar instância");
+}
+
 async function fetchInstanceStatus(token) {
   return fetchJson(`${state.config.settings.serverUrl}/instance/status`, {
     headers: {
@@ -2866,14 +3003,23 @@ async function handleDashboardRoute(req, res, url) {
     const balance = await walletManager.getBalance(tenantId);
     const campaigns = await campaignManager.getAllCampaigns({ tenantId, limit: 100 });
     const inboxSummary = await inboxManager.getInboxSummary(tenantId);
+    let tenantInstances = inboxSummary.instances || [];
+    try {
+      const uazapiInstances = await fetchTenantUazapiInstances({ id: tenantId, slug: tenantId, name: tenantId });
+      if (uazapiInstances.length > 0 || state.config.settings.adminToken?.trim()) {
+        tenantInstances = uazapiInstances;
+      }
+    } catch (error) {
+      console.warn('[Dashboard API] Falha ao buscar instâncias UazAPI:', error.message);
+    }
 
     // Aggregate stats
     const stats = {
       walletBalance: balance,
       activeCampaignsCount: campaigns.campaigns.filter(c => c.status === 'active' || c.status === 'running').length,
       totalCampaigns: campaigns.total,
-      connectedInstances: inboxSummary.instances.filter(i => i.connected).length,
-      totalInstances: inboxSummary.instances.length,
+      connectedInstances: tenantInstances.filter(i => i.connected).length,
+      totalInstances: tenantInstances.length,
       sendsToday: campaigns.campaigns.reduce((acc, c) => acc + (c.metrics?.sentCount || 0), 0),
       queueCount: campaignManager.sendingQueue.filter(item => item.campaign.tenantId === tenantId).length
     };
@@ -2933,34 +3079,96 @@ async function handleAuthenticatedInstancesRoute(req, res, url) {
 
     if (!authResult) return; // Autenticação falhou, resposta já enviada
 
-    const { tenant } = authResult;
+    const { tenant, user } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
     
     // GET /api/instances
-    if (req.method === 'GET') {
-      const inboxSummary = await inboxManager.getInboxSummary(tenant.id);
-      const instances = inboxSummary.instances || [];
+    if (pathParts.length === 2 && req.method === 'GET') {
+      const instances = await fetchTenantUazapiInstances(tenant);
       
       return createResponse(res, 200, {
-        instances: instances.map(instance => ({
-          id: instance.id,
-          name: instance.name,
-          token: instance.token,
-          connected: instance.connected,
-          phone: instance.phone,
-          profile: instance.profile,
-          lastSeen: instance.lastSeen,
-          messagesCount: instance.messagesCount
-        })),
+        instances,
         total: instances.length,
         connected: instances.filter(i => i.connected).length,
         tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name }
+      });
+    }
+
+    // POST /api/instances — cria instância UazAPI já vinculada ao tenant.
+    if (pathParts.length === 2 && req.method === 'POST') {
+      const payload = await parseBody(req);
+      const result = await createUazapiInstanceForTenant({ tenant, user, payload });
+      const instance = normalizeUazapiInstance(result.instance || {
+        id: result.id,
+        name: result.name || payload.name,
+        token: result.token,
+        status: "disconnected",
+        connected: result.connected,
+        loggedIn: result.loggedIn,
+        adminField01: tenant.id,
+      });
+
+      addAuditEntry({
+        type: "manual_control",
+        actor: user?.email || user?.id || "dashboard",
+        action: "uazapi_instance_create",
+        details: `Instância ${instance.name} criada para tenant ${tenant.id}`,
+      });
+
+      return createResponse(res, 201, {
+        ...result,
+        instance,
+        tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+      });
+    }
+
+    // POST /api/instances/:instanceKey/connect — inicia QR code ou pareamento por telefone.
+    if (pathParts.length === 4 && pathParts[3] === 'connect' && req.method === 'POST') {
+      const instance = await findTenantUazapiInstance(decodeURIComponent(pathParts[2]), tenant);
+      if (!instance?.token) {
+        return createResponse(res, 404, { error: 'Instância não encontrada ou não pertence ao tenant' });
+      }
+
+      const payload = await parseBody(req);
+      const phone = String(payload.phone || "").replace(/\D/g, "");
+      const body = phone ? { phone } : {};
+      const result = await fetchJson(`${state.config.settings.serverUrl}/instance/connect`, {
+        method: "POST",
+        headers: {
+          token: instance.token,
+          admintoken: state.config.settings.adminToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }, "Erro ao conectar instância");
+
+      return createResponse(res, 200, {
+        ...result,
+        instance: normalizeUazapiInstance(result.instance || instance),
+      });
+    }
+
+    // GET /api/instances/:instanceKey/status — consulta status, qrcode e paircode.
+    if (pathParts.length === 4 && pathParts[3] === 'status' && req.method === 'GET') {
+      const instance = await findTenantUazapiInstance(decodeURIComponent(pathParts[2]), tenant);
+      if (!instance?.token) {
+        return createResponse(res, 404, { error: 'Instância não encontrada ou não pertence ao tenant' });
+      }
+
+      const result = await fetchJson(`${state.config.settings.serverUrl}/instance/status`, {
+        headers: { token: instance.token },
+      }, "Erro ao buscar status da instância");
+
+      return createResponse(res, 200, {
+        ...result,
+        instance: normalizeUazapiInstance(result.instance || instance),
       });
     }
     
     createResponse(res, 404, { error: 'Instances endpoint not found' });
   } catch (error) {
     console.error('[Auth Instances API] Error:', error.message);
-    createResponse(res, 500, { error: error.message });
+    createResponse(res, error.statusCode || 500, { error: error.message });
   }
 }
 
@@ -3120,11 +3328,11 @@ const server = http.createServer(async (req, res) => {
       
       // Filter instances by tenantId if provided
       if (tenantId) {
-        const filteredInstances = allInstances.filter(instance => 
-          instance.bubble_user_id === tenantId || 
-          instance.tenantId === tenantId ||
-          (instance.metadata && instance.metadata.tenantId === tenantId)
-        );
+        const filteredInstances = allInstances.filter(instance => isTenantUazapiInstance(instance, {
+          id: tenantId,
+          slug: tenantId,
+          name: tenantId,
+        }));
         return createResponse(res, 200, filteredInstances);
       }
       

@@ -20,11 +20,16 @@ export async function handleWebhookGetnet(req, res, webhookService, auditService
   req.on('end', async () => {
     const rawBody = Buffer.concat(rawBodyChunks).toString();
 
-    // Validação HMAC
+    // Validação de autenticidade do webhook.
+    // Preferência: HMAC via GETNET_WEBHOOK_SECRET, quando a adquirente enviar assinatura.
+    // Mitigação para Getnet Plataforma Digital: o Portal Minha Conta permite configurar
+    // URLs de callback, mas nem sempre expõe segredo/header de assinatura. Nesse caso,
+    // aceitar callback sem assinatura apenas com flag explícita e auditar/idempotenciar.
     const WEBHOOK_SECRET = process.env.GETNET_WEBHOOK_SECRET || '';
+    const allowUnsignedWebhook = process.env.GETNET_WEBHOOK_ALLOW_UNSIGNED === 'true';
     const signature = req.headers['x-getnet-signature'] || req.headers['x-signature'] || '';
 
-    if (!WEBHOOK_SECRET && process.env.NODE_ENV === 'production') {
+    if (!WEBHOOK_SECRET && process.env.NODE_ENV === 'production' && !allowUnsignedWebhook) {
       return json(res, 503, { error: 'GETNET_WEBHOOK_SECRET não configurado' }, null);
     }
 
