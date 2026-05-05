@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Plus, Mail, Trash2, X, CheckCircle2, Clock, Activity } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Shield, Plus, Mail, Trash2, X, CheckCircle2, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import EnvironmentSwitcher from '../components/EnvironmentSwitcher';
 
 const SuperAdminDashboard = ({ onLogout }) => {
-  const { session } = useAuth();
-  const navigate = useNavigate();
+  const { session, signOut } = useAuth();
   const [admins, setAdmins] = useState([]);
   const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,31 +123,10 @@ const SuperAdminDashboard = ({ onLogout }) => {
               Configure e gerencie superadministradores da plataforma Ruptur
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <EnvironmentSwitcher variant="light" />
             <button
-              onClick={() => navigate('/admin')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '10px 16px',
-                borderRadius: '8px',
-                border: '1px solid rgba(0,242,255,0.25)',
-                background: 'rgba(0,242,255,0.08)',
-                color: '#00f2ff',
-                fontSize: '14px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: '0.15s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,242,255,0.14)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,242,255,0.08)'}
-            >
-              <Activity size={15} />
-              Admin
-            </button>
-            <button
-              onClick={onLogout}
+              onClick={onLogout || signOut}
               style={{
                 padding: '10px 20px',
                 borderRadius: '8px',

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, CreditCard, Database, Loader2, Plus, RefreshCw, Search, Server, Shield, Smartphone, Users, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import EnvironmentSwitcher from '../components/EnvironmentSwitcher';
 
 const STATUS_MAP = {
   active: { label: 'Ativo', color: '#00ff88', bg: 'rgba(0,255,136,0.1)', border: 'rgba(0,255,136,0.3)' },
@@ -110,7 +110,6 @@ function defaultGatewayForm(provider = 'cakto') {
 
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const [activeView, setActiveView] = useState('overview');
   const [stats, setStats] = useState(null);
   const [clients, setClients] = useState([]);
@@ -309,8 +308,7 @@ export default function AdminDashboard() {
             <p>{user?.email}</p>
           </div>
           <div className="admin-top-actions">
-            <button className="admin-top-action-btn" onClick={() => navigate('/admin/superadmin')}><Shield size={14} /> Superadmin</button>
-            <div className="admin-badge"><Activity size={14} /> Admin</div>
+            <EnvironmentSwitcher variant="light" />
           </div>
         </header>
 
