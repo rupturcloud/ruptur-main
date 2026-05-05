@@ -77,6 +77,22 @@ const billing = new BillingService({
   supabase,
 });
 
+function gatewayStatus() {
+  const getnet = Boolean(process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID);
+  const cakto = Boolean(process.env.CAKTO_CLIENT_ID && process.env.CAKTO_CLIENT_SECRET);
+  const active = [
+    getnet ? 'Getnet' : null,
+    cakto ? 'Cakto' : null,
+  ].filter(Boolean);
+
+  return {
+    getnet,
+    cakto,
+    configured: active.length > 0,
+    label: active.length ? `✅ ${active.join(' + ')} ativo${active.length > 1 ? 's' : ''}` : '⚠️  Sem gateway',
+  };
+}
+
 const webhookService = supabase ? new WebhookService(supabase, null) : null;
 const metricsService = supabase ? new MetricsService(supabase, null) : null;
 const auditService = supabase ? new AuditService(supabase) : null;
@@ -1233,13 +1249,10 @@ async function handler(req, res) {
       ok: true,
       service: 'ruptur-saas-gateway',
       supabase: Boolean(supabase),
-      billingConfigured: Boolean(
-        (process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID)
-        || (process.env.CAKTO_CLIENT_ID && process.env.CAKTO_CLIENT_SECRET)
-      ),
+      billingConfigured: gatewayStatus().configured,
       paymentGateways: {
-        getnet: Boolean(process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID),
-        cakto: Boolean(process.env.CAKTO_CLIENT_ID && process.env.CAKTO_CLIENT_SECRET),
+        getnet: gatewayStatus().getnet,
+        cakto: gatewayStatus().cakto,
       },
       warmupProxy: WARMUP_URL,
       ts: new Date().toISOString(),
@@ -1277,13 +1290,14 @@ async function handler(req, res) {
 const server = http.createServer(handler);
 
 server.listen(PORT, HOST, () => {
+  const gateways = gatewayStatus();
   console.log('');
   console.log('  ╔══════════════════════════════════════════════╗');
   console.log('  ║     🚀 Ruptur SaaS Gateway                  ║');
   console.log(`  ║     http://${HOST}:${PORT}                    ║`);
   console.log('  ╠══════════════════════════════════════════════╣');
   console.log(`  ║  Supabase:    ${supabase ? '✅ Conectado' : '⚠️  Não configurado'}          ║`);
-  console.log(`  ║  Billing:     ${billing.clientId ? '✅ Getnet ativo' : '⚠️  Sem credenciais'}       ║`);
+  console.log(`  ║  Billing:     ${gateways.label}       ║`);
   console.log(`  ║  Warmup Proxy: ${WARMUP_URL}       ║`);
   console.log(`  ║  Static:       ${existsSync(DIST_DIR) ? '✅ dist-client' : '⚠️  sem build'}             ║`);
   console.log('  ╚══════════════════════════════════════════════╝');
