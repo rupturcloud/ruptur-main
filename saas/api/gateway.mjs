@@ -1233,7 +1233,14 @@ async function handler(req, res) {
       ok: true,
       service: 'ruptur-saas-gateway',
       supabase: Boolean(supabase),
-      billingConfigured: Boolean(process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID),
+      billingConfigured: Boolean(
+        (process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID)
+        || (process.env.CAKTO_CLIENT_ID && process.env.CAKTO_CLIENT_SECRET)
+      ),
+      paymentGateways: {
+        getnet: Boolean(process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID),
+        cakto: Boolean(process.env.CAKTO_CLIENT_ID && process.env.CAKTO_CLIENT_SECRET),
+      },
       warmupProxy: WARMUP_URL,
       ts: new Date().toISOString(),
     }, req);

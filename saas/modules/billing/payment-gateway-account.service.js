@@ -106,6 +106,71 @@ function buildPublicConfig(provider, payload, credentials) {
   };
 }
 
+function missingTableError(error) {
+  const message = String(error?.message || '');
+  return error?.code === '42P01'
+    || error?.code === 'PGRST205'
+    || message.includes('payment_gateway_accounts');
+}
+
+function envFallbackAccounts() {
+  const now = new Date().toISOString();
+  const accounts = [];
+
+  if (process.env.CAKTO_CLIENT_ID && process.env.CAKTO_CLIENT_SECRET) {
+    accounts.push({
+      id: 'env:cakto:production',
+      provider: 'cakto',
+      label: 'Cakto Produção (.env)',
+      environment: 'production',
+      status: 'active',
+      base_url: normalizeUrl(process.env.CAKTO_BASE_URL, 'https://api.cakto.com.br'),
+      webhook_url: normalizeUrl(process.env.CAKTO_WEBHOOK_URL, 'https://api.ruptur.cloud/api/webhooks/cakto'),
+      credential_last4: {
+        clientId: last4(process.env.CAKTO_CLIENT_ID),
+        clientSecret: last4(process.env.CAKTO_CLIENT_SECRET),
+      },
+      webhook_secret_last4: last4(process.env.CAKTO_WEBHOOK_SECRET),
+      public_config: buildPublicConfig('cakto', {}, {}),
+      metadata: {
+        source: 'env',
+        note: 'Fallback operacional até a migration payment_gateway_accounts ser aplicada no Supabase de produção.',
+      },
+      created_by: null,
+      created_at: now,
+      updated_at: now,
+    });
+  }
+
+  if (process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID) {
+    accounts.push({
+      id: 'env:getnet:production',
+      provider: 'getnet',
+      label: 'Getnet Produção (.env)',
+      environment: process.env.GETNET_SANDBOX === 'true' ? 'sandbox' : 'production',
+      status: 'active',
+      base_url: normalizeUrl(
+        process.env.GETNET_BASE_URL,
+        process.env.GETNET_SANDBOX === 'true' ? 'https://api-sandbox.getnet.com.br' : 'https://api.getnet.com.br'
+      ),
+      webhook_url: normalizeUrl(process.env.GETNET_WEBHOOK_URL, 'https://api.ruptur.cloud/api/webhooks/getnet'),
+      credential_last4: {
+        clientId: last4(process.env.GETNET_CLIENT_ID),
+        clientSecret: last4(process.env.GETNET_CLIENT_SECRET),
+        sellerId: last4(process.env.GETNET_SELLER_ID),
+      },
+      webhook_secret_last4: last4(process.env.GETNET_WEBHOOK_SECRET),
+      public_config: buildPublicConfig('getnet', {}, { sellerId: process.env.GETNET_SELLER_ID }),
+      metadata: { source: 'env' },
+      created_by: null,
+      created_at: now,
+      updated_at: now,
+    });
+  }
+
+  return accounts;
+}
+
 export class PaymentGatewayAccountService {
   constructor(supabase) {
     this.supabase = supabase;
@@ -122,7 +187,10 @@ export class PaymentGatewayAccountService {
       .from('payment_gateway_accounts')
       .select('id, provider, label, environment, status, base_url, webhook_url, credential_last4, webhook_secret_last4, public_config, metadata, created_by, created_at, updated_at')
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (error) {
+      if (missingTableError(error)) return envFallbackAccounts();
+      throw error;
+    }
     return data || [];
   }
 
