@@ -23,3 +23,4 @@ Não edite estes SQLs duplicados sem também atualizar a fonte em `/migrations`.
 - 20260505001200_webhook_tracking_and_refunds.sql ← migrations/010_webhook_tracking_and_refunds.sql
 - 20260505001300_platform_admins_and_invites.sql ← migrations/011_platform_admins_and_invites.sql
 - 20260505001400_provider_accounts_and_leases.sql ← migrations/012_provider_accounts_and_leases.sql
+- 20260505001500_payment_gateway_accounts.sql ← migrations/013_payment_gateway_accounts.sql

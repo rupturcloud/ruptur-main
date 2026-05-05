@@ -131,7 +131,11 @@ const ALLOWED_ORIGINS = new Set([
  * NUNCA usar "*" em produção
  */
 function corsOrigin(req) {
-  const origin = req.headers.origin || '';
+  const origin = req.headers.origin;
+
+  // Requisições same-origin, health checks, curl e proxies internos normalmente
+  // não enviam Origin. Isso não é tentativa de CORS e não deve gerar alerta.
+  if (!origin) return null;
 
   if (!ALLOWED_ORIGINS.has(origin)) {
     // Rejeitar cross-origin não autorizado

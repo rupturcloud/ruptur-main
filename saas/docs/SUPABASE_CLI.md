@@ -17,12 +17,12 @@ A Supabase CLI usa Docker para rodar Postgres, Auth, Storage, Realtime e Studio 
 ```bash
 npm run supabase:version
 npm run supabase:status
-npm run supabase:start:core
+npm run supabase:start:app
 npm run supabase:reset
 npm run supabase:stop
 ```
 
-Depois do `supabase:start:core`, rode:
+Depois do `supabase:start:app`, rode:
 
 ```bash
 supabase status
@@ -36,10 +36,10 @@ Copie `API URL`, `anon key` e `service_role key` para um `.env.local` baseado em
 Use por padrão:
 
 ```bash
-npm run supabase:start:core
+npm run supabase:start:app
 ```
 
-Esse perfil sobe o núcleo necessário para desenvolvimento local — Postgres, Auth, REST, Realtime, Studio, Meta e Mailpit — e exclui serviços opcionais que não são usados pelo SaaS agora e podem falhar em healthcheck local: `storage-api`, `imgproxy`, `logflare` e `vector`.
+Esse perfil sobe o núcleo necessário para desenvolvimento local do painel — Postgres, Auth, REST, Studio/Meta e Mailpit — e exclui serviços que não são necessários para este fluxo agora e que estão falhando em healthcheck local: `storage-api`, `imgproxy`, `logflare`, `vector`, `realtime` e `edge-runtime`.
 
 Se um dia precisarmos testar Storage/Analytics completos, use:
 

@@ -23,6 +23,7 @@ const migrations = [
   ['20260505001200', '010_webhook_tracking_and_refunds.sql'],
   ['20260505001300', '011_platform_admins_and_invites.sql'],
   ['20260505001400', '012_provider_accounts_and_leases.sql'],
+  ['20260505001500', '013_payment_gateway_accounts.sql'],
 ];
 
 await rm(targetDir, { recursive: true, force: true });
@@ -61,5 +62,5 @@ for (const [version, file] of migrations) {
   lines.push(`- ${targetName} ← migrations/${file}`);
 }
 
-await writeFile(path.join(targetDir, 'README.md'), `${lines.join('\n')}\n`);
+await writeFile(path.join(root, 'supabase', 'MIGRATIONS.md'), `${lines.join('\n')}\n`);
 console.log(`Supabase CLI migrations preparadas em ${path.relative(root, targetDir)} (${migrations.length} arquivos).`);
