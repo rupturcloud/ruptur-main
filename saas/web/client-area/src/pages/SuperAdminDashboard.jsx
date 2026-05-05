@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Plus, Mail, Trash2, X, CheckCircle2, Clock } from 'lucide-react';
+import { Shield, Plus, Mail, Trash2, X, CheckCircle2, Clock, Activity } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const SuperAdminDashboard = ({ onLogout }) => {
   const { session } = useAuth();
+  const navigate = useNavigate();
   const [admins, setAdmins] = useState([]);
   const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,24 +124,48 @@ const SuperAdminDashboard = ({ onLogout }) => {
               Configure e gerencie superadministradores da plataforma Ruptur
             </p>
           </div>
-          <button
-            onClick={onLogout}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,68,102,0.2)',
-              background: 'rgba(255,68,102,0.05)',
-              color: '#ff6680',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: '0.15s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.12)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.05)'}
-          >
-            Sair
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => navigate('/admin')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(0,242,255,0.25)',
+                background: 'rgba(0,242,255,0.08)',
+                color: '#00f2ff',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: '0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,242,255,0.14)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,242,255,0.08)'}
+            >
+              <Activity size={15} />
+              Admin
+            </button>
+            <button
+              onClick={onLogout}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,68,102,0.2)',
+                background: 'rgba(255,68,102,0.05)',
+                color: '#ff6680',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: '0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.12)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.05)'}
+            >
+              Sair
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

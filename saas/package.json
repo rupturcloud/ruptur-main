@@ -28,7 +28,9 @@
     "supabase:db:pull": "supabase db pull",
     "supabase:migration:new": "supabase migration new",
     "supabase:gen:types": "mkdir -p web/client-area/src/types && supabase gen types typescript --local > web/client-area/src/types/supabase.ts",
-    "supabase:link": "supabase link"
+    "supabase:link": "supabase link",
+    "supabase:start:core": "supabase start --exclude storage-api,imgproxy,logflare,vector",
+    "supabase:start:full": "supabase start"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",
