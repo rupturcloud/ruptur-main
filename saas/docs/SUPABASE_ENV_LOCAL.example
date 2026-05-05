@@ -1,0 +1,7 @@
+# Supabase local via CLI
+# Copie para .env.local ou para web/client-area/.env.local quando quiser apontar o frontend para o stack local.
+
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_PUBLISHABLE_KEY=COLE_AQUI_O_ANON_KEY_EXIBIDO_POR_SUPABASE_STATUS
+SUPABASE_SERVICE_ROLE_KEY=COLE_AQUI_O_SERVICE_ROLE_KEY_EXIBIDO_POR_SUPABASE_STATUS
+SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres

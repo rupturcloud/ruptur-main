@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Wallet, Send, AlertCircle, TrendingUp, Zap, Sparkles, Check } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardHome = () => {
   const { tenantId } = useAuth();
+  const navigate = useNavigate();
   const { data: stats, loading, request: fetchStats } = useApi(apiService.getDashboardStats);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ const DashboardHome = () => {
               <strong>Conectar WhatsApp</strong>
               <span>Vincule uma instância para começar os envios.</span>
             </div>
-            <button className="check-action">Conectar</button>
+            <button className="check-action" onClick={() => navigate('/instancias')}>Conectar</button>
           </div>
           <div className="check-item pending">
             <div className="check-circle">4</div>
@@ -67,7 +69,7 @@ const DashboardHome = () => {
               <strong>Primeiro Disparo</strong>
               <span>Crie sua primeira campanha de mensagens.</span>
             </div>
-            <button className="check-action">Criar</button>
+            <button className="check-action" onClick={() => navigate('/campanhas')}>Criar</button>
           </div>
         </div>
       </section>
@@ -130,8 +132,8 @@ const DashboardHome = () => {
         <section className="quick-actions glass">
           <h3>Ações Rápidas</h3>
           <div className="actions-buttons">
-            <button className="neon-btn purple">Novo Disparo</button>
-            <button className="neon-btn cyan">Conectar WhatsApp</button>
+            <button className="neon-btn purple" onClick={() => navigate('/campanhas')}>Novo Disparo</button>
+            <button className="neon-btn cyan" onClick={() => navigate('/instancias')}>Conectar WhatsApp</button>
             <button className="neon-btn outline">Gerar Relatório</button>
           </div>
         </section>

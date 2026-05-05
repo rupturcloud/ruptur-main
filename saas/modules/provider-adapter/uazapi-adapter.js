@@ -40,6 +40,33 @@ export class UazapiAdapter extends IProviderAdapter {
     return Array.isArray(instances) ? instances.map(i => this.normalizeInstance(i)) : [];
   }
 
+  async createInstance({ name, systemName = 'ruptur-cloud', adminField01, adminField02 } = {}) {
+    if (!this.adminToken) {
+      throw new ProviderAdapterError('Admin token required', 'MISSING_CREDENTIALS');
+    }
+    if (!name) {
+      throw new ProviderAdapterError('Instance name required', 'INVALID_PAYLOAD');
+    }
+
+    return this.fetchJson(
+      `${this.serverUrl}/instance/create`,
+      {
+        method: 'POST',
+        headers: {
+          admintoken: this.adminToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          systemName,
+          ...(adminField01 ? { adminField01 } : {}),
+          ...(adminField02 ? { adminField02 } : {}),
+        }),
+      },
+      'Failed to create instance'
+    );
+  }
+
   async getInstance(instanceId) {
     const instance = await this.fetchJson(
       `${this.serverUrl}/instance/status`,
@@ -119,6 +146,65 @@ export class UazapiAdapter extends IProviderAdapter {
     );
   }
 
+  async connectInstance(instanceId, { phone } = {}) {
+    return this.fetchJson(
+      `${this.serverUrl}/instance/connect`,
+      {
+        method: 'POST',
+        headers: {
+          token: instanceId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(phone ? { phone } : {}),
+      },
+      'Failed to connect instance'
+    );
+  }
+
+  async disconnectInstance(instanceId) {
+    return this.fetchJson(
+      `${this.serverUrl}/instance/disconnect`,
+      {
+        method: 'POST',
+        headers: { token: instanceId },
+      },
+      'Failed to disconnect instance'
+    );
+  }
+
+  async deleteInstance(instanceId) {
+    return this.fetchJson(
+      `${this.serverUrl}/instance`,
+      {
+        method: 'DELETE',
+        headers: { token: instanceId },
+      },
+      'Failed to delete instance'
+    );
+  }
+
+  async updateAdminFields({ id, adminField01, adminField02 } = {}) {
+    if (!this.adminToken) {
+      throw new ProviderAdapterError('Admin token required', 'MISSING_CREDENTIALS');
+    }
+    if (!id) {
+      throw new ProviderAdapterError('Instance id required', 'INVALID_PAYLOAD');
+    }
+
+    return this.fetchJson(
+      `${this.serverUrl}/instance/updateAdminFields`,
+      {
+        method: 'POST',
+        headers: {
+          admintoken: this.adminToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, adminField01, adminField02 }),
+      },
+      'Failed to update admin fields'
+    );
+  }
+
   normalizeInstance(raw) {
     return {
       id: raw.token || raw.id,
@@ -126,13 +212,19 @@ export class UazapiAdapter extends IProviderAdapter {
       status: raw.status || 'disconnected',
       number: raw.status?.status?.jid?.user || raw.owner || null,
       isBusiness: raw.isBusiness ?? false,
-      platform: raw.platform || 'Unknown',
+      platform: raw.platform || raw.plataform || 'Unknown',
       metadata: {
+        id: raw.id,
         token: raw.token,
+        systemName: raw.systemName,
+        paircode: raw.paircode,
+        qrcode: raw.qrcode,
         profileName: raw.profileName,
         profilePicUrl: raw.profilePicUrl,
         adminField01: raw.adminField01,
         adminField02: raw.adminField02,
+        lastDisconnect: raw.lastDisconnect,
+        lastDisconnectReason: raw.lastDisconnectReason,
         raw,
       },
     };

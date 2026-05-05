@@ -126,8 +126,26 @@ export const apiService = {
   },
 
   // --- Instances ---
-  async getInstances(tenantId) {
-    return authFetch(`/api/local/uazapi/instance/all?tenantId=${tenantId}`);
+  async getInstances() {
+    return authFetch('/api/instances');
+  },
+
+  async createInstance(payload) {
+    return authFetch('/api/instances', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async connectInstance(instanceKey, payload = {}) {
+    return authFetch(`/api/instances/${encodeURIComponent(instanceKey)}/connect`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getInstanceStatus(instanceKey) {
+    return authFetch(`/api/instances/${encodeURIComponent(instanceKey)}/status`);
   },
 
   // --- Inbox ---
@@ -157,10 +175,69 @@ export const apiService = {
     return authFetch(`/api/admin/clients?search=${encodeURIComponent(search)}`);
   },
 
+  async getAdminInstances(tenantId = '') {
+    const qs = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
+    return authFetch(`/api/admin/instances${qs}`);
+  },
+
   async adminAddCredits(tenantId, amount, description) {
     return authFetch('/api/admin/credits', {
       method: 'POST',
       body: JSON.stringify({ tenantId, amount, description }),
+    });
+  },
+
+  async getProviderAccounts() {
+    return authFetch('/api/admin/provider-accounts');
+  },
+
+  async createProviderAccount(payload) {
+    return authFetch('/api/admin/provider-accounts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async rotateProviderAccount(id, adminToken) {
+    return authFetch(`/api/admin/provider-accounts/${id}/rotate`, {
+      method: 'POST',
+      body: JSON.stringify({ adminToken }),
+    });
+  },
+
+  async updateProviderAccountStatus(id, status) {
+    return authFetch(`/api/admin/provider-accounts/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  async syncProviderAccount(id) {
+    return authFetch(`/api/admin/provider-accounts/${id}/sync`, { method: 'POST' });
+  },
+
+  async getPaymentGateways() {
+    return authFetch('/api/admin/payment-gateways');
+  },
+
+  async createPaymentGateway(payload) {
+    return authFetch('/api/admin/payment-gateways', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updatePaymentGatewayStatus(id, status) {
+    return authFetch(`/api/admin/payment-gateways/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  async createAdminInstance(payload) {
+    return authFetch('/api/admin/instances/create', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   },
 };

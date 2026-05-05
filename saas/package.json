@@ -17,7 +17,21 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "jarvis:ativar": "node scripts/jarvis/resolve-activation.mjs",
-    "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json"
+    "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json",
+    "supabase:prepare": "node scripts/supabase-prepare-cli.mjs",
+    "supabase:version": "supabase --version",
+    "supabase:status": "supabase status",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:db:push": "supabase db push",
+    "supabase:db:pull": "supabase db pull",
+    "supabase:migration:new": "supabase migration new",
+    "supabase:gen:types": "mkdir -p web/client-area/src/types && supabase gen types typescript --local > web/client-area/src/types/supabase.ts",
+    "supabase:link": "supabase link",
+    "supabase:start:core": "supabase start --exclude storage-api,imgproxy,logflare,vector,realtime,edge-runtime",
+    "supabase:start:full": "supabase start",
+    "supabase:start:app": "supabase start --exclude storage-api,imgproxy,logflare,vector,realtime,edge-runtime"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",

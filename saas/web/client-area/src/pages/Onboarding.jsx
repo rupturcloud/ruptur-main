@@ -1,46 +1,46 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Check, Zap, QrCode, Send, ArrowRight, ArrowLeft, 
-  Crown, Rocket, Building2, Loader2, CreditCard, 
-  ShieldCheck, AlertCircle, Sparkles, MessageSquare, 
+import {
+  Check, Zap, QrCode, ArrowRight, ArrowLeft,
+  Crown, Rocket, Loader2, CreditCard,
+  ShieldCheck, AlertCircle, Sparkles, MessageSquare,
   Smartphone, Target, Trophy, Lock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 
 const PLANS = [
-  { 
-    id: 'trial',    
-    name: 'Trial Grátis', 
-    price: 'R$ 0',        
-    credits: '50 créditos',    
-    desc: 'Ideal para testar a potência do Ruptur sem compromisso.',  
-    icon: <Zap size={28} />,       
+  {
+    id: 'trial',
+    name: 'Trial Grátis',
+    price: 'R$ 0',
+    credits: '50 créditos',
+    desc: 'Ideal para testar a potência do Ruptur sem compromisso.',
+    icon: <Zap size={28} />,
     color: 'var(--primary)',
     features: ['50 Créditos Iniciais', '1 Instância WhatsApp', 'Suporte via Comunidade']
   },
-  { 
-    id: 'starter',  
-    name: 'Starter',      
-    price: 'R$ 97',   
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: 'R$ 97',
     period: '/mês',
-    credits: '2.000 cr/mês',   
-    desc: 'Perfeito para pequenos negócios e escala inicial.',     
-    icon: <Rocket size={28} />,    
-    color: 'var(--secondary)', 
+    credits: '2.000 cr/mês',
+    desc: 'Perfeito para pequenos negócios e escala inicial.',
+    icon: <Rocket size={28} />,
+    color: 'var(--secondary)',
     popular: true,
     features: ['2.000 Créditos/mês', '1 Instância WhatsApp', 'Envios Ilimitados', 'Suporte Prioritário']
   },
-  { 
-    id: 'pro',      
-    name: 'Pro',          
-    price: 'R$ 197',  
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: 'R$ 197',
     period: '/mês',
-    credits: '5.000 cr/mês',   
-    desc: 'O poder máximo para quem não aceita limites.',    
-    icon: <Crown size={28} />,     
+    credits: '5.000 cr/mês',
+    desc: 'O poder máximo para quem não aceita limites.',
+    icon: <Crown size={28} />,
     color: 'var(--accent)',
     features: ['5.000 Créditos/mês', '3 Instâncias WhatsApp', 'Webhooks Avançados', 'Gerente de Conta']
   },
@@ -93,7 +93,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (step === 3 && !qrCode) {
-      setLoading(true);
+      Promise.resolve().then(() => setLoading(true));
       setTimeout(() => {
         setQrCode('https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=RupturCloud-Auth-' + Date.now());
         setLoading(false);
@@ -118,7 +118,7 @@ export default function Onboarding() {
   if (provisioning) {
     return (
       <div className="onboarding-page provisioning">
-        <motion.div 
+        <motion.div
           className="provisioning-card glass"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -131,7 +131,7 @@ export default function Onboarding() {
           </div>
           <h1>Preparando sua Infraestrutura</h1>
           <p>Estamos configurando seu workspace, banco de dados e instâncias isoladas na nuvem.</p>
-          
+
           <div className="loading-steps">
             <div className="l-step done"><Check size={14} /> Conta criada</div>
             <div className="l-step active"><Loader2 size={14} className="spin" /> Provisionando banco de dados...</div>
@@ -139,7 +139,7 @@ export default function Onboarding() {
           </div>
 
           <div className="progress-bar">
-            <motion.div 
+            <motion.div
               className="progress-fill"
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
@@ -157,16 +157,16 @@ export default function Onboarding() {
           .rocket-smoke span:nth-child(2) { animation-delay: 0.2s; }
           .rocket-smoke span:nth-child(3) { animation-delay: 0.4s; }
           @keyframes smoke { 0% { transform: translateY(0) scale(1); opacity: 0.5; } 100% { transform: translateY(20px) scale(2); opacity: 0; } }
-          
+
           .provisioning-card h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 16px; font-family: 'Outfit', sans-serif; }
           .provisioning-card p { color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 40px; }
-          
+
           .loading-steps { display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 40px; }
           .l-step { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 600; color: var(--text-dim); }
           .l-step.done { color: var(--success); }
           .l-step.active { color: var(--primary); }
           .l-step .dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.05); }
-          
+
           .progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
           .progress-fill { height: 100%; background: linear-gradient(to right, var(--secondary), var(--primary)); box-shadow: 0 0 15px var(--primary-glow); }
         `}</style>
@@ -181,7 +181,7 @@ export default function Onboarding() {
       <div className="bg-glow-bottom"></div>
 
       <div className="onboarding-container">
-        
+
         {/* Progress Header */}
         <header className="onboarding-header">
           <div className="brand">
@@ -209,11 +209,11 @@ export default function Onboarding() {
 
         <main className="onboarding-content">
           <AnimatePresence mode="wait">
-            
+
             {/* STEP 1: OBJETIVO */}
             {step === 1 && (
-              <motion.section 
-                key="step1" 
+              <motion.section
+                key="step1"
                 className="step-card glass"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -222,16 +222,16 @@ export default function Onboarding() {
                 <div className="step-badge"><Target size={14} /> Foco & Estratégia</div>
                 <h1 className="step-title">Olá, {user?.user_metadata?.full_name?.split(' ')[0] || 'parceiro'}!</h1>
                 <p className="step-desc">Para personalizarmos sua experiência, qual o seu principal desafio hoje?</p>
-                
+
                 <div className="goal-grid">
                   {[
                     { id: 'sales', label: 'Escalar Vendas', desc: 'Recupere carrinhos e dispare ofertas', icon: <Rocket size={24} /> },
                     { id: 'support', label: 'Automatizar Suporte', desc: 'Responda clientes 24/7 sem esforço', icon: <MessageSquare size={24} /> },
                     { id: 'marketing', label: 'Campanhas em Massa', desc: 'Alcance milhares de contatos num clique', icon: <Sparkles size={24} /> },
                   ].map(g => (
-                    <button 
-                      key={g.id} 
-                      className={`goal-item ${goal === g.id ? 'active' : ''}`} 
+                    <button
+                      key={g.id}
+                      className={`goal-item ${goal === g.id ? 'active' : ''}`}
                       onClick={() => setGoal(g.id)}
                     >
                       <div className="g-icon">{g.icon}</div>
@@ -254,8 +254,8 @@ export default function Onboarding() {
 
             {/* STEP 2: PLANO */}
             {step === 2 && (
-              <motion.section 
-                key="step2" 
+              <motion.section
+                key="step2"
                 className="step-card wide glass"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -264,12 +264,12 @@ export default function Onboarding() {
                 <div className="step-badge"><CreditCard size={14} /> Ativação de Conta</div>
                 <h1 className="step-title">Escolha o seu plano</h1>
                 <p className="step-desc">Ative agora para liberar as ferramentas de automação avançada.</p>
-                
+
                 <div className="plans-showcase">
                   {PLANS.map(p => (
-                    <div 
-                      key={p.id} 
-                      className={`plan-card ${selectedPlan === p.id ? 'selected' : ''} ${p.popular ? 'popular' : ''}`} 
+                    <div
+                      key={p.id}
+                      className={`plan-card ${selectedPlan === p.id ? 'selected' : ''} ${p.popular ? 'popular' : ''}`}
                       onClick={() => setSelectedPlan(p.id)}
                     >
                       {p.popular && <div className="popular-tag">Mais Escolhido</div>}
@@ -317,8 +317,8 @@ export default function Onboarding() {
 
             {/* STEP 3: WHATSAPP */}
             {step === 3 && (
-              <motion.section 
-                key="step3" 
+              <motion.section
+                key="step3"
                 className="step-card glass"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -327,7 +327,7 @@ export default function Onboarding() {
                 <div className="step-badge"><QrCode size={14} /> Conexão em Tempo Real</div>
                 <h1 className="step-title">Vincule seu WhatsApp</h1>
                 <p className="step-desc">Escaneie o código abaixo com o seu celular para ativar sua primeira instância.</p>
-                
+
                 <div className="qr-wrapper">
                   <div className={`qr-frame ${qrStatus}`}>
                     {loading ? (
@@ -339,10 +339,10 @@ export default function Onboarding() {
                     ) : (
                       <div className="qr-display">
                         <img src={qrCode} alt="WhatsApp QR Code" className={qrStatus !== 'waiting' ? 'blurred' : ''} />
-                        
+
                         <AnimatePresence>
                           {qrStatus === 'scanned' && (
-                            <motion.div 
+                            <motion.div
                               className="qr-overlay-status"
                               initial={{ opacity: 0, scale: 0.8 }}
                               animate={{ opacity: 1, scale: 1 }}
@@ -353,7 +353,7 @@ export default function Onboarding() {
                             </motion.div>
                           )}
                           {qrStatus === 'connected' && (
-                            <motion.div 
+                            <motion.div
                               className="qr-overlay-status success"
                               initial={{ opacity: 0, scale: 0.8 }}
                               animate={{ opacity: 1, scale: 1 }}
@@ -365,7 +365,7 @@ export default function Onboarding() {
                             </motion.div>
                           )}
                         </AnimatePresence>
-                        
+
                         <div className="qr-overlay-glow"></div>
                       </div>
                     )}
@@ -389,8 +389,8 @@ export default function Onboarding() {
 
                 <div className="step-actions split">
                   <button className="btn-ghost" onClick={prevStep}>Voltar</button>
-                  <button 
-                    className="btn-primary-lg" 
+                  <button
+                    className="btn-primary-lg"
                     onClick={qrStatus === 'connected' ? nextStep : handleSimulateConnection}
                   >
                     {qrStatus === 'waiting' ? 'Já escaneei o QR Code' : qrStatus === 'connected' ? 'Continuar' : 'Autenticando...'}
@@ -401,8 +401,8 @@ export default function Onboarding() {
 
             {/* STEP 4: SUCESSO */}
             {step === 4 && (
-              <motion.section 
-                key="step4" 
+              <motion.section
+                key="step4"
                 className="step-card glass"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -416,7 +416,7 @@ export default function Onboarding() {
                 </div>
                 <h1 className="step-title">Você está pronto!</h1>
                 <p className="step-desc">Sua jornada no <strong>Ruptur Cloud</strong> começa agora. Vamos decolar?</p>
-                
+
                 <div className="setup-summary">
                   <div className="sum-item">
                     <div className="sum-icon"><ShieldCheck size={18} /></div>
@@ -549,14 +549,14 @@ export default function Onboarding() {
         }
         .goal-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); transform: translateX(5px); }
         .goal-item.active { background: rgba(0,242,255,0.05); border-color: var(--primary); box-shadow: 0 0 30px rgba(0,242,255,0.1); }
-        
+
         .g-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; color: var(--text-dim); transition: all 0.3s; }
         .goal-item.active .g-icon { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary-glow); }
-        
+
         .g-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
         .g-info strong { font-size: 1.1rem; color: #fff; }
         .g-info span { font-size: 0.9rem; color: var(--text-muted); }
-        
+
         .g-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: transparent; transition: all 0.3s; }
         .goal-item.active .g-check { background: var(--primary); border-color: var(--primary); color: #000; }
 
@@ -581,10 +581,10 @@ export default function Onboarding() {
         .plan-card.popular.selected { border-color: var(--primary); }
 
         .popular-tag { position: absolute; top: -12px; background: var(--secondary); padding: 4px 12px; border-radius: 100px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #fff; box-shadow: 0 5px 15px var(--secondary-glow); }
-        
+
         .p-header { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .p-header h3 { font-size: 1.4rem; font-weight: 800; color: #fff; }
-        
+
         .p-price-wrap { display: flex; align-items: baseline; gap: 4px; }
         .p-currency { font-size: 0.9rem; font-weight: 600; color: var(--text-dim); }
         .p-amount { font-size: 2.2rem; font-weight: 800; color: #fff; font-family: 'Outfit', sans-serif; }
@@ -611,12 +611,12 @@ export default function Onboarding() {
         .qr-display img { width: 100%; border-radius: 12px; transition: filter 0.3s; }
         .qr-display img.blurred { filter: blur(8px) brightness(0.8); }
         .qr-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; color: #505060; font-weight: 600; text-align: center; }
-        
+
         .qr-overlay-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: rgba(255,255,255,0.8); border-radius: 12px; font-weight: 700; color: #000; z-index: 10; }
         .qr-overlay-status.success { background: rgba(0,255,136,0.9); color: #000; }
         .status-icon.primary { color: var(--primary); }
         .success-circle { width: 64px; height: 64px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--success); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        
+
         .qr-instructions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 24px; border-radius: 20px; text-align: left; }
         .ins-item { display: flex; flex-direction: column; gap: 12px; }
         .ins-num { width: 28px; height: 28px; border-radius: 8px; background: var(--primary); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; }
@@ -626,7 +626,7 @@ export default function Onboarding() {
         .trophy-wrap { position: relative; width: 120px; height: 120px; margin: 0 auto 32px; display: flex; align-items: center; justify-content: center; }
         .trophy-icon { color: var(--primary); position: relative; z-index: 2; filter: drop-shadow(0 0 20px var(--primary-glow)); }
         .trophy-glow { position: absolute; inset: 0; background: var(--primary); border-radius: 50%; filter: blur(40px); opacity: 0.2; animation: pulse 2s infinite; }
-        
+
         .setup-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 40px; }
         .sum-item { display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; text-align: left; }
         .sum-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(0,255,136,0.1); color: var(--success); display: flex; align-items: center; justify-content: center; }
@@ -637,7 +637,7 @@ export default function Onboarding() {
         /* Actions */
         .step-actions { margin-top: 10px; }
         .step-actions.split { display: flex; gap: 16px; }
-        
+
         .btn-primary-lg { flex: 1; padding: 20px 32px; background: linear-gradient(135deg, var(--secondary), var(--primary)); border: none; border-radius: 20px; color: #fff; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 10px 30px var(--secondary-glow); }
         .btn-primary-lg:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 40px var(--secondary-glow); filter: brightness(1.1); }
         .btn-primary-lg:disabled { opacity: 0.4; cursor: not-allowed; }

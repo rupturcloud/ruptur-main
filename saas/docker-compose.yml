@@ -12,18 +12,3 @@ services:
       PORT: 3001
     ports:
       - "3001:3001"
-    networks:
-      - ruptur-edge
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: "ruptur-edge"
-      traefik.http.routers.saas-web-http.entrypoints: web
-      traefik.http.routers.saas-web-http.rule: "Host(`saas.ruptur.cloud`)"
-      traefik.http.routers.saas-web.entrypoints: websecure
-      traefik.http.routers.saas-web.rule: "Host(`saas.ruptur.cloud`)"
-      traefik.http.routers.saas-web.tls.certresolver: letsencrypt
-      traefik.http.services.saas-web.loadbalancer.server.port: "3001"
-
-networks:
-  ruptur-edge:
-    external: true

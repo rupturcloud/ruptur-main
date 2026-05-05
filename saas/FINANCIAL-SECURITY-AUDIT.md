@@ -319,9 +319,9 @@ const { data } = await this.supabase
 
 1. **Webhook Secret**: Obter webhook secret do painel Getnet
 2. **Webhook URLs**: Configurar 5 URLs no painel:
-   - `https://saas.ruptur.cloud/api/webhooks/getnet/payment` (PAYMENT_APPROVED, PAYMENT_DENIED)
-   - `https://saas.ruptur.cloud/api/webhooks/getnet/subscription` (SUBSCRIPTION_PAYMENT, SUBSCRIPTION_CANCELLED)
-   - `https://saas.ruptur.cloud/api/webhooks/getnet/chargeback` (futuro)
+   - `https://api.ruptur.cloud/api/webhooks/getnet/payment` (PAYMENT_APPROVED, PAYMENT_DENIED)
+   - `https://api.ruptur.cloud/api/webhooks/getnet/subscription` (SUBSCRIPTION_PAYMENT, SUBSCRIPTION_CANCELLED)
+   - `https://api.ruptur.cloud/api/webhooks/getnet/chargeback` (futuro)
 
 3. **IP Whitelist**: Adicionar IPs da Getnet
 

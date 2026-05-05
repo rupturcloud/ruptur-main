@@ -32,7 +32,7 @@ Plataforma SaaS completa para automação de WhatsApp com inbox, campanhas em ma
 ## 🌐 URLs em Produção
 
 - **Aplicação Principal**: https://app.ruptur.cloud
-- **SaaS Dashboard**: https://saas.ruptur.cloud
+- **Aplicação/Painel**: https://app.ruptur.cloud
 - **Warmup Manager**: https://app.ruptur.cloud/warmup
 - **API Health**: https://app.ruptur.cloud/api/local/health
 

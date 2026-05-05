@@ -3,10 +3,10 @@
 ## 📍 URLs de Acesso
 
 ### Produção (VPS)
-- **Client Area:** https://saas.ruptur.cloud/
-- **Warmup Manager (Light):** https://saas.ruptur.cloud/warmup/
-- **Warmup Manager (Dark):** https://saas.ruptur.cloud/warmup/dark/
-- **API Health:** https://saas.ruptur.cloud/api/local/health
+- **Client Area:** https://app.ruptur.cloud/
+- **Warmup Manager (Light):** https://app.ruptur.cloud/warmup/
+- **Warmup Manager (Dark):** https://app.ruptur.cloud/warmup/dark/
+- **API Health:** https://api.ruptur.cloud/api/local/health
 
 ### Local
 - **Client Area:** http://localhost:5173/
@@ -107,7 +107,7 @@
 curl -s http://localhost:4173/api/local/health | jq .
 
 # Testar API produção
-curl -s https://saas.ruptur.cloud/api/local/health | jq .
+curl -s https://api.ruptur.cloud/api/local/health | jq .
 ```
 
 **Resposta Esperada:**
@@ -175,7 +175,7 @@ curl -I http://localhost:4173/api/local/health
 
 ### CORS
 ```bash
-curl -H "Origin: https://saas.ruptur.cloud" \
+curl -H "Origin: https://app.ruptur.cloud" \
      -H "Access-Control-Request-Method: POST" \
      -X OPTIONS \
      http://localhost:4173/api/inbox/

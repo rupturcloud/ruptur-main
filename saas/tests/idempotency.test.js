@@ -15,8 +15,9 @@ import { BillingService } from '../modules/billing/billing.service.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const describeIfSupabase = SUPABASE_KEY ? describe : describe.skip;
 
-describe('Idempotência — Semana 2', () => {
+describeIfSupabase('Idempotência — Semana 2', () => {
   let supabase;
   let billingService;
   let testTenantId;

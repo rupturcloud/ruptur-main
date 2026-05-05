@@ -100,7 +100,7 @@ const token = await secretsService.getSecret(tenantId, 'uazapi');
 // https://ruptur.cloud
 // https://www.ruptur.cloud
 // https://app.ruptur.cloud
-// https://saas.ruptur.cloud
+// https://app.ruptur.cloud
 ```
 
 ---
