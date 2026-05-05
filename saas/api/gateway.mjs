@@ -1223,6 +1223,18 @@ async function handler(req, res) {
     }
   }
 
+  // --- Health local do gateway SaaS ---
+  if (pathname === '/api/local/health' && req.method === 'GET') {
+    return json(res, 200, {
+      ok: true,
+      service: 'ruptur-saas-gateway',
+      supabase: Boolean(supabase),
+      billingConfigured: Boolean(process.env.GETNET_CLIENT_ID && process.env.GETNET_CLIENT_SECRET && process.env.GETNET_SELLER_ID),
+      warmupProxy: WARMUP_URL,
+      ts: new Date().toISOString(),
+    }, req);
+  }
+
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin')) {
     // Proxy para o Warmup Manager existente
