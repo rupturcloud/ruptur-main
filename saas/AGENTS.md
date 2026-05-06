@@ -233,6 +233,7 @@ No resumo final, informar:
 - Trabalhe por escopo: documentação, diagnóstico, testes, ou patch isolado.
 - Preserve alterações não commitadas de terceiros.
 - Se encontrar conflito de orientação, priorize segurança, idempotência e não quebrar produção.
+
 ## 15. Agentes/ferramentas específicas em uso
 
 ### Codex
@@ -258,13 +259,20 @@ O projeto também pode ser trabalhado por Claude Code. Para ele:
 
 ### Graphyfy
 
-Diego também utiliza Graphyfy no fluxo do projeto. Tratar Graphyfy como ferramenta/agente colaborativo de apoio visual/fluxos/grafos/documentação, quando estiver ativo no contexto.
+Graphyfy é ferramenta transversal de apoio visual/arquitetural do projeto. Todos os agentes — Codex, Claude Code e demais — devem considerar Graphyfy como parte do fluxo quando houver decisão estrutural, mapeamento de dependências, mudança de módulo ou documentação de arquitetura.
 
-Boas práticas ao coexistir com Graphyfy:
+Uso esperado do Graphyfy:
 
-- Preservar diagramas, mapas, fluxos ou artefatos gerados por ele.
-- Se criar arquitetura ou fluxo novo, documentar de forma que possa virar grafo/diagrama depois.
-- Usar nomes consistentes para módulos e eventos: `integrations-core`, `webhook-core`, `billing`, `wallet`, `internal_events`.
-- Não renomear conceitos centrais sem atualizar documentação e referências.
-- Quando houver ambiguidade entre código e diagrama, considerar o código como fonte executável e abrir pendência para alinhar documentação/Graphyfy.
+- Antes de mudanças estruturais, consultar/considerar o mapa visual quando disponível.
+- Ao criar ou alterar arquitetura, deixar documentação textual pronta para virar grafo/diagrama.
+- Mapear fluxos críticos: autenticação, tenants, permissões, billing, wallet, webhooks, integrações, UAZAPI, warmup, deploy.
+- Preservar diagramas, mapas, fluxos ou artefatos gerados por Graphyfy.
+- Usar nomes consistentes para módulos e eventos: `integrations-core`, `webhook-core`, `billing`, `wallet`, `internal_events`, `integration_webhook_events`.
+- Não renomear conceitos centrais sem atualizar código, documentação e artefatos compatíveis com Graphyfy.
+
+Regra de verdade:
+
+- Código executável e migrations aplicadas são a fonte operacional final.
+- Graphyfy é a fonte visual/arquitetural de alinhamento.
+- Se código e grafo divergirem, não inventar: registrar a divergência e corrigir documentação/grafo ou abrir pendência explícita.
 

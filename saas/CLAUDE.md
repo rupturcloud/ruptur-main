@@ -19,3 +19,15 @@ Se estiver tratando erro em produção, sempre informar:
 3. comandos executados;
 4. validações feitas;
 5. pendências ou riscos.
+
+
+## Graphyfy
+
+Claude Code também deve usar/considerar Graphyfy como ferramenta transversal do projeto.
+
+Quando mexer em arquitetura, integrações, webhooks, billing, wallet, permissões, tenants ou deploy:
+
+- preservar diagramas/fluxos/artefatos existentes;
+- manter nomes de módulos e eventos consistentes;
+- documentar mudanças de forma que possam ser refletidas em grafo;
+- se houver divergência entre código e Graphyfy, informar no resumo e propor correção documental.

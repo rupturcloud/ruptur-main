@@ -15,4 +15,4 @@ Agentes específicos:
 - Claude Code: também ler CLAUDE.md.
 - Graphyfy: preservar diagramas/fluxos/artefatos e manter nomes de módulos/eventos consistentes.
 - Codex: também ler CODEX.md e CODEX.txt.
-
+- Graphyfy deve ser usado/considerado por todos os agentes para fluxos, mapas, dependências e decisões arquiteturais.

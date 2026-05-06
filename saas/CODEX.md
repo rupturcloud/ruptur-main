@@ -45,6 +45,17 @@ Integrações externas -> integrations-core/adapters -> webhook-core -> eventos 
 
 Não acoplar Billing/Wallet diretamente a Cakto/Getnet/Stripe/Mercado Livre/UAZAPI.
 
+## Uso do Graphyfy
+
+Codex deve usar/considerar Graphyfy como apoio padrão para entendimento arquitetural e documentação visual.
+
+Quando a tarefa envolver arquitetura, fluxos, integrações, webhooks, billing, wallet, permissões, tenants, deploy ou dependências entre módulos:
+
+- consultar o mapa/fluxo do Graphyfy quando estiver disponível;
+- preservar nomes e conceitos usados nos grafos;
+- documentar mudanças de forma compatível com grafo/diagrama;
+- se encontrar divergência entre código e Graphyfy, tratar o código como fonte operacional e abrir/corrigir pendência documental.
+
 ## Deploy
 
 Usar o runbook em `AGENTS.md` e `docs/DEPLOYMENT.md`.
