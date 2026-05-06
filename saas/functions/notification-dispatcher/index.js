@@ -1,12 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 import sgMail from '@sendgrid/mail';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+let supabase = null;
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_KEY
+    );
+  }
+  return supabase;
+}
+
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 const TEMPLATES = {
   campaign_launched: {
@@ -43,7 +52,8 @@ const TEMPLATES = {
 
 async function logNotification(payload, status, errorMessage = null) {
   try {
-    await supabase.from('notification_logs').insert({
+    const sb = getSupabase();
+    await sb.from('notification_logs').insert({
       tenant_id: payload.tenantId,
       user_id: payload.userId,
       event_id: payload.eventId,
@@ -96,7 +106,8 @@ export async function notificationDispatcher(pubsubMessage, context) {
     const eventId = eventData.payload?.eventId || context.eventId || Date.now();
     console.log(`[Dispatcher] Processing: ${eventData.type}`);
 
-    const user = await supabase
+    const sb = getSupabase();
+    const user = await sb
       .from('auth.users')
       .select('id, email, user_metadata')
       .eq('id', eventData.payload.userId)
