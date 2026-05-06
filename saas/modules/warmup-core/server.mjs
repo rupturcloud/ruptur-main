@@ -10,14 +10,10 @@ import crypto from "node:crypto";
 // Import new modules
 import { inboxManager } from '../inbox/index.js';
 import { campaignManager } from '../campaigns/index.js';
-<<<<<<< HEAD
-import { walletManager } from '../wallet/index.js';
-=======
 import { createWalletManager, getWalletManager } from '../wallet/index.js';
 import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.js';
 
 const walletManager = createWalletManager(supabase);
->>>>>>> codex/getnet-prod-fix
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -32,11 +28,7 @@ function resolveAssetDir(dirname) {
   return path.resolve(process.cwd(), "web", dirname);
 }
 
-<<<<<<< HEAD
-const FRONT_DIST_DIR = resolveAssetDir("dist"); // Front Lindona
-=======
 const FRONT_DIST_DIR = resolveAssetDir("dist"); // Front Lindona / Página de Vendas
->>>>>>> codex/getnet-prod-fix
 const DASHBOARD_DIST_DIR = resolveAssetDir("dashboard-dist"); // Legacy Dashboard SafeFlow
 const MANAGER_DIST_DIR = resolveAssetDir("manager-dist"); // Warmup Manager
 
@@ -718,11 +710,7 @@ function normalizeInstanceState({ currentState, instance, round, now, resolvedNu
             : "unknown",
     updatedAt: now.toISOString(),
     nextEligibleAt: undefined,
-<<<<<<< HEAD
-    tenantId: instanceData?.bubble_user_id || instanceData?.tenantId || base.tenantId, // Multi-tenant: Vincula a instância ao cliente
-=======
     tenantId: getTenantHintsFromInstance(instanceData)[0] || base.tenantId, // Multi-tenant: Vincula a instância ao cliente
->>>>>>> codex/getnet-prod-fix
     lastReconnectAttemptAt: base.lastReconnectAttemptAt,
   };
 
@@ -1759,10 +1747,7 @@ async function executePoolEntry(entry, instancesByToken, round, runVersion = war
   const tenantId = senderState.tenantId;
   if (tenantId) {
     try {
-<<<<<<< HEAD
-=======
       const walletManager = getWalletManager();
->>>>>>> codex/getnet-prod-fix
       const hasCredits = await walletManager.hasEnoughCredits(tenantId, 1);
       if (!hasCredits) {
         addRuntimeLog({
@@ -1779,15 +1764,12 @@ async function executePoolEntry(entry, instancesByToken, round, runVersion = war
       }
       
       // Debita o crédito
-<<<<<<< HEAD
-=======
       if (!isWarmupRunCurrent(runVersion)) {
         entry.status = 'cancelled';
         entry.updatedAt = new Date().toISOString();
         return { sentCount: 0 };
       }
 
->>>>>>> codex/getnet-prod-fix
       await walletManager.deductCredit(tenantId, 1, { 
         type: 'warmup', 
         instanceToken: entry.senderToken,
@@ -3022,10 +3004,7 @@ async function handleCampaignRoute(req, res, url) {
     if (pathParts.length === 2 && req.method === 'GET') {
       const options = {
         status: url.searchParams.get('status'),
-<<<<<<< HEAD
-=======
         tenantId: url.searchParams.get('tenantId') || req.headers['x-tenant-id'],
->>>>>>> codex/getnet-prod-fix
         limit: parseInt(url.searchParams.get('limit') || '50'),
         offset: parseInt(url.searchParams.get('offset') || '0')
       };
@@ -3051,11 +3030,6 @@ async function handleCampaignRoute(req, res, url) {
     // POST /api/campaigns/:campaignId/launch
     if (pathParts.length === 4 && pathParts[3] === 'launch' && req.method === 'POST') {
       const campaignId = pathParts[2];
-<<<<<<< HEAD
-      const success = await campaignManager.launchCampaign(campaignId);
-      return createResponse(res, 200, { success, campaignId });
-    }
-=======
       const body = await parseBody(req);
       const tenantId = body.tenantId || req.headers['x-tenant-id'];
       const campaign = await campaignManager.getCampaign(campaignId);
@@ -3094,7 +3068,6 @@ async function handleCampaignRoute(req, res, url) {
       const success = await campaignManager.stopCampaign(campaignId);
       return createResponse(res, 200, { success, campaignId });
     }
->>>>>>> codex/getnet-prod-fix
     
     // GET /api/campaigns/:campaignId/stats
     if (pathParts.length === 4 && pathParts[3] === 'stats' && req.method === 'GET') {
@@ -3120,8 +3093,6 @@ async function handleDashboardRoute(req, res, url) {
     const balance = await walletManager.getBalance(tenantId);
     const campaigns = await campaignManager.getAllCampaigns({ tenantId, limit: 100 });
     const inboxSummary = await inboxManager.getInboxSummary(tenantId);
-<<<<<<< HEAD
-=======
     let tenantInstances = inboxSummary.instances || [];
     try {
       const uazapiInstances = await fetchTenantUazapiInstances({ id: tenantId, slug: tenantId, name: tenantId });
@@ -3131,20 +3102,14 @@ async function handleDashboardRoute(req, res, url) {
     } catch (error) {
       console.warn('[Dashboard API] Falha ao buscar instâncias UazAPI:', error.message);
     }
->>>>>>> codex/getnet-prod-fix
 
     // Aggregate stats
     const stats = {
       walletBalance: balance,
       activeCampaignsCount: campaigns.campaigns.filter(c => c.status === 'active' || c.status === 'running').length,
       totalCampaigns: campaigns.total,
-<<<<<<< HEAD
-      connectedInstances: inboxSummary.instances.filter(i => i.connected).length,
-      totalInstances: inboxSummary.instances.length,
-=======
       connectedInstances: tenantInstances.filter(i => i.connected).length,
       totalInstances: tenantInstances.length,
->>>>>>> codex/getnet-prod-fix
       sendsToday: campaigns.campaigns.reduce((acc, c) => acc + (c.metrics?.sentCount || 0), 0),
       queueCount: campaignManager.sendingQueue.filter(item => item.campaign.tenantId === tenantId).length
     };
@@ -3156,8 +3121,6 @@ async function handleDashboardRoute(req, res, url) {
   }
 }
 
-<<<<<<< HEAD
-=======
 // Authenticated Wallet Route Handler
 async function handleAuthenticatedWalletRoute(req, res, url) {
   try {
@@ -3374,7 +3337,6 @@ async function handleAuthenticatedSendMessageRoute(req, res, url) {
   }
 }
 
->>>>>>> codex/getnet-prod-fix
 await bootstrapProtectedRoutine();
 
 function warmupTenantKeys(tenant) {
@@ -3755,22 +3717,12 @@ const server = http.createServer(async (req, res) => {
       return createResponse(res, 200, { received: true });
     }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> codex/getnet-prod-fix
     // Inbox API Routes
     if (normalizedPathname.startsWith("/api/inbox/")) {
       return handleInboxRoute(req, res, url);
     }
 
-<<<<<<< HEAD
-    // Wallet API Routes
-    if (normalizedPathname.startsWith("/api/wallet/")) {
-      return handleWalletRoute(req, res, url);
-    }
-
-=======
     // Wallet API Routes (Legacy - sem autenticação)
     if (normalizedPathname.startsWith("/api/wallet/") && !normalizedPathname.startsWith("/api/wallet/balance")) {
       return handleWalletRoute(req, res, url);
@@ -3796,7 +3748,6 @@ const server = http.createServer(async (req, res) => {
       return handleAuthenticatedSendMessageRoute(req, res, url);
     }
 
->>>>>>> codex/getnet-prod-fix
     // Campaigns API Routes
     if (normalizedPathname.startsWith("/api/campaigns")) {
       return handleCampaignRoute(req, res, url);
@@ -3806,15 +3757,11 @@ const server = http.createServer(async (req, res) => {
     if (normalizedPathname.startsWith("/api/dashboard")) {
       return handleDashboardRoute(req, res, url);
     }
-<<<<<<< HEAD
-    if (normalizedPathname === "/api/local/uazapi/instance/all") {
-=======
     if (normalizedPathname.startsWith("/api/local/uazapi/instance/all")) {
       // Parse query parameters
       const queryParams = new URLSearchParams(url.search);
       const tenantId = queryParams.get('tenantId');
       
->>>>>>> codex/getnet-prod-fix
       if (!state.config.settings.adminToken?.trim()) {
         return createResponse(res, 200, []);
       }
