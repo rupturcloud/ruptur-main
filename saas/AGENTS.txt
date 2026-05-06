@@ -14,3 +14,5 @@ Resumo rápido:
 Agentes específicos:
 - Claude Code: também ler CLAUDE.md.
 - Graphyfy: preservar diagramas/fluxos/artefatos e manter nomes de módulos/eventos consistentes.
+- Codex: também ler CODEX.md e CODEX.txt.
+

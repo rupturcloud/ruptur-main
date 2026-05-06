@@ -1,0 +1,12 @@
+Orientação rápida para Codex no Ruptur SaaS
+
+Fonte principal: AGENTS.md
+Complemento: CODEX.md
+
+Resumo:
+- Responder em pt-BR.
+- Não expor segredos.
+- Verificar git status antes de mexer.
+- Preservar alterações de Claude Code, Graphyfy e outros agentes.
+- Rodar lint/test/build antes de finalizar.
+- Manter Billing/Wallet agnósticos; integrações ficam em integrations-core/webhook-core.

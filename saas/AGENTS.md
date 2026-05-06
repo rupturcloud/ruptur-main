@@ -235,6 +235,17 @@ No resumo final, informar:
 - Se encontrar conflito de orientação, priorize segurança, idempotência e não quebrar produção.
 ## 15. Agentes/ferramentas específicas em uso
 
+### Codex
+
+Codex também possui orientação específica em `CODEX.md` e resumo curto em `CODEX.txt`. Essas instruções complementam este arquivo e não substituem `AGENTS.md`.
+
+Regras principais para Codex:
+
+- Fazer patches pequenos, claros e validados.
+- Sempre preservar alterações de Claude Code, Graphyfy ou outros agentes.
+- Evitar commits misturando escopos.
+- Registrar no resumo final comandos, validações e pendências.
+
 ### Claude Code
 
 O projeto também pode ser trabalhado por Claude Code. Para ele:
