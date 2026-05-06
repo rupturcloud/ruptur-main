@@ -1,0 +1,15 @@
+{
+  "name": "notification-dispatcher",
+  "version": "1.0.0",
+  "description": "Cloud Function for processing notification events from Pub/Sub",
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "@sendgrid/mail": "^8.1.0"
+  },
+  "devDependencies": {}
+}
