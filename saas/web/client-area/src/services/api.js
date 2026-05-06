@@ -286,6 +286,11 @@ export const apiService = {
     return authFetch(`/api/admin/provider-accounts/${id}/sync`, { method: 'POST' });
   },
 
+  async getIntegrationPresets(kind) {
+    const suffix = kind ? `?kind=${encodeURIComponent(kind)}` : '';
+    return authFetch(`/api/admin/integration-presets${suffix}`);
+  },
+
   async getPaymentGateways() {
     return authFetch('/api/admin/payment-gateways');
   },

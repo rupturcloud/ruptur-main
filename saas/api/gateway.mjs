@@ -39,6 +39,7 @@ import {
 import { PlatformAdminService } from '../modules/superadmin/platform-admin.service.js';
 import { UazapiAccountService } from '../modules/providers/uazapi-account.service.js';
 import { PaymentGatewayAccountService } from '../modules/billing/payment-gateway-account.service.js';
+import { listIntegrationPresets } from '../modules/integrations-core/index.js';
 
 // --- Config ---
 const HOST = process.env.API_HOST || '0.0.0.0';
@@ -1330,6 +1331,16 @@ async function handler(req, res) {
       const migrationError = providerMigrationError(e);
       return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
     }
+  }
+
+  // --- Admin: Presets de integrações conhecidas ---
+  if (pathname === '/api/admin/integration-presets' && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+
+    const kind = url.searchParams.get('kind') || undefined;
+    const presets = listIntegrationPresets({ kind });
+    return json(res, 200, { presets, total: presets.length }, req);
   }
 
   // --- Admin: Gateways de pagamento (Getnet, Cakto, etc.) ---

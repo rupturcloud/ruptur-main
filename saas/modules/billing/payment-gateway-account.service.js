@@ -1,19 +1,18 @@
 import crypto from 'node:crypto';
+import {
+  getIntegrationPreset,
+  getProviderCapabilities,
+  getProviderDefaultBaseUrl,
+  validateProviderCredentials,
+} from '../integrations-core/index.js';
 
-const VALID_PROVIDERS = new Set(['getnet', 'cakto']);
+const VALID_PROVIDERS = new Set(['getnet', 'cakto', 'stripe', 'mercado_pago']);
 const VALID_ENVIRONMENTS = new Set(['sandbox', 'production']);
 const VALID_STATUSES = new Set(['active', 'disabled', 'testing']);
 
-const PROVIDER_CAPABILITIES = {
-  cakto: {
-    paymentMethods: ['pix', 'pix_auto', 'boleto', 'credit_card', 'debit_card', 'picpay', 'nupay', 'applepay', 'googlepay', 'openfinance_nubank'],
-    features: ['transparent_checkout', 'hosted_checkout', 'subscriptions', 'tokenization', 'split', 'webhooks', 'refunds', 'chargebacks', 'coupons', 'order_bump', 'upsell', 'affiliate', 'receivables_anticipation', 'interest_pass_through'],
-  },
-  getnet: {
-    paymentMethods: ['pix', 'boleto', 'credit_card', 'debit_card', 'wallets'],
-    features: ['transparent_checkout', 'hosted_checkout', 'subscriptions', 'tokenization', 'vault', 'webhooks', 'refunds', 'chargebacks', 'reconciliation', 'receivables_anticipation'],
-  },
-};
+function paymentProviderCapabilities(provider) {
+  return getProviderCapabilities(provider);
+}
 
 function secretKey() {
   const source = process.env.PAYMENT_GATEWAY_SECRET_KEY
@@ -45,36 +44,36 @@ function normalizeUrl(value, fallback) {
 }
 
 function providerDefaults(provider, environment) {
-  if (provider === 'cakto') return { baseUrl: 'https://api.cakto.com.br' };
-  if (environment === 'production') return { baseUrl: 'https://api.getnet.com.br' };
-  return { baseUrl: 'https://api-sandbox.getnet.com.br' };
+  return { baseUrl: getProviderDefaultBaseUrl(provider, environment) };
 }
 
 function buildCredentials(provider, payload) {
-  if (provider === 'getnet') {
-    return {
-      clientId: String(payload.clientId || '').trim(),
-      clientSecret: String(payload.clientSecret || '').trim(),
-      sellerId: String(payload.sellerId || payload.seller_id || '').trim(),
-    };
-  }
+  const explicit = payload.credentials && typeof payload.credentials === 'object' ? payload.credentials : {};
+  const base = {
+    ...explicit,
+    clientId: String(payload.clientId || explicit.clientId || '').trim(),
+    clientSecret: String(payload.clientSecret || explicit.clientSecret || '').trim(),
+    sellerId: String(payload.sellerId || payload.seller_id || explicit.sellerId || '').trim(),
+    secretKey: String(payload.secretKey || payload.secret_key || explicit.secretKey || '').trim(),
+    publishableKey: String(payload.publishableKey || payload.publishable_key || explicit.publishableKey || '').trim(),
+    accessToken: String(payload.accessToken || payload.access_token || explicit.accessToken || '').trim(),
+    publicKey: String(payload.publicKey || payload.public_key || explicit.publicKey || '').trim(),
+  };
 
-  if (provider === 'cakto') {
-    return {
-      clientId: String(payload.clientId || '').trim(),
-      clientSecret: String(payload.clientSecret || '').trim(),
-    };
-  }
+  const preset = getIntegrationPreset(provider);
+  if (!preset) return base;
 
-  return {};
+  const allowedFields = new Set([...(preset.requiredCredentials || []), ...(preset.optionalCredentials || [])]);
+  const credentials = {};
+  for (const field of allowedFields) {
+    if (field === 'webhookSecret') continue;
+    if (base[field]) credentials[field] = base[field];
+  }
+  return credentials;
 }
 
 function validateCredentials(provider, credentials) {
-  const missing = [];
-  if (!credentials.clientId) missing.push('clientId');
-  if (!credentials.clientSecret) missing.push('clientSecret');
-  if (provider === 'getnet' && !credentials.sellerId) missing.push('sellerId');
-  if (missing.length) throw new Error(`Campos obrigatórios ausentes: ${missing.join(', ')}`);
+  validateProviderCredentials(provider, credentials);
 }
 
 function normalizeList(value, fallback = []) {
@@ -84,7 +83,7 @@ function normalizeList(value, fallback = []) {
 }
 
 function buildPublicConfig(provider, payload, credentials) {
-  const defaults = PROVIDER_CAPABILITIES[provider] || { paymentMethods: [], features: [] };
+  const defaults = paymentProviderCapabilities(provider);
   const incoming = payload.publicConfig || payload.public_config || {};
   const receivables = {
     enabled: payload.receivablesEnabled ?? incoming.receivables?.enabled ?? true,
@@ -102,7 +101,7 @@ function buildPublicConfig(provider, payload, credentials) {
     paymentMethods: normalizeList(payload.paymentMethods || payload.payment_methods || incoming.paymentMethods, defaults.paymentMethods),
     features: normalizeList(payload.features || incoming.features, defaults.features),
     receivables,
-    ...(provider === 'getnet' ? { sellerId: credentials.sellerId } : {}),
+    ...(credentials.sellerId ? { sellerId: credentials.sellerId } : {}),
   };
 }
 
