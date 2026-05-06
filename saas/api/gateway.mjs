@@ -39,6 +39,7 @@ import {
 import { PlatformAdminService } from '../modules/superadmin/platform-admin.service.js';
 import { UazapiAccountService } from '../modules/providers/uazapi-account.service.js';
 import { PaymentGatewayAccountService } from '../modules/billing/payment-gateway-account.service.js';
+import { CommercialAdminService, missingCommercialTable } from '../modules/admin/commercial-admin.service.js';
 import { listIntegrationPresets } from '../modules/integrations-core/index.js';
 
 // --- Config ---
@@ -102,6 +103,7 @@ const tenantService = supabase ? new TenantService(supabase) : null;
 const platformAdminService = supabase ? new PlatformAdminService(supabase, null) : null;
 const uazapiAccountService = supabase ? new UazapiAccountService(supabase) : null;
 const paymentGatewayAccountService = supabase ? new PaymentGatewayAccountService(supabase) : null;
+const commercialAdminService = supabase ? new CommercialAdminService(supabase) : null;
 
 // --- Rate Limiter (em memória, por IP) ---
 const RATE_LIMIT = {
@@ -1386,6 +1388,79 @@ async function handler(req, res) {
     } catch (e) {
       const migrationError = paymentGatewayMigrationError(e);
       return json(res, migrationError ? 503 : 400, { error: migrationError || e.message }, req);
+    }
+  }
+
+  // --- Admin: Comercial, tracking e suporte ---
+  if (pathname === '/api/admin/commercial/catalog' && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!commercialAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const catalog = await commercialAdminService.getCatalog();
+      const migrationPending = Object.values(catalog).some((entry) => entry?.migrationPending);
+      return json(res, 200, { catalog, migrationPending }, req);
+    } catch (e) {
+      return json(res, missingCommercialTable(e) ? 503 : 500, { error: e.message }, req);
+    }
+  }
+
+  const commercialCollectionMatch = pathname.match(/^\/api\/admin\/commercial\/([^/]+)$/);
+  if (commercialCollectionMatch && req.method === 'GET') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!commercialAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const result = await commercialAdminService.listResource(commercialCollectionMatch[1]);
+      return json(res, 200, { ...result, total: result.items.length }, req);
+    } catch (e) {
+      return json(res, missingCommercialTable(e) ? 503 : 400, { error: e.message }, req);
+    }
+  }
+
+  if (commercialCollectionMatch && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!commercialAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const item = await commercialAdminService.createResource(commercialCollectionMatch[1], body, adminUser.id);
+      return json(res, 201, { item }, req);
+    } catch (e) {
+      return json(res, missingCommercialTable(e) ? 503 : 400, { error: e.message }, req);
+    }
+  }
+
+  const commercialItemMatch = pathname.match(/^\/api\/admin\/commercial\/([^/]+)\/([^/]+)$/);
+  if (commercialItemMatch && req.method === 'PATCH') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!commercialAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const item = await commercialAdminService.updateResource(commercialItemMatch[1], commercialItemMatch[2], body);
+      return json(res, 200, { item }, req);
+    } catch (e) {
+      return json(res, missingCommercialTable(e) ? 503 : 400, { error: e.message }, req);
+    }
+  }
+
+  const commercialStatusMatch = pathname.match(/^\/api\/admin\/commercial\/([^/]+)\/([^/]+)\/status$/);
+  if (commercialStatusMatch && req.method === 'POST') {
+    const adminUser = await requirePlatformAdmin(req, res);
+    if (!adminUser) return;
+    if (!commercialAdminService) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const item = await commercialAdminService.updateStatus(commercialStatusMatch[1], commercialStatusMatch[2], body.status);
+      return json(res, 200, { item }, req);
+    } catch (e) {
+      return json(res, missingCommercialTable(e) ? 503 : 400, { error: e.message }, req);
     }
   }
 

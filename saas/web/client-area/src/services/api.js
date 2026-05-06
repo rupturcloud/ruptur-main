@@ -309,6 +309,35 @@ export const apiService = {
     });
   },
 
+  async getCommercialCatalog() {
+    return authFetch('/api/admin/commercial/catalog');
+  },
+
+  async getCommercialResource(resource) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}`);
+  },
+
+  async createCommercialResource(resource, payload) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateCommercialResource(resource, id, payload) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateCommercialResourceStatus(resource, id, status) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}/${encodeURIComponent(id)}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    });
+  },
+
   async createAdminInstance(payload) {
     return authFetch('/api/admin/instances/create', {
       method: 'POST',
