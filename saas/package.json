@@ -6,11 +6,6 @@
   "scripts": {
     "start": "node modules/warmup-core/server.mjs",
     "runtime": "node modules/warmup-core/server.mjs",
-<<<<<<< HEAD
-    "preview": "WARMUP_RUNTIME_HOST=127.0.0.1 WARMUP_RUNTIME_PORT=4173 npm start",
-    "preview:playwright": "playwright open http://127.0.0.1:4173/",
-    "preview:screenshot": "mkdir -p tmp/playwright && playwright screenshot --full-page http://127.0.0.1:4173/ tmp/playwright/preview-home.png",
-=======
     "saas": "node api/gateway.mjs",
     "saas:dev": "PORT_API=3001 node api/gateway.mjs",
     "preview": "WARMUP_RUNTIME_HOST=127.0.0.1 WARMUP_RUNTIME_PORT=4173 npm start",
@@ -18,17 +13,10 @@
     "preview:screenshot": "mkdir -p tmp/playwright && playwright screenshot --full-page http://127.0.0.1:4173/ tmp/playwright/preview-home.png",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
->>>>>>> codex/getnet-prod-fix
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "jarvis:ativar": "node scripts/jarvis/resolve-activation.mjs",
-<<<<<<< HEAD
-    "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.59.1"
-=======
     "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json",
     "supabase:prepare": "node scripts/supabase-prepare-cli.mjs",
     "supabase:version": "supabase --version",
@@ -64,6 +52,5 @@
     "@jest/globals": "^30.3.0",
     "@playwright/test": "^1.59.1",
     "jest": "^30.3.0"
->>>>>>> codex/getnet-prod-fix
   }
 }
