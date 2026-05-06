@@ -233,3 +233,27 @@ No resumo final, informar:
 - Trabalhe por escopo: documentação, diagnóstico, testes, ou patch isolado.
 - Preserve alterações não commitadas de terceiros.
 - Se encontrar conflito de orientação, priorize segurança, idempotência e não quebrar produção.
+## 15. Agentes/ferramentas específicas em uso
+
+### Claude Code
+
+O projeto também pode ser trabalhado por Claude Code. Para ele:
+
+- Ler este `AGENTS.md` e também `CLAUDE.md` quando existir.
+- Usar as mesmas regras de segurança, idioma e qualidade descritas aqui.
+- Não sobrescrever alterações feitas por Codex, Graphyfy ou outro agente sem revisar `git status`/diff.
+- Se estiver depurando um erro específico, registrar no resumo quais arquivos tocou e quais comandos rodou.
+- Preferir patches pequenos e verificáveis.
+
+### Graphyfy
+
+Diego também utiliza Graphyfy no fluxo do projeto. Tratar Graphyfy como ferramenta/agente colaborativo de apoio visual/fluxos/grafos/documentação, quando estiver ativo no contexto.
+
+Boas práticas ao coexistir com Graphyfy:
+
+- Preservar diagramas, mapas, fluxos ou artefatos gerados por ele.
+- Se criar arquitetura ou fluxo novo, documentar de forma que possa virar grafo/diagrama depois.
+- Usar nomes consistentes para módulos e eventos: `integrations-core`, `webhook-core`, `billing`, `wallet`, `internal_events`.
+- Não renomear conceitos centrais sem atualizar documentação e referências.
+- Quando houver ambiguidade entre código e diagrama, considerar o código como fonte executável e abrir pendência para alinhar documentação/Graphyfy.
+

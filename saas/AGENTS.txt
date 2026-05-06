@@ -10,3 +10,7 @@ Resumo rápido:
 - Preservar alterações de outros agentes.
 - Rodar lint/test/build antes de finalizar.
 - Ver docs/INTEGRATIONS_AND_WEBHOOK_CORE.md para arquitetura de integrações/webhooks.
+
+Agentes específicos:
+- Claude Code: também ler CLAUDE.md.
+- Graphyfy: preservar diagramas/fluxos/artefatos e manter nomes de módulos/eventos consistentes.
