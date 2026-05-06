@@ -4,6 +4,8 @@ import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import Toast from '../components/Toast';
+import { formatError } from '../utils/errorHelper';
 
 const initialCampaignState = {
   name: '',
@@ -55,6 +57,7 @@ const Campaigns = () => {
   const [newCampaign, setNewCampaign] = useState(initialCampaignState);
   const [csvContacts, setCsvContacts] = useState([]);
   const [campaignAction, setCampaignAction] = useState('');
+  const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -71,10 +74,12 @@ const Campaigns = () => {
       setCsvContacts(contacts);
 
       if (contacts.length === 0) {
-        alert('Nenhum contato válido encontrado no CSV. Use colunas: phone, name, email.');
+        setToast({ type: 'warning', message: 'Nenhum contato válido encontrado. Use colunas: phone, name, email.' });
+      } else {
+        setToast({ type: 'success', message: `${contacts.length} contatos carregados com sucesso.` });
       }
     } catch (err) {
-      alert(`Não foi possível ler o CSV: ${err.message}`);
+      setToast({ type: 'error', message: `Não conseguimos ler o CSV. Tente novamente.` });
     }
   };
 
@@ -86,8 +91,11 @@ const Campaigns = () => {
   };
 
    const handleCreate = async () => {
-     if (!newCampaign.name || !newCampaign.message) return alert("Preencha os campos obrigatórios");
-     
+     if (!newCampaign.name || !newCampaign.message) {
+       setToast({ type: 'error', message: 'Preencha o nome e a mensagem da campanha.' });
+       return;
+     }
+
      // Prepare campaign data with CSV contacts if applicable
      const campaignData = {
        ...newCampaign,
@@ -97,6 +105,7 @@ const Campaigns = () => {
 
      try {
        await apiService.createCampaign(tenantId, campaignData);
+       setToast({ type: 'success', message: `Campanha "${newCampaign.name}" criada com sucesso.` });
        setShowWizard(false);
        fetchCampaigns(tenantId);
        setNewCampaign(initialCampaignState);
@@ -105,7 +114,7 @@ const Campaigns = () => {
          fileInputRef.current.value = '';
        }
      } catch (err) {
-       alert(err.message);
+       setToast({ type: 'error', message: formatError(err, 'campaign') });
      }
    };
 
@@ -113,21 +122,24 @@ const Campaigns = () => {
     setCampaignAction(`launch:${campaignId}`);
     try {
       await apiService.launchCampaign(tenantId, campaignId);
+      setToast({ type: 'success', message: 'Campanha iniciada.' });
       fetchCampaigns(tenantId);
     } catch (err) {
-      alert(err.message);
+      setToast({ type: 'error', message: formatError(err, 'campaign') });
     } finally {
       setCampaignAction('');
     }
   };
 
   const handlePause = async (campaignId) => {
+    if (!window.confirm('Pausar esta campanha? Os disparos em fila serão interrompidos.')) return;
     setCampaignAction(`pause:${campaignId}`);
     try {
       await apiService.pauseCampaign(tenantId, campaignId);
+      setToast({ type: 'success', message: 'Campanha pausada.' });
       fetchCampaigns(tenantId);
     } catch (err) {
-      alert(err.message);
+      setToast({ type: 'error', message: formatError(err, 'campaign') });
     } finally {
       setCampaignAction('');
     }
@@ -138,9 +150,10 @@ const Campaigns = () => {
     setCampaignAction(`stop:${campaignId}`);
     try {
       await apiService.stopCampaign(tenantId, campaignId);
+      setToast({ type: 'success', message: 'Campanha parada.' });
       fetchCampaigns(tenantId);
     } catch (err) {
-      alert(err.message);
+      setToast({ type: 'error', message: formatError(err, 'campaign') });
     } finally {
       setCampaignAction('');
     }
@@ -546,6 +559,7 @@ const Campaigns = () => {
           table { min-width: 720px; }
         }
       `}</style>
+      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
     </div>
   );
 };

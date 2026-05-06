@@ -12,6 +12,8 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import Toast from '../components/Toast';
+import { formatError } from '../utils/errorHelper';
 
 function getInstanceKey(instance) {
   return instance?.token || instance?.id || instance?.name;
@@ -36,8 +38,7 @@ export default function Instances() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [connectingKey, setConnectingKey] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [toast, setToast] = useState(null);
   const [connectionPayload, setConnectionPayload] = useState(null);
   const [form, setForm] = useState({ name: '', phone: '' });
 
@@ -49,13 +50,12 @@ export default function Instances() {
 
   async function loadInstances({ silent = false } = {}) {
     if (!silent) setLoading(true);
-    setError('');
     try {
       const data = await apiService.getInstances();
       const list = Array.isArray(data) ? data : (data.instances || data.data || []);
       setInstances(list);
     } catch (err) {
-      setError(err.message || 'Não foi possível carregar as instâncias.');
+      setToast({ type: 'error', message: formatError(err, 'instance') });
     } finally {
       if (!silent) setLoading(false);
     }
@@ -67,13 +67,11 @@ export default function Instances() {
 
   async function handleCreate(event) {
     event.preventDefault();
-    setError('');
-    setSuccess('');
     setConnectionPayload(null);
 
     const name = form.name.trim();
     if (!name) {
-      setError('Informe um nome para a instância.');
+      setToast({ type: 'error', message: 'Informe um nome para a instância.' });
       return;
     }
 
@@ -81,7 +79,7 @@ export default function Instances() {
     try {
       const created = await apiService.createInstance({ name, systemName: 'ruptur-dashboard' });
       const instance = created.instance || created;
-      setSuccess(`Instância ${instance.name || name} criada. Agora conecte pelo QR code ou código de pareamento.`);
+      setToast({ type: 'success', message: `Instância criada. Conectando pelo QR code...` });
       setForm((current) => ({ ...current, name: '' }));
       await loadInstances({ silent: true });
 
@@ -90,7 +88,7 @@ export default function Instances() {
         await handleConnect(instance, { phone: form.phone, refreshList: true });
       }
     } catch (err) {
-      setError(err.message || 'Não foi possível criar a instância.');
+      setToast({ type: 'error', message: formatError(err, 'instance') });
     } finally {
       setSaving(false);
     }
@@ -100,17 +98,15 @@ export default function Instances() {
     const key = getInstanceKey(instance);
     if (!key) return;
 
-    setError('');
-    setSuccess('');
     setConnectingKey(key);
     try {
       const phone = String(options.phone ?? form.phone ?? '').replace(/\D/g, '');
       const result = await apiService.connectInstance(key, phone ? { phone } : {});
       setConnectionPayload({ ...result, instance: result.instance || instance });
-      setSuccess(phone ? 'Código de pareamento solicitado.' : 'QR code solicitado. Escaneie no WhatsApp para conectar.');
+      setToast({ type: 'success', message: phone ? 'Código de pareamento solicitado.' : 'QR code solicitado. Escaneie no WhatsApp para conectar.' });
       if (options.refreshList !== false) await loadInstances({ silent: true });
     } catch (err) {
-      setError(err.message || 'Não foi possível iniciar a conexão.');
+      setToast({ type: 'error', message: formatError(err, 'instance') });
     } finally {
       setConnectingKey('');
     }
@@ -120,13 +116,12 @@ export default function Instances() {
     const key = getInstanceKey(instance);
     if (!key) return;
     setConnectingKey(key);
-    setError('');
     try {
       const result = await apiService.getInstanceStatus(key);
       setConnectionPayload({ ...result, instance: result.instance || instance });
       await loadInstances({ silent: true });
     } catch (err) {
-      setError(err.message || 'Não foi possível consultar o status.');
+      setToast({ type: 'error', message: formatError(err, 'instance') });
     } finally {
       setConnectingKey('');
     }
@@ -154,13 +149,6 @@ export default function Instances() {
         <div className="stat-card glass"><QrCode size={20} /><strong>{totals.connecting}</strong><span>conectando</span></div>
         <div className="stat-card glass"><Smartphone size={20} /><strong>{totals.total}</strong><span>instâncias</span></div>
       </section>
-
-      {(error || success) && (
-        <div className={`notice glass ${error ? 'error' : 'success'}`}>
-          {error ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-          <span>{error || success}</span>
-        </div>
-      )}
 
       <div className="instances-grid">
         <section className="create-card glass neon-border">
@@ -231,6 +219,8 @@ export default function Instances() {
           </div>
         )}
       </section>
+
+      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <style>{`
         .instances-page { display: flex; flex-direction: column; gap: 24px; }

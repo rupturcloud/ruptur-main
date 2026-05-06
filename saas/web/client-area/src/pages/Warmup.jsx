@@ -24,6 +24,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { apiService } from '../services/api';
+import Toast from '../components/Toast';
+import { formatError } from '../utils/errorHelper';
 
 const TABS = [
   { key: 'overview', label: 'Visão geral', icon: BarChart3 },
@@ -140,12 +142,10 @@ export default function Warmup() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [action, setAction] = useState('');
-  const [notice, setNotice] = useState('');
-  const [error, setError] = useState('');
+  const [toast, setToast] = useState(null);
 
   async function loadWarmup({ silent = false } = {}) {
     if (!silent) setLoading(true);
-    setError('');
     try {
       const [stateData, configData] = await Promise.all([
         apiService.getWarmupState(),
@@ -157,7 +157,7 @@ export default function Warmup() {
       setRoutines(Array.isArray(configData.routines) ? configData.routines : []);
       setMessages(Array.isArray(configData.messages) ? configData.messages : []);
     } catch (err) {
-      setError(err.message || 'Não foi possível carregar o aquecimento.');
+      setToast({ type: 'error', message: formatError(err, 'warmup') });
     } finally {
       if (!silent) setLoading(false);
     }
@@ -185,9 +185,11 @@ export default function Warmup() {
   }, [instances]);
 
   async function runControl(kind) {
+    if ((kind === 'pause' || kind === 'stop') && !window.confirm(`Tem certeza? O aquecimento será ${kind === 'pause' ? 'pausado' : 'parado'}.`)) {
+      return;
+    }
+
     setAction(kind);
-    setError('');
-    setNotice('');
     try {
       const reason = `Ação ${kind} executada pelo dashboard do cliente`;
       let result;
@@ -197,10 +199,10 @@ export default function Warmup() {
       if (kind === 'restart') result = await apiService.restartWarmup(reason);
       if (kind === 'tick') result = await apiService.tickWarmup(reason);
       setSnapshot(result);
-      setNotice('Ação executada com sucesso.');
+      setToast({ type: 'success', message: 'Ação executada com sucesso.' });
       await loadWarmup({ silent: true });
     } catch (err) {
-      setError(err.message || 'Não foi possível executar a ação.');
+      setToast({ type: 'error', message: formatError(err, 'warmup') });
     } finally {
       setAction('');
     }
@@ -208,15 +210,13 @@ export default function Warmup() {
 
   async function saveConfig() {
     setSaving(true);
-    setError('');
-    setNotice('');
     try {
       const result = await apiService.syncWarmupConfig({ settings, routines, messages });
       setSnapshot(result);
-      setNotice('Configuração de aquecimento salva.');
+      setToast({ type: 'success', message: 'Configuração salva com sucesso.' });
       await loadWarmup({ silent: true });
     } catch (err) {
-      setError(err.message || 'Não foi possível salvar a configuração.');
+      setToast({ type: 'error', message: formatError(err, 'warmup') });
     } finally {
       setSaving(false);
     }
@@ -251,13 +251,6 @@ export default function Warmup() {
           </button>
         </div>
       </header>
-
-      {(error || notice) && (
-        <div className={`warmup-notice glass ${error ? 'error' : 'success'}`}>
-          {error ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
-          <span>{error || notice}</span>
-        </div>
-      )}
 
       <section className="warmup-controls glass">
         <div>
@@ -528,6 +521,8 @@ export default function Warmup() {
           )}
         </main>
       )}
+
+      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <style>{`
         .warmup-page { display: flex; flex-direction: column; gap: 22px; }
