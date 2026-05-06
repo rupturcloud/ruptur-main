@@ -8,10 +8,7 @@
 import UaZAPIClient from '../../integrations/uazapi/client.js';
 import BubbleClient from '../../integrations/bubble/client.js';
 import { inboxManager } from '../inbox/index.js';
-<<<<<<< HEAD
-=======
 import { getWalletManager } from '../wallet/index.js';
->>>>>>> codex/getnet-prod-fix
 
 const uazapiClient = new UaZAPIClient();
 const bubbleClient = new BubbleClient();
@@ -68,12 +65,8 @@ export class CampaignManager {
         },
         createdAt: new Date(),
         updatedAt: new Date(),
-<<<<<<< HEAD
-        createdBy: campaignData.createdBy
-=======
         createdBy: campaignData.createdBy,
         tenantId: campaignData.tenantId
->>>>>>> codex/getnet-prod-fix
       };
 
       // Store in local cache
@@ -106,8 +99,6 @@ export class CampaignManager {
 
       // Get recipients
       const recipients = await this.getRecipients(campaign);
-<<<<<<< HEAD
-=======
       
       // Multi-tenant check: Check if tenant has enough credits
       const walletManager = getWalletManager();
@@ -116,7 +107,6 @@ export class CampaignManager {
         throw new Error(`Insufficient credits for tenant ${campaign.tenantId} to launch campaign`);
       }
 
->>>>>>> codex/getnet-prod-fix
       campaign.metrics.totalRecipients = recipients.length;
 
       if (recipients.length === 0) {
@@ -236,8 +226,6 @@ export class CampaignManager {
 
     while (this.sendingQueue.length > 0) {
       const item = this.sendingQueue.shift();
-<<<<<<< HEAD
-=======
       const campaign = this.activeCampaigns.get(item.campaignId) || item.campaign;
 
       if (!campaign || campaign.status === 'stopped' || campaign.status === 'cancelled') {
@@ -252,7 +240,6 @@ export class CampaignManager {
       if (campaign.status !== 'active' && campaign.status !== 'running') {
         continue;
       }
->>>>>>> codex/getnet-prod-fix
       
       try {
         await this.sendCampaignMessage(item);
@@ -260,17 +247,10 @@ export class CampaignManager {
         console.error(`[Campaigns] Error sending message:`, error.message);
         
         // Retry logic
-<<<<<<< HEAD
-        if (item.retryCount < item.campaign.settings.maxRetries) {
-          item.retryCount++;
-          this.sendingQueue.push(item); // Re-queue for retry
-          await this.delay(5000); // Wait before retry
-=======
         if ((this.activeCampaigns.get(item.campaignId)?.status || item.campaign.status) === 'active' && item.retryCount < item.campaign.settings.maxRetries) {
           item.retryCount++;
           this.sendingQueue.push(item); // Re-queue for retry
           await this.delay(5000, item.campaignId); // Wait before retry
->>>>>>> codex/getnet-prod-fix
         } else {
           // Mark as failed
           item.campaign.metrics.failedCount++;
@@ -280,17 +260,11 @@ export class CampaignManager {
 
       // Delay between messages
       if (this.sendingQueue.length > 0) {
-<<<<<<< HEAD
-        await this.delay(item.campaign.settings.delayBetweenMessages);
-=======
         await this.delay(item.campaign.settings.delayBetweenMessages, item.campaignId);
->>>>>>> codex/getnet-prod-fix
       }
     }
 
     this.isProcessing = false;
-<<<<<<< HEAD
-=======
 
     if (this.sendingQueue.some((item) => {
       const campaign = this.activeCampaigns.get(item.campaignId);
@@ -298,7 +272,6 @@ export class CampaignManager {
     })) {
       this.processSendingQueue();
     }
->>>>>>> codex/getnet-prod-fix
   }
 
   /**
@@ -307,46 +280,6 @@ export class CampaignManager {
   async sendCampaignMessage(item) {
     const { campaign, recipient, senderInstances } = item;
 
-<<<<<<< HEAD
-    // Select sender instance (round-robin)
-    const senderInstance = senderInstances[campaign.metrics.sentCount % senderInstances.length];
-
-    // Personalize message
-    const personalizedMessage = this.personalizeMessage(
-      campaign.content.message,
-      recipient,
-      campaign.content.variables
-    );
-
-    // Send message
-    const result = await inboxManager.sendMessage(
-      senderInstance.id,
-      recipient.phone,
-      personalizedMessage,
-      campaign.content.media.length > 0 ? 'media' : 'text'
-    );
-
-    // Update metrics
-    campaign.metrics.sentCount++;
-    await this.updateCampaignMetrics(campaign.id);
-
-    // Store sent message record
-    await bubbleClient.createRecord('CampaignMessage', {
-      campaignId: campaign.id,
-      recipientPhone: recipient.phone,
-      senderInstanceId: senderInstance.id,
-      message: personalizedMessage,
-      messageId: result.messageId,
-      sentAt: new Date(),
-      status: 'sent'
-    });
-
-    console.log(`[Campaigns] Message sent to ${recipient.phone} via ${senderInstance.id}`);
-  }
-
-  /**
-   * Personalize message with variables
-=======
     const liveCampaign = this.activeCampaigns.get(campaign.id);
     if (!liveCampaign || liveCampaign.status !== 'active') {
       throw new Error(`Campanha ${campaign.id} não está ativa`);
@@ -462,7 +395,6 @@ export class CampaignManager {
 
   /**
    * Personalize message with variables and spintext
->>>>>>> codex/getnet-prod-fix
    */
   personalizeMessage(template, recipient, variables) {
     let message = template;
@@ -478,8 +410,6 @@ export class CampaignManager {
       message = message.replace(new RegExp(`\\{${variable.name}\\}`, 'g'), value);
     }
 
-<<<<<<< HEAD
-=======
     // Process spintext syntax: {option1|option2|option3}
     const spinRegex = /\{([^{}]*)\}/g;
     message = message.replace(spinRegex, (match, options) => {
@@ -492,7 +422,6 @@ export class CampaignManager {
       return choices[randomIndex];
     });
 
->>>>>>> codex/getnet-prod-fix
     return message;
   }
 
@@ -512,19 +441,11 @@ export class CampaignManager {
         }
         return instances;
       } else {
-<<<<<<< HEAD
-        // Use pool of available instances
-        const allInstances = await uazapiClient.getInstances();
-        return allInstances
-          .filter(instance => instance.connected)
-          .slice(0, 10); // Limit to 10 instances
-=======
         // Use pool of available instances for this tenant
         const inboxSummary = await inboxManager.getInboxSummary(campaign.tenantId);
         return inboxSummary.instances
           .filter(instance => instance.connected)
           .slice(0, 10);
->>>>>>> codex/getnet-prod-fix
       }
     } catch (error) {
       console.error(`[Campaigns] Error getting sender instances:`, error.message);
@@ -532,21 +453,6 @@ export class CampaignManager {
     }
   }
 
-<<<<<<< HEAD
-  /**
-   * Get contacts from list
-   */
-  async getContactsFromList(listId) {
-    try {
-      // This would integrate with Bubble or your contact management system
-      const contacts = await bubbleClient.getRecords('Contact', { listId });
-      return contacts;
-    } catch (error) {
-      console.error(`[Campaigns] Error getting contacts from list ${listId}:`, error.message);
-      return [];
-    }
-  }
-=======
    /**
     * Get contacts from list
     */
@@ -622,7 +528,6 @@ export class CampaignManager {
        return [];
      }
    }
->>>>>>> codex/getnet-prod-fix
 
   /**
    * Update campaign metrics
@@ -687,10 +592,6 @@ export class CampaignManager {
     return phoneRegex.test(phone.replace(/\D/g, ''));
   }
 
-<<<<<<< HEAD
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-=======
   async delay(ms, campaignId) {
     const step = 250;
     let elapsed = 0;
@@ -723,16 +624,11 @@ export class CampaignManager {
     }
 
     return true;
->>>>>>> codex/getnet-prod-fix
   }
 
   async getAllCampaigns(options = {}) {
     try {
-<<<<<<< HEAD
-      const { status, limit = 50, offset = 0 } = options;
-=======
       const { status, tenantId, limit = 50, offset = 0 } = options;
->>>>>>> codex/getnet-prod-fix
       
       // Get campaigns from Bubble
       const constraints = [];
@@ -743,8 +639,6 @@ export class CampaignManager {
           value: status
         });
       }
-<<<<<<< HEAD
-=======
 
       if (tenantId) {
         constraints.push({
@@ -753,7 +647,6 @@ export class CampaignManager {
           value: tenantId
         });
       }
->>>>>>> codex/getnet-prod-fix
       
       const campaigns = await bubbleClient.getThings('Campaign', {
         constraints,
@@ -786,15 +679,11 @@ export class CampaignManager {
         constraints: [{ key: 'id', constraint_type: 'equals', value: campaignId }]
       });
       
-<<<<<<< HEAD
-      return campaigns?.[0] || null;
-=======
       const campaignFromStore = campaigns?.[0] || null;
       if (campaignFromStore?.id) {
         this.campaigns.set(campaignFromStore.id, campaignFromStore);
       }
       return campaignFromStore;
->>>>>>> codex/getnet-prod-fix
     } catch (error) {
       console.error('[Campaigns] Error getting campaign:', error.message);
       return null;
@@ -803,19 +692,8 @@ export class CampaignManager {
 
   async pauseCampaign(campaignId) {
     try {
-<<<<<<< HEAD
-      const campaign = this.activeCampaigns.get(campaignId);
-      if (campaign) {
-        campaign.status = 'paused';
-        campaign.updatedAt = new Date();
-        await this.updateCampaignMetrics(campaignId);
-        return true;
-      }
-      return false;
-=======
       const updated = await this.updateCampaignStatus(campaignId, 'paused');
       return updated;
->>>>>>> codex/getnet-prod-fix
     } catch (error) {
       console.error('[Campaigns] Error pausing campaign:', error.message);
       return false;
@@ -824,22 +702,10 @@ export class CampaignManager {
 
   async stopCampaign(campaignId) {
     try {
-<<<<<<< HEAD
-      const campaign = this.activeCampaigns.get(campaignId);
-      if (campaign) {
-        campaign.status = 'stopped';
-        campaign.updatedAt = new Date();
-        this.activeCampaigns.delete(campaignId);
-        await this.updateCampaignMetrics(campaignId);
-        return true;
-      }
-      return false;
-=======
       const updated = await this.updateCampaignStatus(campaignId, 'stopped');
       this.activeCampaigns.delete(campaignId);
       this.sendingQueue = this.sendingQueue.filter((item) => item.campaignId !== campaignId);
       return updated;
->>>>>>> codex/getnet-prod-fix
     } catch (error) {
       console.error('[Campaigns] Error stopping campaign:', error.message);
       return false;

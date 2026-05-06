@@ -8,10 +8,7 @@
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-<<<<<<< HEAD
-=======
 import UaZAPIClient from '../../integrations/uazapi/client.js';
->>>>>>> codex/getnet-prod-fix
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,12 +26,9 @@ const state = {
   }
 };
 
-<<<<<<< HEAD
-=======
 // UAZAPI Client
 const uazapiClient = new UaZAPIClient();
 
->>>>>>> codex/getnet-prod-fix
 /**
  * Get conversations for a specific instance
  */
@@ -63,18 +57,12 @@ export async function getConversations(instanceToken, options = {}) {
  */
 export async function getMessages(conversationId, options = {}) {
   const { limit = 100, before = null, after = null } = options;
-<<<<<<< HEAD
-  
-  const messages = state.messages.get(conversationId) || [];
-  
-=======
    
   // Tentativa de buscar mensagens frescas do UAZAPI se tivermos o instanceToken
   // Isso seria chamado quando houver uma conversa específica
   
   const messages = state.messages.get(conversationId) || [];
    
->>>>>>> codex/getnet-prod-fix
   let filtered = messages;
   if (before) {
     filtered = filtered.filter(m => new Date(m.timestamp) < new Date(before));
@@ -82,21 +70,12 @@ export async function getMessages(conversationId, options = {}) {
   if (after) {
     filtered = filtered.filter(m => new Date(m.timestamp) > new Date(after));
   }
-<<<<<<< HEAD
-  
-  // Sort by timestamp descending (newest first)
-  filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  
-  const paginated = filtered.slice(0, limit);
-  
-=======
    
   // Sort by timestamp descending (newest first)
   filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
    
   const paginated = filtered.slice(0, limit);
    
->>>>>>> codex/getnet-prod-fix
   return {
     messages: paginated,
     hasMore: filtered.length > limit
@@ -104,46 +83,6 @@ export async function getMessages(conversationId, options = {}) {
 }
 
 /**
-<<<<<<< HEAD
- * Send a message from inbox
- */
-export async function sendMessage(instanceToken, conversationId, messageData) {
-  const { text, mediaUrl, mediaType, replyTo } = messageData;
-  
-  // TODO: Integrate with UAZAPI to send message
-  console.log(`[inbox:send] Sending message from ${instanceToken} to conversation ${conversationId}`);
-  
-  const message = {
-    id: crypto.randomUUID(),
-    conversationId,
-    instanceToken,
-    direction: 'outbound',
-    text,
-    mediaUrl,
-    mediaType,
-    replyTo,
-    status: 'pending',
-    timestamp: new Date().toISOString(),
-    sentAt: null,
-    deliveredAt: null,
-    readAt: null
-  };
-  
-  // Add to messages
-  const messages = state.messages.get(conversationId) || [];
-  messages.unshift(message);
-  state.messages.set(conversationId, messages);
-  
-  // Update conversation last message
-  const conversations = state.conversations.get(instanceToken) || [];
-  const conv = conversations.find(c => c.id === conversationId);
-  if (conv) {
-    conv.lastMessage = message;
-    conv.lastMessageAt = message.timestamp;
-  }
-  
-  return message;
-=======
  * Sync messages from UAZAPI for a specific instance
  * Isso seria chamado periodicamente ou via webhook
  */
@@ -330,7 +269,6 @@ export async function sendMessage(instanceToken, conversationId, messageData) {
    
     return message;
   }
->>>>>>> codex/getnet-prod-fix
 }
 
 /**

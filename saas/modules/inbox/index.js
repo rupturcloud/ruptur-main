@@ -13,49 +13,31 @@ const bubbleClient = new BubbleClient();
 
 export class InboxManager {
   constructor() {
-<<<<<<< HEAD
-    this.instances = new Map();
-    this.messages = new Map();
-    this.unreadCounts = new Map();
-=======
     this.instances = new Map(); // instanceId -> { ..., tenantId }
     this.messages = new Map(); // messageId -> { ..., tenantId }
     this.unreadCounts = new Map(); // instanceId -> count
->>>>>>> codex/getnet-prod-fix
   }
 
   /**
    * Initialize inbox for a specific instance
    */
-<<<<<<< HEAD
-  async initializeInstance(instanceId) {
-    try {
-      console.log(`[Inbox] Initializing instance: ${instanceId}`);
-=======
   async initializeInstance(instanceId, tenantId) {
     try {
       console.log(`[Inbox] Initializing instance: ${instanceId} for tenant: ${tenantId}`);
->>>>>>> codex/getnet-prod-fix
       
       // Get instance details from UAZAPI
       const instance = await uazapiClient.getInstance(instanceId);
       if (!instance || !instance.connected) {
         throw new Error(`Instance ${instanceId} not connected`);
       }
-<<<<<<< HEAD
-=======
       if (!tenantId) {
         throw new Error(`Tenant ID required for instance ${instanceId}`);
       }
->>>>>>> codex/getnet-prod-fix
 
       // Initialize instance state
       this.instances.set(instanceId, {
         id: instanceId,
-<<<<<<< HEAD
-=======
         tenantId: tenantId,
->>>>>>> codex/getnet-prod-fix
         name: instance.name || instanceId,
         phone: instance.phone,
         connected: true,
@@ -63,12 +45,6 @@ export class InboxManager {
         unreadCount: 0
       });
 
-<<<<<<< HEAD
-      // Start message polling
-      this.startMessagePolling(instanceId);
-      
-      console.log(`[Inbox] Instance ${instanceId} initialized successfully`);
-=======
       // Load existing messages for this instance from Bubble
       await this.loadMessagesFromBubble(instanceId, tenantId);
 
@@ -76,7 +52,6 @@ export class InboxManager {
       this.startMessagePolling(instanceId);
       
       console.log(`[Inbox] Instance ${instanceId} initialized successfully for tenant ${tenantId}`);
->>>>>>> codex/getnet-prod-fix
       return true;
     } catch (error) {
       console.error(`[Inbox] Failed to initialize instance ${instanceId}:`, error.message);
@@ -85,8 +60,6 @@ export class InboxManager {
   }
 
   /**
-<<<<<<< HEAD
-=======
    * Load messages from Bubble for an instance
    */
   async loadMessagesFromBubble(instanceId, tenantId) {
@@ -122,15 +95,11 @@ export class InboxManager {
   }
 
   /**
->>>>>>> codex/getnet-prod-fix
    * Start polling for new messages
    */
   startMessagePolling(instanceId) {
     const pollInterval = 30000; // 30 seconds
     
-<<<<<<< HEAD
-    setInterval(async () => {
-=======
     // Clear existing interval if any
     const existing = this.instances.get(instanceId);
     if (existing?.pollTimer) {
@@ -138,20 +107,16 @@ export class InboxManager {
     }
 
     const timer = setInterval(async () => {
->>>>>>> codex/getnet-prod-fix
       try {
         await this.syncMessages(instanceId);
       } catch (error) {
         console.error(`[Inbox] Error polling messages for ${instanceId}:`, error.message);
       }
     }, pollInterval);
-<<<<<<< HEAD
-=======
 
     if (existing) {
       existing.pollTimer = timer;
     }
->>>>>>> codex/getnet-prod-fix
   }
 
   /**
@@ -172,20 +137,11 @@ export class InboxManager {
 
       // Process each message
       for (const message of messages) {
-<<<<<<< HEAD
-        await this.processMessage(instanceId, message);
-=======
         await this.processMessage(instanceId, instance.tenantId, message);
->>>>>>> codex/getnet-prod-fix
       }
 
       // Update last sync time
       instance.lastSync = new Date();
-<<<<<<< HEAD
-      
-      console.log(`[Inbox] Synced ${messages.length} messages for ${instanceId}`);
-=======
->>>>>>> codex/getnet-prod-fix
     } catch (error) {
       console.error(`[Inbox] Error syncing messages for ${instanceId}:`, error.message);
     }
@@ -194,11 +150,7 @@ export class InboxManager {
   /**
    * Process incoming message
    */
-<<<<<<< HEAD
-  async processMessage(instanceId, message) {
-=======
   async processMessage(instanceId, tenantId, message) {
->>>>>>> codex/getnet-prod-fix
     try {
       const messageId = `${instanceId}_${message.id}`;
       
@@ -208,15 +160,6 @@ export class InboxManager {
       }
 
       // Store message locally
-<<<<<<< HEAD
-      this.messages.set(messageId, {
-        id: messageId,
-        instanceId,
-        ...message,
-        timestamp: new Date(message.timestamp),
-        read: false
-      });
-=======
       const messageData = {
         id: messageId,
         instanceId,
@@ -227,34 +170,22 @@ export class InboxManager {
       };
       
       this.messages.set(messageId, messageData);
->>>>>>> codex/getnet-prod-fix
 
       // Update unread count
       const currentCount = this.unreadCounts.get(instanceId) || 0;
       this.unreadCounts.set(instanceId, currentCount + 1);
 
       // Send to Bubble for storage
-<<<<<<< HEAD
-      await this.storeMessageInBubble(message);
-=======
       await this.storeMessageInBubble(messageData);
->>>>>>> codex/getnet-prod-fix
 
       // Trigger webhook for real-time updates
       await this.triggerWebhook('message.received', {
         instanceId,
-<<<<<<< HEAD
-        message
-      });
-
-      console.log(`[Inbox] New message processed: ${messageId}`);
-=======
         tenantId,
         message: messageData
       });
 
       console.log(`[Inbox] New message processed: ${messageId} (Tenant: ${tenantId})`);
->>>>>>> codex/getnet-prod-fix
     } catch (error) {
       console.error(`[Inbox] Error processing message:`, error.message);
     }
@@ -268,14 +199,6 @@ export class InboxManager {
       await bubbleClient.createRecord('Message', {
         messageId: message.id,
         instanceId: message.instanceId,
-<<<<<<< HEAD
-        sender: message.sender,
-        receiver: message.receiver,
-        content: message.content,
-        messageType: message.type,
-        timestamp: message.timestamp,
-        read: false
-=======
         tenantId: message.tenantId,
         sender: message.sender,
         receiver: message.receiver,
@@ -283,7 +206,6 @@ export class InboxManager {
         messageType: message.type || 'text',
         timestamp: message.timestamp,
         read: message.read || false
->>>>>>> codex/getnet-prod-fix
       });
     } catch (error) {
       console.error(`[Inbox] Error storing message in Bubble:`, error.message);
@@ -291,15 +213,9 @@ export class InboxManager {
   }
 
   /**
-<<<<<<< HEAD
-   * Get messages for an instance
-   */
-  async getMessages(instanceId, options = {}) {
-=======
    * Get messages for an instance (Tenant filtered)
    */
   async getMessages(instanceId, tenantId, options = {}) {
->>>>>>> codex/getnet-prod-fix
     const {
       limit = 50,
       offset = 0,
@@ -308,10 +224,6 @@ export class InboxManager {
     } = options;
 
     try {
-<<<<<<< HEAD
-      let messages = Array.from(this.messages.values())
-        .filter(msg => msg.instanceId === instanceId)
-=======
       const instance = this.instances.get(instanceId);
       if (instance && instance.tenantId !== tenantId) {
         throw new Error('Unauthorized access to instance inbox');
@@ -319,7 +231,6 @@ export class InboxManager {
 
       let messages = Array.from(this.messages.values())
         .filter(msg => msg.instanceId === instanceId && msg.tenantId === tenantId)
->>>>>>> codex/getnet-prod-fix
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       if (unreadOnly) {
@@ -347,17 +258,10 @@ export class InboxManager {
   /**
    * Mark message as read
    */
-<<<<<<< HEAD
-  async markAsRead(instanceId, messageId) {
-    try {
-      const message = this.messages.get(messageId);
-      if (message && message.instanceId === instanceId) {
-=======
   async markAsRead(instanceId, tenantId, messageId) {
     try {
       const message = this.messages.get(messageId);
       if (message && message.instanceId === instanceId && message.tenantId === tenantId) {
->>>>>>> codex/getnet-prod-fix
         message.read = true;
         
         // Update unread count
@@ -380,22 +284,15 @@ export class InboxManager {
   /**
    * Send message
    */
-<<<<<<< HEAD
-  async sendMessage(instanceId, recipient, content, type = 'text') {
-=======
   async sendMessage(instanceId, tenantId, recipient, content, type = 'text') {
->>>>>>> codex/getnet-prod-fix
     try {
       const instance = this.instances.get(instanceId);
       if (!instance || !instance.connected) {
         throw new Error(`Instance ${instanceId} not available`);
       }
-<<<<<<< HEAD
-=======
       if (instance.tenantId !== tenantId) {
         throw new Error('Unauthorized access to instance');
       }
->>>>>>> codex/getnet-prod-fix
 
       // Send via UAZAPI
       const result = await uazapiClient.sendMessage(instanceId, {
@@ -408,10 +305,7 @@ export class InboxManager {
       const message = {
         id: result.messageId,
         instanceId,
-<<<<<<< HEAD
-=======
         tenantId,
->>>>>>> codex/getnet-prod-fix
         sender: instance.phone,
         receiver: recipient,
         content,
@@ -424,11 +318,7 @@ export class InboxManager {
       this.messages.set(`${instanceId}_${result.messageId}`, message);
       await this.storeMessageInBubble(message);
 
-<<<<<<< HEAD
-      console.log(`[Inbox] Message sent: ${result.messageId}`);
-=======
       console.log(`[Inbox] Message sent: ${result.messageId} (Tenant: ${tenantId})`);
->>>>>>> codex/getnet-prod-fix
       return result;
     } catch (error) {
       console.error(`[Inbox] Error sending message:`, error.message);
@@ -437,31 +327,20 @@ export class InboxManager {
   }
 
   /**
-<<<<<<< HEAD
-   * Get inbox summary
-   */
-  async getInboxSummary() {
-    const summary = {
-      totalInstances: this.instances.size,
-=======
    * Get inbox summary for a tenant
    */
   async getInboxSummary(tenantId) {
     const summary = {
       totalInstances: 0,
->>>>>>> codex/getnet-prod-fix
       connectedInstances: 0,
       totalUnread: 0,
       instances: []
     };
 
     for (const [instanceId, instance] of this.instances) {
-<<<<<<< HEAD
-=======
       if (instance.tenantId !== tenantId) continue;
 
       summary.totalInstances++;
->>>>>>> codex/getnet-prod-fix
       if (instance.connected) {
         summary.connectedInstances++;
       }
@@ -498,7 +377,4 @@ export class InboxManager {
 // Export singleton instance
 export const inboxManager = new InboxManager();
 export default inboxManager;
-<<<<<<< HEAD
-=======
 
->>>>>>> codex/getnet-prod-fix

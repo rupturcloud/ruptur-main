@@ -161,32 +161,6 @@ export function setupCampaignRoutes(app) {
     }
   });
 
-<<<<<<< HEAD
-  // Get campaign templates
-  app.get('/api/campaigns/templates', async (req, res) => {
-    try {
-      const templates = await campaignManager.getCampaignTemplates();
-      res.json(templates);
-    } catch (error) {
-      console.error('[API] Error getting campaign templates:', error.message);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Create campaign from template
-  app.post('/api/campaigns/from-template/:templateId', async (req, res) => {
-    try {
-      const { templateId } = req.params;
-      const { name, customizations } = req.body;
-      
-      const campaign = await campaignManager.createCampaignFromTemplate(templateId, name, customizations);
-      res.json(campaign);
-    } catch (error) {
-      console.error('[API] Error creating campaign from template:', error.message);
-      res.status(500).json({ error: error.message });
-    }
-  });
-=======
 // Get campaign templates
 app.get('/api/campaigns/templates', async (req, res) => {
   try {
@@ -240,7 +214,6 @@ app.post('/api/campaigns/upload-contacts', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
->>>>>>> codex/getnet-prod-fix
 
   console.log('[API] Campaign routes registered');
 }
