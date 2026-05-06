@@ -10,5 +10,25 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      WARMUP_RUNTIME_URL: http://warmup-runtime:8787
     ports:
       - "3001:3001"
+    depends_on:
+      - warmup-runtime
+
+  warmup-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: warmup-runtime
+    restart: unless-stopped
+    command: ["node", "modules/warmup-core/server.mjs"]
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      WARMUP_RUNTIME_HOST: 0.0.0.0
+      WARMUP_RUNTIME_PORT: 8787
+    expose:
+      - "8787"
