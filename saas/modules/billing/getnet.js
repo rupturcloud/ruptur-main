@@ -22,6 +22,13 @@ const CREDIT_PACKAGES = {
   'pack-10k': { credits: 10000, price_cents: 34900, label: '10.000 créditos' },
 };
 
+const truthyEnv = (value) => ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+
+const packageEnvSuffix = (packageId) => String(packageId || '')
+  .replace(/[^a-zA-Z0-9]+/g, '_')
+  .replace(/^_+|_+$/g, '')
+  .toUpperCase();
+
 class BillingService {
   constructor(config = {}) {
     this.clientId       = config.clientId       || process.env.GETNET_CLIENT_ID;
@@ -33,10 +40,75 @@ class BillingService {
       ? 'https://api-sandbox.getnet.com.br'
       : 'https://api.getnet.com.br';
     this.supabase       = config.supabase || null;
+    this.caktoClientId  = config.caktoClientId  || process.env.CAKTO_CLIENT_ID;
+    this.caktoSecret    = config.caktoSecret    || process.env.CAKTO_CLIENT_SECRET;
+    this.pocInstantCreditEnabled = truthyEnv(config.pocInstantCreditEnabled ?? process.env.BILLING_POC_INSTANT_CREDIT);
+    this.pocInstantCreditTenantIds = String(
+      config.pocInstantCreditTenantIds ?? process.env.BILLING_POC_INSTANT_CREDIT_TENANT_IDS ?? ''
+    )
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
 
     // Cache do token OAuth2
     this._token       = null;
     this._tokenExp    = 0;
+  }
+
+  hasGetnetCredentials() {
+    return Boolean(this.clientId && this.clientSecret && this.sellerId);
+  }
+
+  hasCaktoCredentials() {
+    return Boolean(this.caktoClientId && this.caktoSecret);
+  }
+
+  getPackage(packageId) {
+    const pkg = CREDIT_PACKAGES[packageId];
+    if (!pkg) throw new Error(`Pacote inválido: ${packageId}`);
+    return pkg;
+  }
+
+  /**
+   * Resolve um checkout externo por pacote.
+   *
+   * MVP/PoC:
+   * - CAKTO_CREDIT_PACKAGES_JSON='{"pack-1k":"https://..."}'
+   * - CAKTO_CREDIT_PACKAGES_JSON='{"pack-1k":{"checkoutUrl":"https://..."}}'
+   * - CAKTO_CHECKOUT_URL_PACK_1K=https://...
+   */
+  getCaktoCheckoutUrl(packageId) {
+    const suffix = packageEnvSuffix(packageId);
+    const directUrl = process.env[`CAKTO_CHECKOUT_URL_${suffix}`] || process.env[`CHECKOUT_URL_${suffix}`];
+
+    if (directUrl && /^https?:\/\//i.test(directUrl)) {
+      return directUrl;
+    }
+
+    const rawMap = process.env.CAKTO_CREDIT_PACKAGES_JSON;
+    if (!rawMap) return null;
+
+    try {
+      const map = JSON.parse(rawMap);
+      const entry = map?.[packageId];
+      const url = typeof entry === 'string'
+        ? entry
+        : entry?.checkoutUrl || entry?.checkout_url || entry?.url;
+      return url && /^https?:\/\//i.test(url) ? url : null;
+    } catch (error) {
+      console.warn('[Billing:Cakto] CAKTO_CREDIT_PACKAGES_JSON inválido. Ignorando mapa de checkout.');
+      return null;
+    }
+  }
+
+  isPocInstantCreditAllowed(tenantId) {
+    if (!this.pocInstantCreditEnabled) return false;
+    return this.pocInstantCreditTenantIds.includes('*') || this.pocInstantCreditTenantIds.includes(tenantId);
+  }
+
+  newInternalPaymentId(prefix, tenantId, packageId) {
+    const randomPart = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    return `${prefix}-${tenantId}-${packageId}-${randomPart}`.slice(0, 100);
   }
 
   // ========================================================================
@@ -173,10 +245,91 @@ class BillingService {
    * @returns {{ paymentId, status }}
    */
   async createCheckoutPreference(tenantId, packageId, cardData = {}, customer = {}) {
-    const pkg = CREDIT_PACKAGES[packageId];
-    if (!pkg) throw new Error(`Pacote inválido: ${packageId}`);
+    const pkg = this.getPackage(packageId);
 
     const orderId = `${tenantId}-${packageId}-${Date.now()}`;
+
+    const caktoCheckoutUrl = this.getCaktoCheckoutUrl(packageId);
+    if (caktoCheckoutUrl) {
+      const paymentId = this.newInternalPaymentId('cakto', tenantId, packageId);
+
+      if (this.supabase) {
+        await this.supabase.from('payments').upsert({
+          getnet_payment_id: paymentId,
+          tenant_id: tenantId,
+          status: 'INITIATED',
+          status_detail: 'Aguardando confirmação do checkout externo',
+          amount_cents: pkg.price_cents,
+          payment_type: 'credit_purchase',
+          credits_granted: pkg.credits,
+          metadata: {
+            order_id: orderId,
+            package_id: packageId,
+            provider: 'cakto',
+            checkout_url_configured: true,
+          },
+        }, { onConflict: 'getnet_payment_id' });
+      }
+
+      return {
+        paymentId,
+        status: 'INITIATED',
+        provider: 'cakto',
+        checkoutUrl: caktoCheckoutUrl,
+        redirect_url: caktoCheckoutUrl,
+        amountCents: pkg.price_cents,
+        credits: pkg.credits,
+      };
+    }
+
+    if (this.isPocInstantCreditAllowed(tenantId)) {
+      if (!this.supabase) throw new Error('Supabase client necessário para crédito PoC');
+
+      const paymentId = this.newInternalPaymentId('poc-credit', tenantId, packageId);
+      await this.supabase.from('payments').upsert({
+        getnet_payment_id: paymentId,
+        tenant_id: tenantId,
+        status: 'APPROVED',
+        status_detail: 'Crédito instantâneo habilitado para PoC/MVP',
+        amount_cents: pkg.price_cents,
+        payment_type: 'credit_purchase',
+        credits_granted: pkg.credits,
+        metadata: {
+          order_id: orderId,
+          package_id: packageId,
+          provider: 'poc_instant',
+          mvp_mode: true,
+        },
+      }, { onConflict: 'getnet_payment_id' });
+
+      const wallet = await this.addCreditsToTenant(tenantId, pkg.credits, {
+        source: 'purchase',
+        reference_id: paymentId,
+        reference_type: 'poc_instant_credit',
+        description: `Compra PoC/MVP de ${pkg.credits} créditos`,
+      });
+
+      return {
+        paymentId,
+        status: 'APPROVED',
+        provider: 'poc_instant',
+        creditsAdded: pkg.credits,
+        balance: wallet.balance,
+        amountCents: pkg.price_cents,
+      };
+    }
+
+    if (!this.hasGetnetCredentials()) {
+      throw new Error(
+        'Nenhum checkout de créditos está configurado. Configure links de checkout Cakto por pacote ou habilite o modo PoC para este tenant.'
+      );
+    }
+
+    if (!cardData?.numberToken) {
+      throw new Error(
+        'Checkout Getnet direto exige tokenização de cartão. Para o MVP, configure um link de checkout Cakto ou habilite crédito PoC controlado.'
+      );
+    }
 
     const payload = {
       seller_id: this.sellerId,

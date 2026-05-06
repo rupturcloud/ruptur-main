@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUpRight, ArrowDownLeft, History, CreditCard,
   TrendingUp, Zap, Search, Plus, X,
-  ArrowRightLeft, Loader2, ShieldCheck, AlertCircle
+  ArrowRightLeft, Loader2, ShieldCheck
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -278,13 +278,13 @@ const Wallet = () => {
 
               <p className="buy-modal-sub">Escolha um pacote de créditos para recarga.</p>
 
-              {/* Pacotes reais da API Getnet */}
+              {/* Pacotes reais da API de billing */}
               <div className="credit-presets">
                 {packages.length > 0 ? packages.map(pkg => (
                   <button
                     key={pkg.id}
                     className={`preset-btn ${selectedPkg === pkg.id ? 'active' : ''}`}
-                    onClick={() => { setSelectedPkg(pkg.id); setBuyError(''); }}
+                    onClick={() => setSelectedPkg(pkg.id)}
                   >
                     <span className="preset-credits">{(pkg.credits || 0).toLocaleString('pt-BR')}</span>
                     <span className="preset-label">créditos</span>
@@ -297,7 +297,10 @@ const Wallet = () => {
 
               <div className="buy-info-box">
                 <ShieldCheck size={18} style={{ color: '#00ff88', flexShrink: 0 }} />
-                <p>Pagamento seguro via <strong>Getnet Santander</strong>. Créditos liberados automaticamente após confirmação.</p>
+                <p>
+                  Compra segura pelo <strong>gateway ativo</strong>. Quando houver checkout externo configurado,
+                  você será redirecionado; após confirmação, os créditos entram automaticamente.
+                </p>
               </div>
 
               <div className="wizard-actions">
