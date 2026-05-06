@@ -39,8 +39,8 @@ shipyard_domains:
   traefik: traefik.ruptur.cloud
   ops: ops.ruptur.cloud
   ollama: ollama.ruptur.cloud
-  saas: app.ruptur.cloud
-  saas_alt: saas.ruptur.cloud
+  app: app.ruptur.cloud
+  saas: saas.ruptur.cloud
 
 shipyard_uazapi_events:
   - messages

@@ -44,7 +44,7 @@ export { StripeClient };
 /**
  * Export checkout operations directly
  */
-export * as checkout from './checkout.js';
+export { checkoutFlow as checkoutOperations };
 
 export default {
   getClient,

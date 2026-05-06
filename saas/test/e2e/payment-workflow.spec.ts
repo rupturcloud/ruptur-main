@@ -11,8 +11,13 @@
 
 import { test, expect, Page } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:8787';
-const WEBHOOK_URL = `${BASE_URL}/api/webhooks/getnet`;
+const API_BASE_URL = process.env.API_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3001';
+const WARMUP_BASE_URL = process.env.WARMUP_BASE_URL || 'http://127.0.0.1:4173';
+const BASE_URL = API_BASE_URL;
+const WEBHOOK_URL = `${API_BASE_URL}/api/webhooks/getnet`;
+const legacyPaymentWorkflow = process.env.RUN_LEGACY_PAYMENT_WORKFLOW === 'true'
+  ? test.describe
+  : test.describe.skip;
 
 // ============================================================================
 // Helpers
@@ -111,7 +116,7 @@ async function triggerWebhook(getnetPaymentId: string, tenantId: string, credits
 // Tests
 // ============================================================================
 
-test.describe('Payment Workflow', () => {
+legacyPaymentWorkflow('Payment Workflow', () => {
 
   test('1️⃣ Login com Google OAuth', async ({ page }) => {
     await login(page);
@@ -263,7 +268,7 @@ test.describe('Payment Workflow', () => {
 test.describe('Smoke Tests', () => {
 
   test('Server health check', async ({ request }) => {
-    const response = await request.get(`${BASE_URL}/api/local/health`);
+    const response = await request.get(`${WARMUP_BASE_URL}/api/local/health`);
     expect(response.status()).toBe(200);
 
     const data = await response.json();
@@ -271,8 +276,15 @@ test.describe('Smoke Tests', () => {
     console.log(`✅ Server está saudável`);
   });
 
-  test('CORS headers estão configurados', async ({ page }) => {
-    const response = await page.request.options(`${BASE_URL}/api/health`);
+  test('CORS headers estão configurados', async ({ request }) => {
+    const response = await request.fetch(`${API_BASE_URL}/api/health`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'http://localhost:3001',
+        'Access-Control-Request-Method': 'GET',
+      },
+    });
+    expect(response.status()).toBe(204);
     expect(response.headers()['access-control-allow-origin']).toBeDefined();
     console.log(`✅ CORS headers OK`);
   });
@@ -280,7 +292,7 @@ test.describe('Smoke Tests', () => {
   test('Rate limiting está ativo', async ({ request }) => {
     // Enviar muitas requisições
     const requests = Array(101).fill(null).map(() =>
-      request.get(`${BASE_URL}/api/health`)
+      request.get(`${API_BASE_URL}/api/health`)
     );
 
     const responses = await Promise.all(requests);

@@ -32,7 +32,7 @@ Plataforma SaaS completa para automação de WhatsApp com inbox, campanhas em ma
 ## 🌐 URLs em Produção
 
 - **Aplicação Principal**: https://app.ruptur.cloud
-- **SaaS Dashboard**: https://saas.ruptur.cloud
+- **Aplicação/Painel**: https://app.ruptur.cloud
 - **Warmup Manager**: https://app.ruptur.cloud/warmup
 - **API Health**: https://app.ruptur.cloud/api/local/health
 
@@ -81,6 +81,24 @@ make backup               # Criar backup
 make clean                # Limpar ambiente
 make security-scan        # Scan de segurança
 ```
+
+
+## ✅ Qualidade, testes e code review
+
+Antes de commit, push ou deploy, rode na raiz `saas/`:
+
+```bash
+npm run review
+npm run quality
+npm run test:coverage
+```
+
+Documentos principais:
+
+- [Quality Gate](docs/QUALITY_GATE.md) — comandos oficiais, cobertura, critérios de bloqueio e validação pós-deploy.
+- [Code Review](docs/CODE_REVIEW.md) — checklist funcional, segurança, migrations, billing, frontend e observabilidade.
+
+O projeto possui template de Pull Request em `.github/pull_request_template.md` para padronizar evidências de teste, revisão de segurança e validação de deploy.
 
 ## 📁 Estrutura do Projeto
 

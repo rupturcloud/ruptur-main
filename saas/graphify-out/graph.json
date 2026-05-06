@@ -54023,7 +54023,7 @@
         "date": "2026-04-12",
         "focus": "KVM2 rebuild + Ollama local + Jarvis agent health",
         "concepts": [
-          "oracle-test vault preservation",
+          "gcp-test vault preservation",
           "72GB free space",
           "Ollama 0.20.5",
           "qwen3:4b model",
@@ -54420,26 +54420,26 @@
       "norm_label": "kvm2 host environment"
     },
     {
-      "label": "Oracle Production Host (vnic-vps-x86-1)",
+      "label": "GCP Production Host (vnic-vps-x86-1)",
       "type": "deployment_target",
       "category": "infrastructure",
       "confidence": 1.0,
       "description": "Production VPS with 48GB disk, 80% utilization, host2 configuration",
-      "source_file": "oracle-prod.txt",
-      "id": "lowercase_oracle_prod_host",
+      "source_file": "gcp-prod.txt",
+      "id": "lowercase_gcp_prod_host",
       "community": 15,
-      "norm_label": "oracle production host (vnic-vps-x86-1)"
+      "norm_label": "gcp production host (vnic-vps-x86-1)"
     },
     {
-      "label": "Oracle Test Host (instance-20260310-0953)",
+      "label": "GCP Test Host (instance-20260310-0953)",
       "type": "deployment_target",
       "category": "infrastructure",
       "confidence": 1.0,
       "description": "Test instance with 45GB disk, 17% utilization, minimal services (traefik, ruptur-backend)",
-      "source_file": "oracle-test.txt",
-      "id": "lowercase_oracle_test_host",
+      "source_file": "gcp-test.txt",
+      "id": "lowercase_gcp_test_host",
       "community": 15,
-      "norm_label": "oracle test host (instance-20260310-0953)"
+      "norm_label": "gcp test host (instance-20260310-0953)"
     },
     {
       "label": "Langfuse Observability Stack",
@@ -54478,7 +54478,7 @@
       "category": "application",
       "confidence": 1.0,
       "description": "Main backend API service with PostgreSQL database integration",
-      "source_file": "container_mounts.txt, oracle-prod.txt, oracle-test.txt",
+      "source_file": "container_mounts.txt, gcp-prod.txt, gcp-test.txt",
       "id": "lowercase_ruptur_backend",
       "community": 15,
       "norm_label": "ruptur backend service"
@@ -296793,9 +296793,9 @@
       "type": "deployment",
       "confidence": 1.0,
       "_src": "lowercase_container_docker",
-      "_tgt": "lowercase_oracle_prod_host",
+      "_tgt": "lowercase_gcp_prod_host",
       "source": "lowercase_container_docker",
-      "target": "lowercase_oracle_prod_host",
+      "target": "lowercase_gcp_prod_host",
       "confidence_score": 1.0
     },
     {
@@ -296803,9 +296803,9 @@
       "type": "deployment",
       "confidence": 1.0,
       "_src": "lowercase_container_docker",
-      "_tgt": "lowercase_oracle_test_host",
+      "_tgt": "lowercase_gcp_test_host",
       "source": "lowercase_container_docker",
-      "target": "lowercase_oracle_test_host",
+      "target": "lowercase_gcp_test_host",
       "confidence_score": 1.0
     },
     {
@@ -296902,9 +296902,9 @@
       "label": "hosts",
       "type": "infrastructure",
       "confidence": 1.0,
-      "_src": "lowercase_oracle_prod_host",
+      "_src": "lowercase_gcp_prod_host",
       "_tgt": "lowercase_ruptur_backend",
-      "source": "lowercase_oracle_prod_host",
+      "source": "lowercase_gcp_prod_host",
       "target": "lowercase_ruptur_backend",
       "confidence_score": 1.0
     },
@@ -296912,9 +296912,9 @@
       "label": "hosts",
       "type": "infrastructure",
       "confidence": 1.0,
-      "_src": "lowercase_oracle_test_host",
+      "_src": "lowercase_gcp_test_host",
       "_tgt": "lowercase_ruptur_backend",
-      "source": "lowercase_oracle_test_host",
+      "source": "lowercase_gcp_test_host",
       "target": "lowercase_ruptur_backend",
       "confidence_score": 1.0
     },

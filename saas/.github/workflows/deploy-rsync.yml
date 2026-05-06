@@ -27,13 +27,14 @@ jobs:
 
     - name: Verify code integrity
       run: |
-        echo "✅ Checking for exposed credentials..."
-        node scripts/security-check.mjs || {
-          echo "⚠️  Security warnings found but continuing..."
-        }
+        echo "✅ Installing dependencies for quality gate..."
+        npm ci
+        npm --prefix web/client-area ci
 
-        echo "✅ Verifying npm can install..."
-        npm ci --dry-run
+        echo "✅ Running review and quality gate..."
+        npm run review
+        npm run quality
+        npm run test:coverage
 
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.8.0

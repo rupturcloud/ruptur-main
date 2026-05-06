@@ -17,8 +17,9 @@ import { setupTestTenant } from './setup.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const describeIfSupabase = SUPABASE_SERVICE_KEY ? describe : describe.skip;
 
-describe('Webhooks — Semana 3', () => {
+describeIfSupabase('Webhooks — Semana 3', () => {
   let supabase;
   let webhookService;
   let testTenantId;

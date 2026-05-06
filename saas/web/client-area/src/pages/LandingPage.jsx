@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, Check, ArrowRight, Shield, 
   Rocket, Users, Star, 
-  ChevronDown, Smartphone, Globe, Building2,
-  Lock, ZapOff, Cloud
+  ChevronDown, Smartphone, Globe, Building2
 } from 'lucide-react';
 
 const APP_URL = 'https://app.ruptur.cloud';

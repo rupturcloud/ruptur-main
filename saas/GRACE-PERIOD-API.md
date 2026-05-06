@@ -353,7 +353,7 @@ node test/grace-period.test.js
 
 ```bash
 # /etc/cron.d/ruptur-grace-periods (executar a cada hora)
-0 * * * * root curl -X POST https://saas.ruptur.cloud/api/admin/process-grace-periods \
+0 * * * * root curl -X POST https://api.ruptur.cloud/api/admin/process-grace-periods \
   -H "Authorization: Bearer {ADMIN_TOKEN}" \
   -H "Content-Type: application/json"
 ```

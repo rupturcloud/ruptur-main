@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare, Send, User, Search, CheckCheck,
@@ -21,35 +21,12 @@ const Inbox = () => {
   const [search, setSearch] = useState('');
   const messagesEndRef = useRef(null);
 
-  // Carrega instâncias do tenant
-  useEffect(() => {
-    if (!tenantId) return;
-    loadInstances();
-  }, [tenantId]);
-
   // Scroll automático para última mensagem
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadInstances = async () => {
-    setLoadingInstances(true);
-    try {
-      const raw = await apiService.getInstances(tenantId);
-      // A API retorna array; filtramos para só exibir instâncias do tenant
-      const list = Array.isArray(raw) ? raw : (raw.instances || raw.data || []);
-      setInstances(list);
-      if (list.length > 0 && !selectedInstance) {
-        handleSelectInstance(list[0]);
-      }
-    } catch (err) {
-      console.error('[Inbox] Erro ao buscar instâncias:', err);
-    } finally {
-      setLoadingInstances(false);
-    }
-  };
-
-  const handleSelectInstance = async (inst) => {
+  const handleSelectInstance = useCallback(async (inst) => {
     setSelectedInstance(inst);
     setMessages([]);
     setLoadingMessages(true);
@@ -63,7 +40,30 @@ const Inbox = () => {
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, [tenantId]);
+
+  const loadInstances = useCallback(async () => {
+    setLoadingInstances(true);
+    try {
+      const raw = await apiService.getInstances();
+      // A API retorna array; filtramos para só exibir instâncias do tenant
+      const list = Array.isArray(raw) ? raw : (raw.instances || raw.data || []);
+      setInstances(list);
+      if (list.length > 0 && !selectedInstance) {
+        handleSelectInstance(list[0]);
+      }
+    } catch (err) {
+      console.error('[Inbox] Erro ao buscar instâncias:', err);
+    } finally {
+      setLoadingInstances(false);
+    }
+  }, [handleSelectInstance, selectedInstance]);
+
+  // Carrega instâncias do tenant
+  useEffect(() => {
+    if (!tenantId) return;
+    Promise.resolve().then(() => loadInstances());
+  }, [tenantId, loadInstances]);
 
   const handleSend = async () => {
     const text = newMessage.trim();
@@ -213,7 +213,7 @@ const Inbox = () => {
                         <div className="message-content glass">
                           <span className="msg-text">{msg.text || msg.body || msg.message}</span>
                           <div className="message-meta">
-                            <span>{new Date(msg.timestamp || msg.messageTimestamp * 1000 || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span>{msg.timestamp || msg.messageTimestamp ? new Date(msg.timestamp || msg.messageTimestamp * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
                             {(msg.type === 'out' || msg.fromMe) && (
                               <CheckCheck size={13} className="neon-text-cyan" />
                             )}

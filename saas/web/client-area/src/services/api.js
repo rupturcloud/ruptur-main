@@ -52,6 +52,11 @@ export async function authFetch(url, options = {}) {
  * API Service — métodos de alto nível por recurso
  */
 export const apiService = {
+  // --- Sessão / ambientes ---
+  async getMyEnvironments() {
+    return authFetch('/api/me/environments');
+  },
+
   // --- Dashboard ---
   async getDashboardStats(tenantId) {
     return authFetch(`/api/dashboard?tenantId=${tenantId}`);
@@ -125,9 +130,92 @@ export const apiService = {
     });
   },
 
+  async pauseCampaign(tenantId, campaignId) {
+    return authFetch(`/api/campaigns/${campaignId}/pause`, {
+      method: 'POST',
+      body: JSON.stringify({ tenantId }),
+    });
+  },
+
+  async stopCampaign(tenantId, campaignId) {
+    return authFetch(`/api/campaigns/${campaignId}/stop`, {
+      method: 'POST',
+      body: JSON.stringify({ tenantId }),
+    });
+  },
+
   // --- Instances ---
-  async getInstances(tenantId) {
-    return authFetch(`/api/local/uazapi/instance/all?tenantId=${tenantId}`);
+  async getInstances() {
+    return authFetch('/api/instances');
+  },
+
+  async createInstance(payload) {
+    return authFetch('/api/instances', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async connectInstance(instanceKey, payload = {}) {
+    return authFetch(`/api/instances/${encodeURIComponent(instanceKey)}/connect`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getInstanceStatus(instanceKey) {
+    return authFetch(`/api/instances/${encodeURIComponent(instanceKey)}/status`);
+  },
+
+  // --- Warmup / Aquecimento ---
+  async getWarmupState() {
+    return authFetch('/api/warmup/state');
+  },
+
+  async getWarmupConfig() {
+    return authFetch('/api/warmup/config');
+  },
+
+  async syncWarmupConfig(payload) {
+    return authFetch('/api/warmup/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async startWarmup(reason = 'Iniciado pela área do cliente') {
+    return authFetch('/api/warmup/start', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async pauseWarmup(reason = 'Pausado pela área do cliente') {
+    return authFetch('/api/warmup/pause', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async stopWarmup(reason = 'Parado pela área do cliente') {
+    return authFetch('/api/warmup/stop', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async restartWarmup(reason = 'Reiniciado pela área do cliente') {
+    return authFetch('/api/warmup/restart', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async tickWarmup(reason = 'Pulso manual pela área do cliente') {
+    return authFetch('/api/warmup/tick', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
   },
 
   // --- Inbox ---
@@ -157,10 +245,103 @@ export const apiService = {
     return authFetch(`/api/admin/clients?search=${encodeURIComponent(search)}`);
   },
 
+  async getAdminInstances(tenantId = '') {
+    const qs = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
+    return authFetch(`/api/admin/instances${qs}`);
+  },
+
   async adminAddCredits(tenantId, amount, description) {
     return authFetch('/api/admin/credits', {
       method: 'POST',
       body: JSON.stringify({ tenantId, amount, description }),
+    });
+  },
+
+  async getProviderAccounts() {
+    return authFetch('/api/admin/provider-accounts');
+  },
+
+  async createProviderAccount(payload) {
+    return authFetch('/api/admin/provider-accounts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async rotateProviderAccount(id, adminToken) {
+    return authFetch(`/api/admin/provider-accounts/${id}/rotate`, {
+      method: 'POST',
+      body: JSON.stringify({ adminToken }),
+    });
+  },
+
+  async updateProviderAccountStatus(id, status) {
+    return authFetch(`/api/admin/provider-accounts/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  async syncProviderAccount(id) {
+    return authFetch(`/api/admin/provider-accounts/${id}/sync`, { method: 'POST' });
+  },
+
+  async getIntegrationPresets(kind) {
+    const suffix = kind ? `?kind=${encodeURIComponent(kind)}` : '';
+    return authFetch(`/api/admin/integration-presets${suffix}`);
+  },
+
+  async getPaymentGateways() {
+    return authFetch('/api/admin/payment-gateways');
+  },
+
+  async createPaymentGateway(payload) {
+    return authFetch('/api/admin/payment-gateways', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updatePaymentGatewayStatus(id, status) {
+    return authFetch(`/api/admin/payment-gateways/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  async getCommercialCatalog() {
+    return authFetch('/api/admin/commercial/catalog');
+  },
+
+  async getCommercialResource(resource) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}`);
+  },
+
+  async createCommercialResource(resource, payload) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateCommercialResource(resource, id, payload) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateCommercialResourceStatus(resource, id, status) {
+    return authFetch(`/api/admin/commercial/${encodeURIComponent(resource)}/${encodeURIComponent(id)}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  async createAdminInstance(payload) {
+    return authFetch('/api/admin/instances/create', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   },
 };

@@ -142,7 +142,7 @@ curl https://app.ruptur.cloud/api/local/health
 
 ```bash
 # Deve retornar 200 com {"ok": true}
-curl https://saas.ruptur.cloud/api/local/health
+curl https://api.ruptur.cloud/api/local/health
 ```
 
 ### Verificar Tabelas
@@ -167,7 +167,7 @@ ORDER BY table_name;
 
 ```bash
 # Enviar webhook de teste
-curl -X POST https://saas.ruptur.cloud/api/webhooks/getnet \
+curl -X POST https://api.ruptur.cloud/api/webhooks/getnet \
   -H "Content-Type: application/json" \
   -H "X-Signature: $(echo -n '{...}' | openssl dgst -sha256 -mac HMAC -macopt key:WEBHOOK_SECRET)" \
   -d '{"event":"PAYMENT_APPROVED","order_id":"test-123",...}'

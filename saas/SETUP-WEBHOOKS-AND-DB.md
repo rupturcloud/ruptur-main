@@ -59,27 +59,21 @@ cat migrations/002_wallets_and_payments.sql
 2. Login com suas credenciais
 3. Vá para: **Configurações** → **Webhooks** (ou **Settings** → **Webhooks**)
 
-### Passo 2: Gerar Webhook Secret
+### Passo 2: Segurança do callback
 
-1. Localize: **API Credentials** ou **Security Settings**
-2. Procure por: **Webhook Secret** ou **API Key for Webhooks**
-3. Se não existir, clique em: **Generate** ou **Create**
-4. **Copie e salve em local seguro** (você precisará agora)
+A documentação pública da Plataforma Digital Getnet descreve autenticação OAuth2 para chamadas de API com `Client ID` e `Client Secret`, mas não documenta um header/segredo HMAC específico para callbacks de pagamento. O Portal Minha Conta Getnet também permite cadastrar URLs de callback sem exibir campo de segredo de assinatura.
 
-**Exemplo**:
-```
-GETNET_WEBHOOK_SECRET=whsec_prod_xxxxx...
-```
-
-### Passo 3: Adicionar ao .env
+Política adotada no Ruptur:
 
 ```bash
-# saas/.env (local development)
+# Preferencial, caso a Getnet/Suporte forneça assinatura de callback:
 GETNET_WEBHOOK_SECRET=whsec_prod_xxxxx...
 
-# Ou configure em variável de ambiente do servidor:
-export GETNET_WEBHOOK_SECRET=whsec_prod_xxxxx...
+# Mitigação explícita quando a Getnet não fornecer assinatura de callback:
+GETNET_WEBHOOK_ALLOW_UNSIGNED=true
 ```
+
+Com `GETNET_WEBHOOK_SECRET` definido, o backend exige assinatura `x-getnet-signature` ou `x-signature`. Sem secret, produção só aceita callback se `GETNET_WEBHOOK_ALLOW_UNSIGNED=true` estiver ativo. Nesse modo, mitigar com HTTPS, Cloudflare, rate limit, idempotência por evento/pagamento, validação de schema e logs de auditoria.
 
 ---
 
@@ -95,7 +89,7 @@ Adicione os seguintes endpoints:
 
 #### Webhook 1: Pagamentos Aprovados
 ```
-URL:    https://saas.ruptur.cloud/api/webhooks/getnet
+URL:    https://api.ruptur.cloud/api/webhooks/getnet
 Method: POST
 Events: PAYMENT_CONFIRMED, PAYMENT_APPROVED
 Status: ✅ Ativo
@@ -103,7 +97,7 @@ Status: ✅ Ativo
 
 #### Webhook 2: Pagamentos Negados
 ```
-URL:    https://saas.ruptur.cloud/api/webhooks/getnet
+URL:    https://api.ruptur.cloud/api/webhooks/getnet
 Method: POST
 Events: PAYMENT_DENIED, PAYMENT_CANCELLED
 Status: ✅ Ativo
@@ -111,7 +105,7 @@ Status: ✅ Ativo
 
 #### Webhook 3: Pagamentos de Assinatura
 ```
-URL:    https://saas.ruptur.cloud/api/webhooks/getnet
+URL:    https://api.ruptur.cloud/api/webhooks/getnet
 Method: POST
 Events: SUBSCRIPTION_PAYMENT, SUBSCRIPTION_RENEWED
 Status: ✅ Ativo
@@ -119,7 +113,7 @@ Status: ✅ Ativo
 
 #### Webhook 4: Cancelamento de Assinatura
 ```
-URL:    https://saas.ruptur.cloud/api/webhooks/getnet
+URL:    https://api.ruptur.cloud/api/webhooks/getnet
 Method: POST
 Events: SUBSCRIPTION_CANCELLED, SUBSCRIPTION_EXPIRED
 Status: ✅ Ativo
@@ -127,7 +121,7 @@ Status: ✅ Ativo
 
 #### Webhook 5: Chargebacks (Futuro)
 ```
-URL:    https://saas.ruptur.cloud/api/webhooks/getnet
+URL:    https://api.ruptur.cloud/api/webhooks/getnet
 Method: POST
 Events: CHARGEBACK, REFUND
 Status: ✅ Ativo
@@ -339,10 +333,10 @@ LIMIT 20;
 
 ### "Webhook signature validation failed"
 
-1. ✅ Verificar `GETNET_WEBHOOK_SECRET` está correto
-2. ✅ Verificar secret tem 32+ caracteres
-3. ✅ Não copiar espaços extras do painel
-4. ✅ Getnet envia header `X-Signature` (case-sensitive)
+1. ✅ Se a Getnet forneceu assinatura: verificar `GETNET_WEBHOOK_SECRET`
+2. ✅ Confirmar se o header recebido é `x-getnet-signature` ou `x-signature`
+3. ✅ Não copiar espaços extras do painel/suporte
+4. ✅ Se o Portal Getnet não fornece assinatura: usar `GETNET_WEBHOOK_ALLOW_UNSIGNED=true` conscientemente e reforçar idempotência/auditoria
 
 ### Créditos não são adicionados
 

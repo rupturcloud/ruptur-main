@@ -57,7 +57,7 @@
 │ PRODUÇÃO (main branch)                                   │
 ├─────────────────────────────────────────────────────────┤
 │ Status: ⏳ Buildando no GitHub Actions                  │
-│ URL: https://saas.ruptur.cloud                         │
+│ URL: https://app.ruptur.cloud                         │
 │ Commit: 42f4a2e (chore: Docker config update)          │
 │ ETA: 5-15 minutos                                       │
 └─────────────────────────────────────────────────────────┘
@@ -78,7 +78,7 @@
 
 ### 1. Health Check
 ```bash
-curl https://saas.ruptur.cloud/api/health
+curl https://api.ruptur.cloud/api/health
 ```
 
 ### 2. Login como Superadmin
@@ -97,7 +97,7 @@ URL: https://app.ruptur.cloud/admin/superadmin
 ### 4. Listar Superadmins (com token JWT)
 ```bash
 curl -H "Authorization: Bearer <TOKEN>" \
-  https://saas.ruptur.cloud/api/admin/platform/admins
+  https://api.ruptur.cloud/api/admin/platform/admins
 ```
 
 ### 5. Aceitar Convite (ruptur.cloud@gmail.com)

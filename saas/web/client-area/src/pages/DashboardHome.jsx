@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
-import { Wallet, Send, AlertCircle, TrendingUp, Zap, Sparkles, Check } from 'lucide-react';
+import { useEffect } from 'react';
+import { Wallet, Send, TrendingUp, Zap, Sparkles, Check, Flame } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardHome = () => {
   const { tenantId } = useAuth();
+  const navigate = useNavigate();
   const { data: stats, loading, request: fetchStats } = useApi(apiService.getDashboardStats);
 
   useEffect(() => {
@@ -17,7 +19,7 @@ const DashboardHome = () => {
     { label: 'Saldo Wallet', value: stats?.walletBalance || 0, unit: 'créditos', icon: <Wallet size={24} />, color: '#00f2ff', suffix: ' credits' },
     { label: 'Envios Hoje', value: stats?.sendsToday || 0, unit: 'mensagens', icon: <Send size={24} />, color: '#7000ff' },
     { label: 'Instâncias', value: `${stats?.connectedInstances || 0}/${stats?.totalInstances || 0}`, unit: 'online', icon: <Zap size={24} />, color: '#00ff88' },
-    { label: 'Fila de Espera', value: stats?.queueCount || 0, unit: 'pendentes', icon: <AlertCircle size={24} />, color: '#ffcc00' },
+    { label: 'Aquecimento', value: stats?.heatingNow || stats?.warmupHeatingNow || 0, unit: 'em ciclo', icon: <Flame size={24} />, color: '#ff7a00' },
   ];
 
   return (
@@ -59,15 +61,15 @@ const DashboardHome = () => {
               <strong>Conectar WhatsApp</strong>
               <span>Vincule uma instância para começar os envios.</span>
             </div>
-            <button className="check-action">Conectar</button>
+            <button className="check-action" onClick={() => navigate('/instancias')}>Conectar</button>
           </div>
           <div className="check-item pending">
             <div className="check-circle">4</div>
             <div className="check-text">
-              <strong>Primeiro Disparo</strong>
-              <span>Crie sua primeira campanha de mensagens.</span>
+              <strong>Ativar Aquecimento</strong>
+              <span>Aqueça a conta antes dos primeiros disparos.</span>
             </div>
-            <button className="check-action">Criar</button>
+            <button className="check-action" onClick={() => navigate('/aquecimento')}>Aquecer</button>
           </div>
         </div>
       </section>
@@ -130,8 +132,9 @@ const DashboardHome = () => {
         <section className="quick-actions glass">
           <h3>Ações Rápidas</h3>
           <div className="actions-buttons">
-            <button className="neon-btn purple">Novo Disparo</button>
-            <button className="neon-btn cyan">Conectar WhatsApp</button>
+            <button className="neon-btn purple" onClick={() => navigate('/campanhas')}>Novo Disparo</button>
+            <button className="neon-btn cyan" onClick={() => navigate('/instancias')}>Conectar WhatsApp</button>
+            <button className="neon-btn orange" onClick={() => navigate('/aquecimento')}>Aquecimento</button>
             <button className="neon-btn outline">Gerar Relatório</button>
           </div>
         </section>

@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+.git
+.env
+runtime-data
+tmp
+test-results
+playwright-report
+.DS_Store
+npm-debug.log*

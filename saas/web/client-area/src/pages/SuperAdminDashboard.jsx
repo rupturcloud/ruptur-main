@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Plus, Mail, Calendar, Trash2, X, CheckCircle2, Clock } from 'lucide-react';
+import { Shield, Plus, Mail, Trash2, X, CheckCircle2, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import EnvironmentSwitcher from '../components/EnvironmentSwitcher';
 
 const SuperAdminDashboard = ({ onLogout }) => {
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
   const [admins, setAdmins] = useState([]);
   const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inviteModal, setInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [lastInviteUrl, setLastInviteUrl] = useState('');
   const [activeTab, setActiveTab] = useState('admins');
 
   // Buscar superadmins
@@ -71,9 +73,12 @@ const SuperAdminDashboard = ({ onLogout }) => {
 
       if (res.ok) {
         const data = await res.json();
-        setInvites([...invites, data.data]);
+        if (data.invite) setInvites([data.invite, ...invites]);
+        if (data.inviteUrl) setLastInviteUrl(data.inviteUrl);
         setInviteEmail('');
-        setInviteModal(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        window.alert(data.error || 'Erro ao criar convite.');
       }
     } catch (err) {
       console.error('Erro ao convidar:', err);
@@ -118,24 +123,27 @@ const SuperAdminDashboard = ({ onLogout }) => {
               Configure e gerencie superadministradores da plataforma Ruptur
             </p>
           </div>
-          <button
-            onClick={onLogout}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,68,102,0.2)',
-              background: 'rgba(255,68,102,0.05)',
-              color: '#ff6680',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: '0.15s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.12)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.05)'}
-          >
-            Sair
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <EnvironmentSwitcher variant="light" />
+            <button
+              onClick={onLogout || signOut}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,68,102,0.2)',
+                background: 'rgba(255,68,102,0.05)',
+                color: '#ff6680',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: '0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.12)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,68,102,0.05)'}
+            >
+              Sair
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -417,8 +425,34 @@ const SuperAdminDashboard = ({ onLogout }) => {
               </div>
 
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px', padding: '12px', background: 'rgba(0,242,255,0.05)', borderRadius: '8px' }}>
-                Um convite será enviado para este email. O usuário terá 7 dias para aceitar.
+                Um convite será criado para este email. Se o serviço de email não estiver configurado, copie o link gerado abaixo.
               </div>
+
+              {lastInviteUrl && (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                    Último link de convite
+                  </label>
+                  <textarea
+                    readOnly
+                    value={lastInviteUrl}
+                    onFocus={(e) => e.currentTarget.select()}
+                    style={{
+                      width: '100%',
+                      minHeight: '76px',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(0,242,255,0.25)',
+                      background: 'rgba(0,242,255,0.05)',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                      boxSizing: 'border-box',
+                      resize: 'vertical',
+                    }}
+                  />
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button

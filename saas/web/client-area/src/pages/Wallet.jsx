@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUpRight, ArrowDownLeft, History, CreditCard,
-  TrendingUp, TrendingDown, Zap, Search, Plus, X,
-  CheckCircle2, ArrowRightLeft, Filter, Loader2, ShieldCheck, AlertCircle
+  TrendingUp, Zap, Search, Plus, X,
+  ArrowRightLeft, Loader2, ShieldCheck, AlertCircle
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import Toast from '../components/Toast';
+import { formatError } from '../utils/errorHelper';
 
 // Tipos de transação Ruptur (créditos, não dinheiro)
 const TX_TYPES = ['ALL', 'credit', 'debit', 'campaign', 'refund'];
@@ -30,15 +32,9 @@ const Wallet = () => {
   const [packages, setPackages] = useState([]);
   const [selectedPkg, setSelectedPkg] = useState(null);
   const [buyLoading, setBuyLoading] = useState(false);
-  const [buyError, setBuyError] = useState('');
+  const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    if (!tenantId) return;
-    loadData();
-    loadPackages();
-  }, [tenantId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [stats, txs] = await Promise.allSettled([
@@ -58,9 +54,9 @@ const Wallet = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
 
-  const loadPackages = async () => {
+  const loadPackages = useCallback(async () => {
     try {
       const data = await apiService.getPackages();
       const pkgs = data.packages || data;
@@ -73,30 +69,35 @@ const Wallet = () => {
     } catch (err) {
       console.error('[Wallet] Erro ao carregar pacotes:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    Promise.resolve().then(() => {
+      loadData();
+      loadPackages();
+    });
+  }, [tenantId, loadData, loadPackages]);
 
   const handleBuyCredits = useCallback(async () => {
     if (!selectedPkg) return;
-    setBuyError('');
     setBuyLoading(true);
     try {
       const result = await apiService.createCheckout(tenantId, selectedPkg);
-      // Getnet retorna URL de pagamento ou payment_id
       if (result.checkoutUrl || result.redirect_url) {
         window.location.href = result.checkoutUrl || result.redirect_url;
       } else {
-        // Pagamento processado inline (ex: cartão já no cofre)
         setModal(null);
         setSelectedPkg(null);
-        loadData(); // Recarregar saldo
+        setToast({ type: 'success', message: 'Créditos adicionados com sucesso!' });
+        loadData();
       }
     } catch (err) {
-      console.error('[Wallet] Erro no checkout:', err);
-      setBuyError(err.message || 'Erro ao processar pagamento. Tente novamente.');
+      setToast({ type: 'error', message: formatError(err, 'wallet') });
     } finally {
       setBuyLoading(false);
     }
-  }, [selectedPkg, tenantId]);
+  }, [loadData, selectedPkg, tenantId]);
 
   const filteredHistory = history.filter(tx =>
     activeTab === 'ALL' ? true : tx.type === activeTab
@@ -237,7 +238,7 @@ const Wallet = () => {
                     <div className="tx-details">
                       <span className="tx-desc">{tx.description || tx.reason || 'Transação'}</span>
                       <div className="tx-meta">
-                        <span className="tx-date">{new Date(tx.date || tx.createdAt || Date.now()).toLocaleString('pt-BR')}</span>
+                        <span className="tx-date">{tx.date || tx.createdAt ? new Date(tx.date || tx.createdAt).toLocaleString('pt-BR') : '—'}</span>
                         <span className="tx-type-badge" style={{ color: style.color, borderColor: style.border }}>
                           {TX_LABELS[tx.type] || tx.type}
                         </span>
@@ -294,19 +295,13 @@ const Wallet = () => {
                 )}
               </div>
 
-              {buyError && (
-                <div className="buy-error">
-                  <AlertCircle size={14} /> {buyError}
-                </div>
-              )}
-
               <div className="buy-info-box">
                 <ShieldCheck size={18} style={{ color: '#00ff88', flexShrink: 0 }} />
                 <p>Pagamento seguro via <strong>Getnet Santander</strong>. Créditos liberados automaticamente após confirmação.</p>
               </div>
 
               <div className="wizard-actions">
-                <button className="btn-secondary" onClick={() => { setModal(null); setBuyError(''); setSelectedPkg(null); }}>Cancelar</button>
+                <button className="btn-secondary" onClick={() => { setModal(null); setSelectedPkg(null); }}>Cancelar</button>
                 <button className="btn-primary" onClick={handleBuyCredits} disabled={!selectedPkg || buyLoading}>
                   {buyLoading ? <Loader2 size={16} className="spin" /> : <><CreditCard size={16} /> Comprar</>}
                 </button>
@@ -315,6 +310,8 @@ const Wallet = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <style>{`
         .wallet-page { display: flex; flex-direction: column; gap: 28px; }
@@ -469,13 +466,6 @@ const Wallet = () => {
         .preset-credits { font-size: 1.4rem; font-weight: 900; font-family: 'Outfit', sans-serif; }
         .preset-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
         .preset-price { font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-top: 4px; }
-
-        .buy-error {
-          display: flex; align-items: center; gap: 8px;
-          padding: 10px 14px; margin-top: 16px;
-          background: rgba(255,0,80,0.08); border: 1px solid rgba(255,0,80,0.2);
-          border-radius: 10px; color: #ff4d6a; font-size: 0.82rem;
-        }
 
         .buy-info-box {
           display: flex; align-items: flex-start; gap: 12px;

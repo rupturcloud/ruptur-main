@@ -1,0 +1,19 @@
+Guia para agentes do projeto Ruptur SaaS
+
+O arquivo principal é AGENTS.md na raiz deste diretório.
+Leia AGENTS.md antes de alterar código, rodar deploy, mexer em .env, migrations ou integrações.
+
+Resumo rápido:
+- Responder Diego em pt-BR.
+- Não expor segredos.
+- Não commitar .env.
+- Preservar alterações de outros agentes.
+- Rodar lint/test/build antes de finalizar.
+- Ver docs/INTEGRATIONS_AND_WEBHOOK_CORE.md para arquitetura de integrações/webhooks.
+
+Agentes específicos:
+- Claude Code: também ler CLAUDE.md.
+- Graphyfy: preservar diagramas/fluxos/artefatos e manter nomes de módulos/eventos consistentes.
+- Codex: também ler CODEX.md e CODEX.txt.
+- Graphyfy deve ser usado/considerado por todos os agentes para fluxos, mapas, dependências e decisões arquiteturais.
+- Prompt UX/code review: docs/AGENT_UX_REVIEW_PROMPT.md.

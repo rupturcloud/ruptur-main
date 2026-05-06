@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Zap, Lock, Mail, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
  */
 const LoginScreen = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +26,8 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       await signIn(email, password);
-      navigate('/dashboard');
+      const next = searchParams.get('next');
+      navigate(next || '/dashboard');
     } catch (err) {
       if (err.message?.includes('Invalid login')) {
         setError('E-mail ou senha incorretos.');

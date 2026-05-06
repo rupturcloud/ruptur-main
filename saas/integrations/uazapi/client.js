@@ -32,16 +32,19 @@ class UaZAPIClient {
    */
   async request(endpoint, options = {}) {
     const url = `${this.serverUrl}${endpoint}`;
+    const { token, admin = false, headers: customHeaders = {}, ...fetchOptions } = options;
+    const resolvedToken = token || options.instanceToken;
 
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.adminToken}`,
-      ...options.headers,
+      ...(fetchOptions.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(admin || (!resolvedToken && this.adminToken) ? { admintoken: this.adminToken } : {}),
+      ...(resolvedToken ? { token: resolvedToken } : {}),
+      ...customHeaders,
     };
 
     try {
       const response = await fetch(url, {
-        ...options,
+        ...fetchOptions,
         headers,
       });
 
@@ -50,7 +53,13 @@ class UaZAPIClient {
         throw new Error(`UAZAPI request failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      return await response.json();
+      const text = await response.text();
+      if (!text) return {};
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true, raw: text };
+      }
     } catch (error) {
       console.error(`UAZAPI request error: ${error.message}`);
       throw error;
@@ -64,7 +73,7 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Instance data
    */
   async getInstance(instanceId) {
-    return this.request(`/instance/${instanceId}`);
+    return this.request('/instance/status', { token: instanceId });
   }
 
   /**
@@ -73,7 +82,7 @@ class UaZAPIClient {
    * @returns {Promise<Array>} Array of instances
    */
   async listInstances() {
-    return this.request('/instance/all');
+    return this.request('/instance/all', { admin: true });
   }
 
   // ==================== MESSAGE SENDING METHODS ====================
@@ -104,12 +113,10 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Message response with message ID
    */
   async sendText(instanceId, messageData) {
-    return this.request(`/send/text`, {
+    return this.request('/send/text', {
       method: 'POST',
-      body: JSON.stringify({
-        token: instanceId, // UAZAPI uses token in body
-        ...messageData
-      }),
+      token: instanceId,
+      body: JSON.stringify(messageData),
     });
   }
 
@@ -134,12 +141,10 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Message response
    */
   async sendMedia(instanceId, mediaData) {
-    return this.request(`/send/media`, {
+    return this.request('/send/media', {
       method: 'POST',
-      body: JSON.stringify({
-        token: instanceId,
-        ...mediaData
-      }),
+      token: instanceId,
+      body: JSON.stringify(mediaData),
     });
   }
 
@@ -160,12 +165,10 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Message response
    */
   async sendMenu(instanceId, menuData) {
-    return this.request(`/send/menu`, {
+    return this.request('/send/menu', {
       method: 'POST',
-      body: JSON.stringify({
-        token: instanceId,
-        ...menuData
-      }),
+      token: instanceId,
+      body: JSON.stringify(menuData),
     });
   }
 
@@ -183,12 +186,10 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Message response
    */
   async sendCarousel(instanceId, carouselData) {
-    return this.request(`/send/carousel`, {
+    return this.request('/send/carousel', {
       method: 'POST',
-      body: JSON.stringify({
-        token: instanceId,
-        ...carouselData
-      }),
+      token: instanceId,
+      body: JSON.stringify(carouselData),
     });
   }
 
@@ -208,12 +209,10 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Message response
    */
   async sendLocationButton(instanceId, locationData) {
-    return this.request(`/send/location-button`, {
+    return this.request('/send/location-button', {
       method: 'POST',
-      body: JSON.stringify({
-        token: instanceId,
-        ...locationData
-      }),
+      token: instanceId,
+      body: JSON.stringify(locationData),
     });
   }
 
@@ -229,12 +228,10 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Message response
    */
   async sendContact(instanceId, contactData) {
-    return this.request(`/send/contact`, {
+    return this.request('/send/contact', {
       method: 'POST',
-      body: JSON.stringify({
-        token: instanceId,
-        ...contactData
-      }),
+      token: instanceId,
+      body: JSON.stringify(contactData),
     });
   }
 
@@ -249,13 +246,39 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Response
    */
   async sendStatus(instanceId, statusData) {
-    return this.request(`/send/status`, {
+    return this.request('/send/status', {
       method: 'POST',
-      body: JSON.stringify({
-        token: instanceId,
-        ...statusData
-      }),
+      token: instanceId,
+      body: JSON.stringify(statusData),
     });
+  }
+
+  /**
+   * Método compatível com o ProviderAdapter usado por Inbox/Campaigns.
+   */
+  async sendMessage(instanceId, messageData = {}) {
+    const { to, type = 'text', content, mediaUrl, ...rest } = messageData;
+    const number = messageData.number || to;
+
+    if (type === 'text') {
+      return this.sendText(instanceId, { number, text: messageData.text || content, ...rest });
+    }
+
+    if (type === 'media' || ['image', 'video', 'audio', 'document', 'sticker'].includes(type)) {
+      return this.sendMedia(instanceId, {
+        number,
+        type: messageData.mediaType || (type === 'media' ? 'image' : type),
+        file: messageData.file || mediaUrl || messageData.url,
+        text: messageData.text || content,
+        ...rest,
+      });
+    }
+
+    if (type === 'menu') return this.sendMenu(instanceId, { number, text: messageData.text || content, ...rest });
+    if (type === 'carousel') return this.sendCarousel(instanceId, { number, text: messageData.text || content, ...rest });
+    if (type === 'contact') return this.sendContact(instanceId, { number, ...rest });
+
+    throw new Error(`Tipo de mensagem UAZAPI não suportado: ${type}`);
   }
 
   // ==================== CAMPAIGN/SENDER METHODS ====================
@@ -316,8 +339,9 @@ class UaZAPIClient {
    * Endpoint: /sender/clearall
    */
   async clearAllMessages() {
-    return this.request(`/sender/clearall`, {
-      method: 'POST',
+    return this.request('/sender/clearall', {
+      method: 'DELETE',
+      admin: true,
     });
   }
 
@@ -398,7 +422,9 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Warmup support data
    */
   async getWarmupStatus(instanceId) {
-    return this.request(`/instance/${instanceId}/warmup-status`);
+    // A OpenAPI oficial não expõe /instance/:id/warmup-status.
+    // Mantemos compatibilidade retornando o status oficial da instância.
+    return this.getInstance(instanceId);
   }
 }
 

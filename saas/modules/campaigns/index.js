@@ -101,6 +101,7 @@ export class CampaignManager {
       const recipients = await this.getRecipients(campaign);
       
       // Multi-tenant check: Check if tenant has enough credits
+      const walletManager = getWalletManager();
       const hasCredits = await walletManager.hasEnoughCredits(campaign.tenantId, 1);
       if (!hasCredits) {
         throw new Error(`Insufficient credits for tenant ${campaign.tenantId} to launch campaign`);
@@ -225,6 +226,20 @@ export class CampaignManager {
 
     while (this.sendingQueue.length > 0) {
       const item = this.sendingQueue.shift();
+      const campaign = this.activeCampaigns.get(item.campaignId) || item.campaign;
+
+      if (!campaign || campaign.status === 'stopped' || campaign.status === 'cancelled') {
+        continue;
+      }
+
+      if (campaign.status === 'paused') {
+        this.sendingQueue.unshift(item);
+        break;
+      }
+
+      if (campaign.status !== 'active' && campaign.status !== 'running') {
+        continue;
+      }
       
       try {
         await this.sendCampaignMessage(item);
@@ -232,10 +247,10 @@ export class CampaignManager {
         console.error(`[Campaigns] Error sending message:`, error.message);
         
         // Retry logic
-        if (item.retryCount < item.campaign.settings.maxRetries) {
+        if ((this.activeCampaigns.get(item.campaignId)?.status || item.campaign.status) === 'active' && item.retryCount < item.campaign.settings.maxRetries) {
           item.retryCount++;
           this.sendingQueue.push(item); // Re-queue for retry
-          await this.delay(5000); // Wait before retry
+          await this.delay(5000, item.campaignId); // Wait before retry
         } else {
           // Mark as failed
           item.campaign.metrics.failedCount++;
@@ -245,11 +260,18 @@ export class CampaignManager {
 
       // Delay between messages
       if (this.sendingQueue.length > 0) {
-        await this.delay(item.campaign.settings.delayBetweenMessages);
+        await this.delay(item.campaign.settings.delayBetweenMessages, item.campaignId);
       }
     }
 
     this.isProcessing = false;
+
+    if (this.sendingQueue.some((item) => {
+      const campaign = this.activeCampaigns.get(item.campaignId);
+      return campaign?.status === 'active' || campaign?.status === 'running';
+    })) {
+      this.processSendingQueue();
+    }
   }
 
   /**
@@ -257,6 +279,11 @@ export class CampaignManager {
    */
   async sendCampaignMessage(item) {
     const { campaign, recipient, senderInstances } = item;
+
+    const liveCampaign = this.activeCampaigns.get(campaign.id);
+    if (!liveCampaign || liveCampaign.status !== 'active') {
+      throw new Error(`Campanha ${campaign.id} não está ativa`);
+    }
 
     // Select sender instance (round-robin)
     const senderInstance = senderInstances[campaign.metrics.sentCount % senderInstances.length];
@@ -274,6 +301,11 @@ export class CampaignManager {
 
     // 1. Verify and deduct credit BEFORE sending
     try {
+      const liveBeforeDebit = this.activeCampaigns.get(campaign.id);
+      if (!liveBeforeDebit || liveBeforeDebit.status !== 'active') {
+        throw new Error(`Campanha ${campaign.id} foi pausada/parada antes do débito`);
+      }
+      const walletManager = getWalletManager();
       await walletManager.deductCredit(campaign.tenantId, 1, {
         campaignId: campaign.id,
         description: `Campaign message to ${recipient.phone}`
@@ -286,6 +318,11 @@ export class CampaignManager {
     // 2. Send message based on type
     let result;
     try {
+      const liveBeforeSend = this.activeCampaigns.get(campaign.id);
+      if (!liveBeforeSend || liveBeforeSend.status !== 'active') {
+        throw new Error(`Campanha ${campaign.id} foi pausada/parada antes do envio`);
+      }
+
       if (mediaType !== 'text') {
         // Media message (image, video, videoplay, audio, myaudio, ptt, pttv, document, sticker)
         result = await uazapiClient.sendMedia(senderInstance.token || senderInstance.id, {
@@ -328,6 +365,11 @@ export class CampaignManager {
       }
 
       // Update metrics
+      const liveAfterSend = this.activeCampaigns.get(campaign.id);
+      if (!liveAfterSend || liveAfterSend.status !== 'active') {
+        return;
+      }
+
       campaign.metrics.sentCount++;
       await this.updateCampaignMetrics(campaign.id);
 
@@ -550,8 +592,38 @@ export class CampaignManager {
     return phoneRegex.test(phone.replace(/\D/g, ''));
   }
 
-  delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  async delay(ms, campaignId) {
+    const step = 250;
+    let elapsed = 0;
+    while (elapsed < ms) {
+      const campaign = campaignId ? this.activeCampaigns.get(campaignId) : null;
+      if (campaignId && (!campaign || campaign.status !== 'active')) {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.min(step, ms - elapsed)));
+      elapsed += step;
+    }
+  }
+
+  async updateCampaignStatus(campaignId, status) {
+    const campaign = this.campaigns.get(campaignId) || this.activeCampaigns.get(campaignId) || await this.getCampaign(campaignId);
+    if (!campaign) return false;
+
+    campaign.status = status;
+    campaign.updatedAt = new Date();
+    this.campaigns.set(campaignId, campaign);
+
+    try {
+      await bubbleClient.updateRecord('Campaign', campaignId, {
+        status,
+        updatedAt: campaign.updatedAt,
+        metrics: campaign.metrics
+      });
+    } catch (error) {
+      console.error(`[Campaigns] Error updating status for ${campaignId}:`, error.message);
+    }
+
+    return true;
   }
 
   async getAllCampaigns(options = {}) {
@@ -607,7 +679,11 @@ export class CampaignManager {
         constraints: [{ key: 'id', constraint_type: 'equals', value: campaignId }]
       });
       
-      return campaigns?.[0] || null;
+      const campaignFromStore = campaigns?.[0] || null;
+      if (campaignFromStore?.id) {
+        this.campaigns.set(campaignFromStore.id, campaignFromStore);
+      }
+      return campaignFromStore;
     } catch (error) {
       console.error('[Campaigns] Error getting campaign:', error.message);
       return null;
@@ -616,14 +692,8 @@ export class CampaignManager {
 
   async pauseCampaign(campaignId) {
     try {
-      const campaign = this.activeCampaigns.get(campaignId);
-      if (campaign) {
-        campaign.status = 'paused';
-        campaign.updatedAt = new Date();
-        await this.updateCampaignMetrics(campaignId);
-        return true;
-      }
-      return false;
+      const updated = await this.updateCampaignStatus(campaignId, 'paused');
+      return updated;
     } catch (error) {
       console.error('[Campaigns] Error pausing campaign:', error.message);
       return false;
@@ -632,15 +702,10 @@ export class CampaignManager {
 
   async stopCampaign(campaignId) {
     try {
-      const campaign = this.activeCampaigns.get(campaignId);
-      if (campaign) {
-        campaign.status = 'stopped';
-        campaign.updatedAt = new Date();
-        this.activeCampaigns.delete(campaignId);
-        await this.updateCampaignMetrics(campaignId);
-        return true;
-      }
-      return false;
+      const updated = await this.updateCampaignStatus(campaignId, 'stopped');
+      this.activeCampaigns.delete(campaignId);
+      this.sendingQueue = this.sendingQueue.filter((item) => item.campaignId !== campaignId);
+      return updated;
     } catch (error) {
       console.error('[Campaigns] Error stopping campaign:', error.message);
       return false;

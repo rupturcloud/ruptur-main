@@ -9,10 +9,13 @@
  * - Auditoria de webhooks
  */
 
+import { EventPublisher } from '../notifications/event-publisher.js';
+
 export class WebhookService {
   constructor(supabase, auditService) {
     this.supabase = supabase;
     this.audit = auditService;
+    this.eventPublisher = new EventPublisher();
   }
 
   /**
@@ -200,6 +203,9 @@ export class WebhookService {
       if (creditError) {
         throw new Error(`Erro ao creditar wallet: ${creditError.message}`);
       }
+    } else if (newStatus === 'DECLINED' || newStatus === 'FAILED') {
+      // Publicar notificação de falha de pagamento
+      await this._publishPaymentFailedNotification(tenantId, payment, newStatus);
     }
 
     // 5. Marcar webhook como processado
@@ -308,6 +314,45 @@ export class WebhookService {
     }
 
     return data || [];
+  }
+
+  /**
+   * Publicar notificação de falha de pagamento
+   * @private
+   */
+  async _publishPaymentFailedNotification(tenantId, payment, failureReason) {
+    try {
+      // Buscar primeiro admin do tenant para enviar notificação
+      const { data: admin } = await this.supabase
+        .from('tenants_users')
+        .select('user_id')
+        .eq('tenant_id', tenantId)
+        .eq('role', 'owner')
+        .limit(1)
+        .single();
+
+      if (admin) {
+        const { data: user } = await this.supabase
+          .from('auth.users')
+          .select('id, email, user_metadata')
+          .eq('id', admin.user_id)
+          .single();
+
+        if (user) {
+          const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário';
+          const reason = failureReason === 'DECLINED' ? 'Recusa da instituição financeira' : 'Erro no processamento';
+          await this.eventPublisher.paymentFailed(
+            tenantId,
+            { id: user.id, email: user.email, name: userName },
+            reason,
+            payment.getnet_payment_id
+          );
+        }
+      }
+    } catch (error) {
+      console.warn(`[Webhook] Falha ao publicar notificação de pagamento falho: ${error.message}`);
+      // Não falhar o processamento do webhook se a notificação falhar
+    }
   }
 }
 

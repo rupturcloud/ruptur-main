@@ -195,7 +195,7 @@ git push origin v1.2.0
 # (Copiar/colar SQL manualmente via Dashboard)
 
 # 5. Verificar saúde do servidor
-curl https://saas.ruptur.cloud/api/local/health
+curl https://api.ruptur.cloud/api/local/health
 # Espera: {"ok": true, ...}
 
 # 6. Smoke test em produção
@@ -217,7 +217,7 @@ curl https://app.ruptur.cloud/
 tail -f /var/log/ruptur/app.log | grep -i error
 
 # 2. Monitorar tráfego
-watch -n 5 'curl https://saas.ruptur.cloud/api/health'
+watch -n 5 'curl https://api.ruptur.cloud/api/health'
 
 # 3. Verificar alertas Slack
 # (Configurado no deploy.sh para notificar erros)

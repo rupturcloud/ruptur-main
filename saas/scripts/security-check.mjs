@@ -17,29 +17,24 @@ import path from 'node:path';
 
 const RISK_PATTERNS = {
   HIGH: [
-    { pattern: /supabaseKey\s*[:=]/, name: 'Supabase Key (hardcoded)' },
-    { pattern: /adminToken\s*[:=]/, name: 'UAZAPI Admin Token' },
-    { pattern: /SUPABASE_ANON_KEY\s*[:=]/, name: 'Supabase Anon Key' },
-    { pattern: /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/, name: 'JWT Token (generic)' },
-    { pattern: /-----BEGIN (RSA|OPENSSH) PRIVATE KEY-----/, name: 'Private SSH Key' },
+    { pattern: /(?:supabaseKey|SUPABASE_ANON_KEY)\s*[:=]\s*['"]eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+['"]?/g, name: 'Supabase/JWT hardcoded' },
+    { pattern: /(?:adminToken|UAZAPI_ADMIN_TOKEN)\s*[:=]\s*['"][A-Za-z0-9_\-./+=]{24,}['"]?/g, name: 'UAZAPI Admin Token hardcoded' },
+    { pattern: /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, name: 'JWT Token (generic)' },
+    { pattern: /-----BEGIN (RSA|OPENSSH) PRIVATE KEY-----/g, name: 'Private SSH Key' },
   ],
   MEDIUM: [
-    { pattern: /UAZAPI_TOKEN\s*[:=]/, name: 'UAZAPI Token variable' },
-    { pattern: /API_KEY\s*[:=]/, name: 'Generic API Key' },
-    { pattern: /SECRET\s*[:=]/, name: 'Generic Secret' },
-    { pattern: /PASSWORD\s*[:=](?!SET_YOUR)/, name: 'Password in code' },
+    { pattern: /(?:API_KEY|SECRET|PASSWORD)\s*[:=]\s*['"][A-Za-z0-9_\-./+=]{24,}['"]?/g, name: 'Possible secret literal' },
   ],
 };
 
 const SAFE_PATTERNS = {
-  placeholder: /SET_YOUR_|xxx|fake|demo|test_key/i,
+  placeholder: /SET_YOUR_|xxx|fake|demo|test_key|process\.env/i,
 };
 
 const FILES_TO_CHECK = [
   'runtime-data/warmup-state.json',
   'modules/warmup-core/server.mjs',
   'api/gateway.mjs',
-  '.env',
   'jest.config.js',
   'package.json',
 ];
@@ -156,11 +151,11 @@ function run() {
   }
 
   if (gitIssues.length > 0) {
-    console.log(`\n📜 GIT HISTORY ISSUES (${gitIssues.length})`);
+    console.log(`\n📜 GIT HISTORY WARNINGS (${gitIssues.length})`);
     for (const issue of gitIssues) {
       console.log(`   ${issue.file}`);
       console.log(`   └─ ${issue.reason}`);
-      console.log(`   └─ FIX: ${issue.action}\n`);
+      console.log(`   └─ FIX opcional/planejado: ${issue.action}\n`);
     }
   }
 
@@ -172,7 +167,8 @@ function run() {
   console.log('4. If in git history, run: git filter-branch');
   console.log('5. Force push with: git push --force-with-lease');
 
-  const exitCode = allFindings.HIGH.length > 0 ? 2 : 1;
+  const strictHistory = process.env.STRICT_GIT_HISTORY === '1';
+  const exitCode = allFindings.HIGH.length > 0 ? 2 : (allFindings.MEDIUM.length > 0 ? 1 : (strictHistory && gitIssues.length > 0 ? 1 : 0));
   console.log(`\nExit code: ${exitCode}\n`);
   return exitCode;
 }

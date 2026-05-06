@@ -8,6 +8,8 @@
  * via RPC ou leitura + escrita no Supabase para evitar race conditions.
  */
 
+import { EventPublisher } from '../notifications/event-publisher.js';
+
 export class WalletManager {
   /**
    * @param {import('@supabase/supabase-js').SupabaseClient} supabase
@@ -17,6 +19,8 @@ export class WalletManager {
     // Cache leve em memória (read-only, invalidado em cada mutação)
     this._cache = new Map();
     this.CACHE_TTL = 15_000; // 15s
+    this.LOW_BALANCE_THRESHOLD = 50; // Limiar para notificação de créditos baixos
+    this.eventPublisher = new EventPublisher();
   }
 
   // ========================================================================
@@ -116,7 +120,58 @@ export class WalletManager {
     this._cache.delete(tenantId);
 
     console.log(`[Wallet] Débito: tenant=${tenantId} amount=${amount} newBalance=${newBalance}`);
+
+    // Publicar notificação se saldo está baixo
+    if (newBalance < this.LOW_BALANCE_THRESHOLD && newBalance + amount >= this.LOW_BALANCE_THRESHOLD) {
+      await this._publishLowBalanceAlert(tenantId, newBalance);
+    }
+
     return newBalance;
+  }
+
+  /**
+   * Publicar alerta de saldo baixo
+   * @private
+   */
+  async _publishLowBalanceAlert(tenantId, balance) {
+    try {
+      // Buscar informações do tenant para notificação
+      const { data: tenant } = await this.supabase
+        .from('tenants')
+        .select('id, name')
+        .eq('id', tenantId)
+        .single();
+
+      // Buscar primeiro admin do tenant para enviar notificação
+      const { data: admin } = await this.supabase
+        .from('tenants_users')
+        .select('user_id')
+        .eq('tenant_id', tenantId)
+        .eq('role', 'owner')
+        .limit(1)
+        .single();
+
+      if (admin) {
+        const { data: user } = await this.supabase
+          .from('auth.users')
+          .select('id, email, user_metadata')
+          .eq('id', admin.user_id)
+          .single();
+
+        if (user) {
+          const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário';
+          await this.eventPublisher.creditsLow(
+            tenantId,
+            { id: user.id, email: user.email, name: userName },
+            balance,
+            this.LOW_BALANCE_THRESHOLD
+          );
+        }
+      }
+    } catch (error) {
+      console.warn(`[Wallet] Falha ao publicar alerta de saldo baixo: ${error.message}`);
+      // Não falhar a operação de débito se a notificação falhar
+    }
   }
 
   /**

@@ -453,7 +453,7 @@
         { id: "whatsapp", label: "WhatsApp", layer: "channel", state: "wired", mass: 1.8, context: ["all", "jarvis", "ruptur", "growth"], tags: ["channel", "sales", "interface"], description: "Canal transversal do ecossistema: interface do Jarvis, prospeccao, follow-up e conversa operacional.", base: [200, 15, 110] },
         { id: "uazapi", label: "UAZAPI", layer: "channel", state: "live", mass: 1.0, context: ["all", "ruptur"], tags: ["provider", "whatsapp", "delivery"], description: "Provider atual do fluxo operacional de WhatsApp e dispatch em producao.", base: [250, -40, 180] },
         { id: "baileys", label: "Baileys", layer: "channel", state: "wired", mass: 0.95, context: ["all", "ruptur"], tags: ["provider", "fallback", "whatsapp"], description: "Gateway alternativo e fallback para operacao do WhatsApp.", base: [270, -120, 210] },
-        { id: "vps_oracle", label: "VPS Oracle", layer: "infra", state: "wired", mass: 1.0, context: ["all", "ruptur"], tags: ["infra", "hosting", "runtime"], description: "Camada de infra, host, provisionamento e sustentacao dos runtimes.", base: [210, -185, 250] }
+        { id: "vps_gcp", label: "VPS GCP", layer: "infra", state: "wired", mass: 1.0, context: ["all", "ruptur"], tags: ["infra", "hosting", "runtime"], description: "Camada de infra, host, provisionamento e sustentacao dos runtimes.", base: [210, -185, 250] }
       ];
 
       const links = [
@@ -475,7 +475,7 @@
         { from: "messaging", to: "whatsapp", state: "wired", relation: "uses_channel" },
         { from: "messaging", to: "uazapi", state: "live", relation: "routes_to" },
         { from: "messaging", to: "baileys", state: "wired", relation: "routes_to" },
-        { from: "vps_oracle", to: "baileys", state: "wired", relation: "enables" },
+        { from: "vps_gcp", to: "baileys", state: "wired", relation: "enables" },
         { from: "receita_previsivel", to: "sales_machine_diego", state: "wired", relation: "enables" },
         { from: "sales_machine_diego", to: "imob_client", state: "ghost", relation: "targets" },
         { from: "sales_machine_diego", to: "prospect", state: "ghost", relation: "creates" }
@@ -1037,7 +1037,7 @@
           imob_client: [-228, -92, 98],
           uazapi: [212, 12, 156],
           baileys: [214, -72, 176],
-          vps_oracle: [172, -146, 214]
+          vps_gcp: [172, -146, 214]
         };
         dataset.forEach((node, index) => {
           const base = compactMap[node.id] || [0, 0, 0];
@@ -1074,7 +1074,7 @@
           imob_client: [-260, -90, 140],
           uazapi: [250, -40, 180],
           baileys: [270, -120, 210],
-          vps_oracle: [210, -185, 250]
+          vps_gcp: [210, -185, 250]
         };
         dataset.forEach((node) => { node.base = map[node.id] || [0, 0, 0]; });
         buildNeuralField();

@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Upload } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Square, Upload } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import Toast from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
+import CampaignEditor from '../components/CampaignEditor';
+import { formatError } from '../utils/errorHelper';
 
 const initialCampaignState = {
   name: '',
@@ -54,6 +58,9 @@ const Campaigns = () => {
   const { data: campaigns, loading, request: fetchCampaigns } = useApi(apiService.getCampaigns);
   const [newCampaign, setNewCampaign] = useState(initialCampaignState);
   const [csvContacts, setCsvContacts] = useState([]);
+  const [campaignAction, setCampaignAction] = useState('');
+  const [toast, setToast] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -70,10 +77,12 @@ const Campaigns = () => {
       setCsvContacts(contacts);
 
       if (contacts.length === 0) {
-        alert('Nenhum contato válido encontrado no CSV. Use colunas: phone, name, email.');
+        setToast({ type: 'warning', message: 'Nenhum contato válido encontrado. Use colunas: phone, name, email.' });
+      } else {
+        setToast({ type: 'success', message: `${contacts.length} contatos carregados com sucesso.` });
       }
     } catch (err) {
-      alert(`Não foi possível ler o CSV: ${err.message}`);
+      setToast({ type: 'error', message: `Não conseguimos ler o CSV. Tente novamente.` });
     }
   };
 
@@ -85,8 +94,11 @@ const Campaigns = () => {
   };
 
    const handleCreate = async () => {
-     if (!newCampaign.name || !newCampaign.message) return alert("Preencha os campos obrigatórios");
-     
+     if (!newCampaign.name || !newCampaign.message) {
+       setToast({ type: 'error', message: 'Preencha o nome e a mensagem da campanha.' });
+       return;
+     }
+
      // Prepare campaign data with CSV contacts if applicable
      const campaignData = {
        ...newCampaign,
@@ -96,6 +108,7 @@ const Campaigns = () => {
 
      try {
        await apiService.createCampaign(tenantId, campaignData);
+       setToast({ type: 'success', message: `Campanha "${newCampaign.name}" criada com sucesso.` });
        setShowWizard(false);
        fetchCampaigns(tenantId);
        setNewCampaign(initialCampaignState);
@@ -104,16 +117,67 @@ const Campaigns = () => {
          fileInputRef.current.value = '';
        }
      } catch (err) {
-       alert(err.message);
+       setToast({ type: 'error', message: formatError(err, 'campaign') });
      }
    };
 
   const handleLaunch = async (campaignId) => {
+    setCampaignAction(`launch:${campaignId}`);
     try {
       await apiService.launchCampaign(tenantId, campaignId);
+      setToast({ type: 'success', message: 'Campanha iniciada.' });
       fetchCampaigns(tenantId);
     } catch (err) {
-      alert(err.message);
+      setToast({ type: 'error', message: formatError(err, 'campaign') });
+    } finally {
+      setCampaignAction('');
+    }
+  };
+
+  const handlePause = async (campaignId) => {
+    if (!window.confirm('Pausar esta campanha? Os disparos em fila serão interrompidos.')) return;
+    setCampaignAction(`pause:${campaignId}`);
+    try {
+      await apiService.pauseCampaign(tenantId, campaignId);
+      setToast({ type: 'success', message: 'Campanha pausada.' });
+      fetchCampaigns(tenantId);
+    } catch (err) {
+      setToast({ type: 'error', message: formatError(err, 'campaign') });
+    } finally {
+      setCampaignAction('');
+    }
+  };
+
+  const handleStop = async (campaignId) => {
+    if (!window.confirm('Parar esta campanha agora? A fila pendente será cancelada.')) return;
+    setCampaignAction(`stop:${campaignId}`);
+    try {
+      await apiService.stopCampaign(tenantId, campaignId);
+      setToast({ type: 'success', message: 'Campanha parada.' });
+      fetchCampaigns(tenantId);
+    } catch (err) {
+      setToast({ type: 'error', message: formatError(err, 'campaign') });
+    } finally {
+      setCampaignAction('');
+    }
+  };
+
+  const handleDeleteClick = (campaignId) => {
+    setConfirmDelete(campaignId);
+  };
+
+  const confirmDeleteCampaign = async () => {
+    if (!confirmDelete) return;
+    setCampaignAction(`delete:${confirmDelete}`);
+    try {
+      await apiService.deleteCampaign(tenantId, confirmDelete);
+      setToast({ type: 'success', message: 'Campanha deletada com sucesso.' });
+      fetchCampaigns(tenantId);
+    } catch (err) {
+      setToast({ type: 'error', message: formatError(err, 'campaign') });
+    } finally {
+      setCampaignAction('');
+      setConfirmDelete(null);
     }
   };
 
@@ -131,13 +195,43 @@ const Campaigns = () => {
 
       <AnimatePresence>
         {showWizard && (
-          <motion.div 
+          <CampaignEditor
+            campaign={newCampaign}
+            onCampaignChange={setNewCampaign}
+            onSave={handleCreate}
+            onCancel={() => setShowWizard(false)}
+            fileInputRef={fileInputRef}
+            onFileUpload={handleFileUpload}
+            csvContacts={csvContacts}
+            onClearCsv={handleClearCsv}
+            loading={campaignAction.startsWith('create')}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* CONFIRMAÇÃO DE DELETE */}
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Deletar campanha?"
+        message="Esta ação não pode ser desfeita. A campanha, seu histórico e todas as métricas serão removidos permanentemente."
+        confirmLabel="Deletar"
+        cancelLabel="Cancelar"
+        isDangerous={true}
+        onConfirm={confirmDeleteCampaign}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      {/* WIZARD ANTIGO - COMENTADO PARA FUTURE USE */}
+      {/*
+      <AnimatePresence>
+        {showWizard && (
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="wizard-overlay"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               className="wizard-modal glass"
@@ -166,7 +260,7 @@ const Campaigns = () => {
                     value={newCampaign.message}
                     onChange={e => setNewCampaign({...newCampaign, message: e.target.value})}
                   ></textarea>
-                  <span className="hint">Dica: Use variações {opção1|opção2|opção3} para evitar bloqueios por spam. Suporta {{name}}, {{phone}}, {{email}}.</span>
+                  <span className="hint">{'Dica: Use variações {opção1|opção2|opção3} para evitar bloqueios por spam. Suporta {{name}}, {{phone}}, {{email}}.'}</span>
                 </div>
 
                 <div className="form-row">
@@ -211,7 +305,7 @@ const Campaigns = () => {
                     />
                     <span>Ativar SpinText (rotação de variações)</span>
                   </label>
-                  <span className="hint">Use {opção1|opção2} na mensagem para variações automáticas</span>
+                  <span className="hint">Use {'{opção1|opção2}'} na mensagem para variações automáticas</span>
                 </div>
 
                 <div className="form-row">
@@ -419,16 +513,35 @@ const Campaigns = () => {
                           <span className="percent">{sent} / {total}</span>
                         </div>
                       </td>
-                      <td className="text-muted">{new Date(c.createdAt || Date.now()).toLocaleDateString('pt-BR')}</td>
+                      <td className="text-muted">{c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
                       <td>
                         <div className="row-actions">
                           {c.status === 'draft' && (
-                            <button className="btn-launch" onClick={() => handleLaunch(c.id)}>
+                            <button className="btn-launch" onClick={() => handleLaunch(c.id)} disabled={campaignAction === `launch:${c.id}`}>
                               <Play size={14} /> Disparar
                             </button>
                           )}
-                          <button className="icon-btn"><Clock size={16} /></button>
-                          <button className="icon-btn danger"><Trash2 size={16} /></button>
+                          {(c.status === 'active' || c.status === 'running') && (
+                            <>
+                              <button className="icon-btn" title="Pausar campanha" onClick={() => handlePause(c.id)} disabled={campaignAction === `pause:${c.id}`}>
+                                <Pause size={16} />
+                              </button>
+                              <button className="icon-btn danger" title="Parar campanha" onClick={() => handleStop(c.id)} disabled={campaignAction === `stop:${c.id}`}>
+                                <Square size={16} />
+                              </button>
+                            </>
+                          )}
+                          <button className="icon-btn" title="Histórico" disabled>
+                            <Clock size={16} />
+                          </button>
+                          <button
+                            className="icon-btn danger"
+                            title="Deletar campanha"
+                            onClick={() => handleDeleteClick(c.id)}
+                            disabled={campaignAction === `delete:${c.id}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -507,6 +620,9 @@ const Campaigns = () => {
           table { min-width: 720px; }
         }
       `}</style>
+      */}
+
+      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
     </div>
   );
 };

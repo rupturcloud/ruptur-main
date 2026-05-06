@@ -151,22 +151,30 @@ export class PlatformAdminService {
 
       if (error) throw error;
 
-      // Enviar email com link de convite
+      // Enviar email com link de convite quando houver serviço de email configurado.
+      // Em produção inicial, o gateway pode rodar sem emailService; nesse caso,
+      // retornamos o token/link para o superadmin copiar manualmente.
       const inviteUrl = `${process.env.APP_URL || 'https://app.ruptur.cloud'}/admin/accept-invite?token=${token}`;
 
-      await this.email.send({
-        to: email,
-        subject: 'Você foi convidado para ser Superadmin da Ruptur',
-        template: 'platform-admin-invite',
-        data: {
-          email,
-          inviteUrl,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
-        },
-      });
+      let emailSent = false;
+      if (this.email?.send) {
+        await this.email.send({
+          to: email,
+          subject: 'Você foi convidado para ser Superadmin da Ruptur',
+          template: 'platform-admin-invite',
+          data: {
+            email,
+            inviteUrl,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+          },
+        });
+        emailSent = true;
+      } else {
+        console.warn(`⚠️ Email service not configured. Manual invite link for ${email}: ${inviteUrl}`);
+      }
 
-      console.log(`📧 Platform admin invite sent to: ${email}`);
-      return { invite: data, token };
+      console.log(`${emailSent ? '📧 Platform admin invite sent to' : '🔗 Platform admin invite created for'}: ${email}`);
+      return { invite: data, token, inviteUrl, emailSent };
     } catch (error) {
       console.error('Error inviting platform admin:', error);
       throw error;

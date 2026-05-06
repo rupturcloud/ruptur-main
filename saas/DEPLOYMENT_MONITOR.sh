@@ -19,7 +19,7 @@ GCP_PROJECT="ruptur-jarvis-v1-68358"
 GCP_REGION="us-central1"
 SERVICE_NAME="ruptur-saas"
 APP_URL="https://app.ruptur.cloud"
-SAAS_URL="https://saas.ruptur.cloud"
+APP_URL="https://app.ruptur.cloud"
 
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[✓]${NC} $1"; }
