@@ -43,9 +43,30 @@ function tokenLast4(value) {
 }
 
 function extractTenantId(normalized) {
-  const value = normalized?.metadata?.adminField01 || normalized?.metadata?.raw?.adminField01;
-  const match = String(value || '').match(/tenant:([0-9a-fA-F-]{36})/);
-  return match?.[1] || null;
+  const raw = normalized?.metadata?.raw || {};
+  const candidates = [
+    normalized?.metadata?.adminField01,
+    raw.adminField01,
+    raw.tenantId,
+    raw.tenant_id,
+  ];
+
+  for (const value of candidates) {
+    const text = String(value || '').trim();
+    const tagged = text.match(/tenant:([0-9a-fA-F-]{36})/);
+    if (tagged?.[1]) return tagged[1];
+    if (/^[0-9a-fA-F-]{36}$/.test(text)) return text;
+  }
+
+  for (const value of [normalized?.metadata?.adminField02, raw.adminField02]) {
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      const tenantId = String(parsed?.tenantId || parsed?.tenant_id || '').trim();
+      if (/^[0-9a-fA-F-]{36}$/.test(tenantId)) return tenantId;
+    } catch {}
+  }
+
+  return null;
 }
 
 function mapRemoteStatus(status) {

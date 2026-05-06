@@ -1090,6 +1090,7 @@ function getTenantHintsFromInstance(instance = {}) {
   ]
     .filter((value) => value !== undefined && value !== null)
     .map((value) => String(value).trim())
+    .flatMap((value) => value.startsWith('tenant:') ? [value, value.slice('tenant:'.length)] : [value])
     .filter(Boolean);
 }
 
@@ -1190,7 +1191,7 @@ async function createUazapiInstanceForTenant({ tenant, user, payload = {} }) {
     body: JSON.stringify({
       name,
       systemName: String(payload.systemName || "ruptur-dashboard").trim(),
-      adminField01: tenant.id,
+      adminField01: `tenant:${tenant.id}`,
       adminField02: buildTenantAdminField02(tenant, user),
     }),
   }, "Erro ao criar instância");
@@ -3105,7 +3106,7 @@ async function handleAuthenticatedInstancesRoute(req, res, url) {
         status: "disconnected",
         connected: result.connected,
         loggedIn: result.loggedIn,
-        adminField01: tenant.id,
+        adminField01: `tenant:${tenant.id}`,
       });
 
       addAuditEntry({
