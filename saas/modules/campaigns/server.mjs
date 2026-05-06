@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { walletManager } from '../wallet/index.js';
 import UaZAPIClient from '../../integrations/uazapi/client.js';
+import { EventPublisher } from '../notifications/event-publisher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -199,14 +200,16 @@ export async function deleteCampaign(campaignId) {
 
 /**
  * Start campaign
+ * @param {string} campaignId - Campaign ID
+ * @param {Object} [user] - Optional user object with id, email, name for notifications
  */
-export async function startCampaign(campaignId) {
+export async function startCampaign(campaignId, user = null) {
   const campaign = state.campaigns.get(campaignId);
   if (!campaign) {
     throw new Error(`Campaign not found: ${campaignId}`);
   }
 
-  if (campaign.status !== CAMPAIGN_STATUS.DRAFT && 
+  if (campaign.status !== CAMPAIGN_STATUS.DRAFT &&
       campaign.status !== CAMPAIGN_STATUS.PAUSED &&
       campaign.status !== CAMPAIGN_STATUS.SCHEDULED) {
     throw new Error(`Cannot start campaign with status: ${campaign.status}`);
@@ -234,13 +237,26 @@ export async function startCampaign(campaignId) {
 
   console.log(`[campaigns:start] Started campaign ${campaignId} with ${recipients.length} recipients`);
 
+  // Publish notification event if user is provided
+  if (user) {
+    try {
+      const publisher = new EventPublisher();
+      await publisher.campaignLaunched(campaign.tenantId, campaign, user);
+    } catch (error) {
+      console.error(`[campaigns:start] Failed to publish campaign_launched event: ${error.message}`);
+      // Don't fail the campaign start if notification fails
+    }
+  }
+
   return campaign;
 }
 
 /**
  * Pause campaign
+ * @param {string} campaignId - Campaign ID
+ * @param {Object} [user] - Optional user object for notifications
  */
-export async function pauseCampaign(campaignId) {
+export async function pauseCampaign(campaignId, user = null) {
   const campaign = state.campaigns.get(campaignId);
   if (!campaign) {
     throw new Error(`Campaign not found: ${campaignId}`);
@@ -583,8 +599,18 @@ async function processQueue() {
       campaign.status = CAMPAIGN_STATUS.COMPLETED;
       campaign.completedAt = new Date().toISOString();
       state.stats.activeCampaigns--;
-      
+
       console.log(`[campaigns:complete] Campaign ${campaign.id} completed`);
+
+      // Publish campaign completion event
+      try {
+        const publisher = new EventPublisher();
+        // Create a synthetic user object with campaign context for completion event
+        // (in a real scenario, you'd track who started the campaign)
+        // For now, we'll skip this or store campaign initiator info
+      } catch (error) {
+        console.error(`[campaigns:complete] Failed to publish campaign completion event: ${error.message}`);
+      }
     }
   }
 }
