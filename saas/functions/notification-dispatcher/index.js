@@ -1,78 +1,141 @@
-/**
- * Cloud Function: Notification Dispatcher
- * Triggered by: Cloud Pub/Sub topic 'notification-events'
- *
- * Deploy:
- * gcloud functions deploy notification-dispatcher \
- *   --runtime nodejs20 \
- *   --trigger-topic notification-events \
- *   --entry-point notificationDispatcher \
- *   --set-env-vars SENDGRID_API_KEY=...,SUPABASE_URL=...,SUPABASE_KEY=...
- */
-
 import { createClient } from '@supabase/supabase-js';
-import { NotificationService } from '../../modules/notifications/service.js';
+import sgMail from '@sendgrid/mail';
 
-let notificationService = null;
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
-function getService() {
-  if (!notificationService) {
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY
-    );
-    notificationService = new NotificationService(supabase);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+const TEMPLATES = {
+  campaign_launched: {
+    subject: 'Campanha Disparada com Sucesso',
+    getHtml: (payload) => `
+      <h2>Campanha Disparada!</h2>
+      <p>Olá ${payload.userName},</p>
+      <p>Sua campanha <strong>${payload.campaignName}</strong> foi disparada com sucesso!</p>
+      <p>Mensagens enviadas: <strong>${payload.count}</strong></p>
+      <p>ID da campanha: ${payload.campaignId}</p>
+    `,
+  },
+  credits_low: {
+    subject: 'Aviso: Saldo de Créditos Baixo',
+    getHtml: (payload) => `
+      <h2>Saldo de Créditos Baixo</h2>
+      <p>Olá ${payload.userName},</p>
+      <p>Seu saldo de créditos está abaixo do limite: <strong>${payload.currentBalance} créditos</strong></p>
+      <p>Limite: ${payload.threshold} créditos</p>
+      <p><a href="${payload.topUpUrl}">Recarregar Créditos</a></p>
+    `,
+  },
+  payment_failed: {
+    subject: 'Falha no Pagamento',
+    getHtml: (payload) => `
+      <h2>Pagamento Rejeitado</h2>
+      <p>Olá ${payload.userName},</p>
+      <p>Sua tentativa de pagamento foi rejeitada.</p>
+      <p>Motivo: ${payload.failureReason}</p>
+      <p><a href="${payload.retryUrl}">Tentar Novamente</a></p>
+    `,
+  },
+};
+
+async function logNotification(payload, status, errorMessage = null) {
+  try {
+    await supabase.from('notification_logs').insert({
+      tenant_id: payload.tenantId,
+      user_id: payload.userId,
+      event_id: payload.eventId,
+      event_type: payload.type,
+      channel: 'email',
+      payload: payload,
+      status: status,
+      error_message: errorMessage,
+      sent_at: status === 'sent' ? new Date().toISOString() : null,
+    });
+  } catch (error) {
+    console.error('[Logger] Error logging notification:', error.message);
   }
-  return notificationService;
 }
 
-/**
- * Main handler for Pub/Sub events
- */
-export async function notificationDispatcher(pubsubMessage, context) {
-  const service = getService();
+async function sendEmail(toEmail, templateKey, payload) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.log('[Email] SendGrid not configured, skipping email');
+    return null;
+  }
+
+  const template = TEMPLATES[templateKey];
+  if (!template) {
+    throw new Error(`Template not found: ${templateKey}`);
+  }
+
+  const msg = {
+    to: toEmail,
+    from: 'notifications@ruptur.cloud',
+    subject: template.subject,
+    html: template.getHtml(payload),
+  };
 
   try {
-    // Decode Pub/Sub message
+    await sgMail.send(msg);
+    console.log(`[Email] Sent to ${toEmail}`);
+    return 'sent';
+  } catch (error) {
+    console.error('[Email] Error sending email:', error.message);
+    throw error;
+  }
+}
+
+export async function notificationDispatcher(pubsubMessage, context) {
+  try {
     const eventData = JSON.parse(
       Buffer.from(pubsubMessage.data, 'base64').toString('utf-8')
     );
 
-    console.log(`[Dispatcher] Received event: ${eventData.type}:${eventData.eventId}`);
+    const eventId = eventData.payload?.eventId || context.eventId || Date.now();
+    console.log(`[Dispatcher] Processing: ${eventData.type}`);
 
-    // Process notification
-    const result = await service.processEvent(eventData);
+    const user = await supabase
+      .from('auth.users')
+      .select('id, email, user_metadata')
+      .eq('id', eventData.payload.userId)
+      .single();
 
-    console.log(`[Dispatcher] Event processed:`, result);
-
-    return result;
-  } catch (error) {
-    console.error('[Dispatcher] Error processing notification:', error);
-
-    // Log error but don't throw - Cloud Functions will retry on error
-    // We want to ack (acknowledge) on any error to avoid infinite loops
-    // unless it's a transient error (network, etc)
-
-    if (error.message?.includes('ECONNREFUSED') || error.code === 'ENOTFOUND') {
-      // Network error - let it retry
-      throw error;
+    if (!user.data) {
+      await logNotification(
+        { ...eventData.payload, eventId, type: eventData.type },
+        'skipped',
+        'User not found'
+      );
+      return { status: 'skipped', reason: 'User not found' };
     }
 
-    // Application errors - don't retry, just log and return
-    return {
-      status: 'error',
-      message: error.message,
-    };
-  }
-}
+    const userName = user.data.user_metadata?.name || 'Usuário';
+    const toEmail = user.data.email;
 
-/**
- * Health check endpoint (optional, for monitoring)
- */
-export function health(req, res) {
-  res.json({
-    status: 'ok',
-    service: 'notification-dispatcher',
-    timestamp: new Date().toISOString(),
-  });
+    const payloadWithName = {
+      ...eventData.payload,
+      userName,
+      eventId,
+    };
+
+    let status = 'sent';
+    let error = null;
+
+    try {
+      await sendEmail(toEmail, eventData.type, payloadWithName);
+    } catch (err) {
+      status = 'failed';
+      error = err.message;
+      console.error(`[Dispatcher] Failed to send email: ${error}`);
+    }
+
+    await logNotification({ ...payloadWithName, type: eventData.type }, status, error);
+
+    return { status, eventId };
+  } catch (error) {
+    console.error('[Dispatcher] Fatal error:', error);
+    return { status: 'error', message: error.message };
+  }
 }
