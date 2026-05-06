@@ -10,6 +10,7 @@ Resumo obrigatório:
 - Preservar alterações de Codex, Graphyfy ou outros agentes.
 - Rodar validações antes de finalizar: `npm run lint`, `npm test -- --runInBand`, `npm run build`.
 - Para arquitetura de integrações/webhooks, consultar `docs/INTEGRATIONS_AND_WEBHOOK_CORE.md`.
+- Para code review, UX e jornadas, consultar `docs/AGENT_UX_REVIEW_PROMPT.md`.
 - Para deploy, consultar `docs/DEPLOYMENT.md` e o runbook em `AGENTS.md`.
 
 Se estiver tratando erro em produção, sempre informar:

@@ -2,6 +2,8 @@
 
 Este arquivo complementa `AGENTS.md`. Codex deve ler e seguir `AGENTS.md` antes de atuar neste projeto.
 
+Para code review, UX e jornadas, consulte também `docs/AGENT_UX_REVIEW_PROMPT.md`.
+
 ## Regras obrigatórias
 
 - Comunicar-se com Diego sempre em português do Brasil (`pt-BR`).

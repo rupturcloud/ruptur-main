@@ -43,6 +43,7 @@ docs/                                   Documentação operacional e arquitetura
 - `docs/INTEGRATIONS_AND_WEBHOOK_CORE.md`: arquitetura de integrações/webhooks.
 - `docs/UAZAPI_INTEGRATION_COVERAGE.md`: cobertura UAZAPI.
 - `docs/QUALITY_GATE.md`: validações de qualidade.
+- `docs/AGENT_UX_REVIEW_PROMPT.md`: prompt/runbook para agentes de code review, UX e jornadas.
 - `docs/DEPLOYMENT.md`: deploy.
 - `DEPLOYMENT_STATUS.md`, `DEPLOYMENT_SUMMARY.md`, `DEPLOYMENT-FINAL-STATUS.md`: histórico/status operacional.
 - `migrations/014_integration_and_webhook_core.sql`: base agnóstica de integrações/webhooks.
