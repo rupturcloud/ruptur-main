@@ -52,6 +52,11 @@ export async function authFetch(url, options = {}) {
  * API Service — métodos de alto nível por recurso
  */
 export const apiService = {
+  // --- Sessão / ambientes ---
+  async getMyEnvironments() {
+    return authFetch('/api/me/environments');
+  },
+
   // --- Dashboard ---
   async getDashboardStats(tenantId) {
     return authFetch(`/api/dashboard?tenantId=${tenantId}`);

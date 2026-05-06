@@ -6,9 +6,11 @@
  * - Admin: administração operacional da plataforma.
  * - Superadmin: gestão dos administradores da plataforma.
  */
+import { useEffect, useMemo, useState } from 'react';
 import { Activity, LayoutDashboard, Shield, UserRound } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/api';
 
 const ENVIRONMENTS = {
   client: {
@@ -55,13 +57,53 @@ export default function EnvironmentSwitcher({ variant = 'dark', showLabel = true
   const navigate = useNavigate();
   const activeKey = getActiveEnvironment(location.pathname);
   const activeEnv = ENVIRONMENTS[activeKey] || ENVIRONMENTS.client;
+  const [access, setAccess] = useState(null);
 
-  const canOpenClient = isAuthenticated && Boolean(tenantId || tenant?.id);
-  const available = [
-    canOpenClient ? ENVIRONMENTS.client : null,
-    isPlatformAdmin ? ENVIRONMENTS.admin : null,
-    isPlatformAdmin ? ENVIRONMENTS.superadmin : null,
-  ].filter(Boolean);
+  const fallbackAvailable = useMemo(() => {
+    const canOpenClient = isAuthenticated && Boolean(tenantId || tenant?.id);
+    return [
+      canOpenClient ? { ...ENVIRONMENTS.client, source: 'auth-context' } : null,
+      isPlatformAdmin ? { ...ENVIRONMENTS.admin, source: 'auth-context' } : null,
+      isPlatformAdmin ? { ...ENVIRONMENTS.superadmin, source: 'auth-context' } : null,
+    ].filter(Boolean);
+  }, [isAuthenticated, isPlatformAdmin, tenant?.id, tenantId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthenticated) return undefined;
+
+    apiService.getMyEnvironments()
+      .then((data) => { if (!cancelled) setAccess(data); })
+      .catch(() => { if (!cancelled) setAccess(null); });
+
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
+
+  const available = useMemo(() => {
+    const fromBackend = (access?.environments || [])
+      .filter((env) => env?.available !== false)
+      .map((env) => ({
+        ...(ENVIRONMENTS[env.key] || {
+          key: env.key,
+          label: env.label || env.key,
+          shortLabel: env.shortLabel || env.label || env.key,
+          to: env.to || '/',
+          icon: LayoutDashboard,
+          color: '#94a3b8',
+          bg: 'rgba(148,163,184,0.10)',
+          border: 'rgba(148,163,184,0.25)',
+        }),
+        ...env,
+      }));
+
+    const source = fromBackend.length ? fromBackend : fallbackAvailable;
+    const unique = new Map();
+    for (const env of source) {
+      if (!env?.key || unique.has(env.key)) continue;
+      unique.set(env.key, env);
+    }
+    return [...unique.values()];
+  }, [access, fallbackAvailable]);
 
   if (!isAuthenticated || available.length === 0) return null;
 
@@ -80,17 +122,15 @@ export default function EnvironmentSwitcher({ variant = 'dark', showLabel = true
       )}
 
       <div className="env-shortcuts" aria-label="Atalhos de ambientes disponíveis">
-        {available.map((env) => {
+        {available.filter((env) => env.key !== activeKey).map((env) => {
           const Icon = env.icon;
-          const isActive = env.key === activeKey;
           return (
             <button
               key={env.key}
               type="button"
-              className={`env-shortcut ${isActive ? 'active' : ''}`}
-              onClick={() => !isActive && navigate(env.to)}
-              disabled={isActive}
-              title={isActive ? `Você está no ambiente ${env.label}` : `Ir para ${env.label}`}
+              className="env-shortcut"
+              onClick={() => navigate(env.to)}
+              title={`${env.reason || `Ir para ${env.label}`}${env.plan ? ` • Plano ${env.plan}` : ''}`}
               style={{
                 '--env-color': env.color,
                 '--env-bg': env.bg,

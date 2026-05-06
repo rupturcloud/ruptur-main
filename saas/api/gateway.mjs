@@ -262,6 +262,187 @@ async function requirePlatformAdmin(req, res) {
 }
 
 
+function hasAnyPermission(permissions = {}, keys = []) {
+  return keys.some((key) => permissions?.[key] === true);
+}
+
+async function getPlatformAdminProfile(user) {
+  if (!supabase || !user) return null;
+
+  const selectFields = 'id, user_id, email, status, permissions, created_at';
+
+  const { data: byUserId, error: byUserIdError } = await supabase
+    .from('platform_admins')
+    .select(selectFields)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (!byUserIdError && byUserId) return byUserId;
+
+  if (!user.email) return null;
+
+  const { data: byEmail, error: byEmailError } = await supabase
+    .from('platform_admins')
+    .select(selectFields)
+    .eq('email', user.email)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (byEmailError || !byEmail) return null;
+  return byEmail;
+}
+
+function addTenantAccess(memberships, tenant, { role = 'member', source = 'unknown' } = {}) {
+  if (!tenant?.id || memberships.has(tenant.id)) return;
+  memberships.set(tenant.id, {
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    tenantEmail: tenant.email,
+    tenantStatus: tenant.status,
+    plan: tenant.plan,
+    maxInstances: tenant.max_instances,
+    monthlyCredits: tenant.monthly_credits,
+    role,
+    source,
+  });
+}
+
+async function getTenantAccessList(user) {
+  if (!supabase || !user) return [];
+
+  const memberships = new Map();
+
+  // Fonte principal: vínculo explícito usuário -> tenant.
+  const { data: memberRows } = await supabase
+    .from('user_tenant_memberships')
+    .select('tenant_id, role, tenants(id, slug, name, email, plan, status, max_instances, monthly_credits)')
+    .eq('user_id', user.id);
+
+  for (const row of memberRows || []) {
+    addTenantAccess(memberships, row.tenants, {
+      role: row.role || 'member',
+      source: 'membership',
+    });
+  }
+
+  // Compatibilidade com o modelo legado, onde users.tenant_id era o vínculo primário.
+  const { data: userRows } = await supabase
+    .from('users')
+    .select('tenant_id, role, tenants(id, slug, name, email, plan, status, max_instances, monthly_credits)')
+    .eq('id', user.id);
+
+  for (const row of userRows || []) {
+    addTenantAccess(memberships, row.tenants, {
+      role: row.role || 'member',
+      source: 'users',
+    });
+  }
+
+  // Fallback seguro para contas antigas importadas antes do membership: tenant.email = credencial logada.
+  if (user.email) {
+    const { data: tenantRows } = await supabase
+      .from('tenants')
+      .select('id, slug, name, email, plan, status, max_instances, monthly_credits')
+      .eq('email', user.email);
+
+    for (const tenant of tenantRows || []) {
+      addTenantAccess(memberships, tenant, {
+        role: 'owner',
+        source: 'tenant-email',
+      });
+    }
+  }
+
+  return [...memberships.values()].sort((a, b) => String(a.tenantName || '').localeCompare(String(b.tenantName || '')));
+}
+
+async function buildEnvironmentAccess(user) {
+  const [platformAdmin, tenantAccess] = await Promise.all([
+    getPlatformAdminProfile(user),
+    getTenantAccessList(user),
+  ]);
+
+  const permissions = platformAdmin?.permissions || {};
+  const environments = [];
+
+  const activeTenants = tenantAccess.filter((entry) => entry.tenantStatus !== 'cancelled');
+  if (activeTenants.length > 0) {
+    const primary = activeTenants[0];
+    environments.push({
+      key: 'client',
+      label: activeTenants.length > 1 ? `Cliente (${activeTenants.length})` : 'Cliente',
+      shortLabel: 'Cliente',
+      to: '/dashboard',
+      available: true,
+      reason: 'Usuário possui vínculo ativo com tenant',
+      role: primary.role,
+      tenantId: primary.tenantId,
+      tenantName: primary.tenantName,
+      tenantSlug: primary.tenantSlug,
+      plan: primary.plan,
+      accountStatus: primary.tenantStatus,
+      accounts: activeTenants,
+      capabilities: {
+        dashboard: true,
+        campaigns: ['owner', 'admin', 'member'].includes(primary.role),
+        wallet: ['owner', 'admin', 'finance'].includes(primary.role) || primary.role === 'owner',
+        warmup: ['owner', 'admin', 'member'].includes(primary.role),
+      },
+    });
+  }
+
+  if (platformAdmin && hasAnyPermission(permissions, ['manage_tenants', 'manage_billing', 'manage_support', 'view_audit_logs'])) {
+    environments.push({
+      key: 'admin',
+      label: 'Admin',
+      shortLabel: 'Admin',
+      to: '/admin',
+      available: true,
+      reason: 'Usuário possui permissões operacionais de plataforma',
+      role: 'platform_admin',
+      platformAdminId: platformAdmin.id,
+      permissions,
+      capabilities: {
+        manageTenants: permissions.manage_tenants === true,
+        manageBilling: permissions.manage_billing === true,
+        manageSupport: permissions.manage_support === true,
+        viewAuditLogs: permissions.view_audit_logs === true,
+      },
+    });
+  }
+
+  if (platformAdmin && hasAnyPermission(permissions, ['manage_users', 'manage_tenants'])) {
+    environments.push({
+      key: 'superadmin',
+      label: 'Superadmin',
+      shortLabel: 'Superadmin',
+      to: '/admin/superadmin',
+      available: true,
+      reason: 'Usuário possui permissão de gestão global da plataforma',
+      role: 'platform_superadmin',
+      platformAdminId: platformAdmin.id,
+      permissions,
+      capabilities: {
+        managePlatformAdmins: permissions.manage_users === true,
+        manageTenants: permissions.manage_tenants === true,
+      },
+    });
+  }
+
+  return {
+    user: { id: user.id, email: user.email },
+    environments,
+    tenantAccess,
+    platformAdmin: platformAdmin ? {
+      id: platformAdmin.id,
+      status: platformAdmin.status,
+      permissions,
+    } : null,
+  };
+}
+
 function providerMigrationError(e) {
   const message = String(e?.message || '');
   if (e?.code === '42P01' || e?.code === '42703' || e?.code === 'PGRST205' || message.includes('provider_accounts') || message.includes('api_leases')) {
@@ -814,6 +995,20 @@ async function handler(req, res) {
       // Falha silenciosa em tracking
       console.log('[Referral] Aviso de tracking:', e.message);
       return json(res, 200, { ok: true }, req);
+    }
+  }
+
+  // --- Sessão: ambientes disponíveis por credencial/permissão ---
+  if (pathname === '/api/me/environments' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const access = await buildEnvironmentAccess(user);
+      return json(res, 200, access, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
     }
   }
 
