@@ -64,11 +64,35 @@ class BubbleClient {
    * @param {Object} options Query options (filters, constraints, etc)
    * @returns {Promise<Array>} Data records
    */
+<<<<<<< HEAD
   async getThings(dataType, options = {}) {
     const queryParams = new URLSearchParams();
 
     if (options.constraints) {
       queryParams.append('constraints', JSON.stringify(options.constraints));
+=======
+  /**
+   * Get data from a database thing
+   *
+   * @param {string} dataType Data type name
+   * @param {Object} options Query options (filters, constraints, etc)
+   * @returns {Promise<Array>} Data records
+   */
+  async getThings(dataType, options = {}) {
+    const queryParams = new URLSearchParams();
+    const constraints = options.constraints || [];
+
+    if (options.tenantId) {
+      constraints.push({
+        key: 'tenant_id',
+        constraint_type: 'equals',
+        value: options.tenantId,
+      });
+    }
+
+    if (constraints.length > 0) {
+      queryParams.append('constraints', JSON.stringify(constraints));
+>>>>>>> codex/getnet-prod-fix
     }
 
     if (options.sorting) {
@@ -104,6 +128,7 @@ class BubbleClient {
    *
    * @param {string} dataType Data type name
    * @param {Object} data Record data
+<<<<<<< HEAD
    * @returns {Promise<Object>} Created record
    */
   async createThing(dataType, data) {
@@ -111,6 +136,22 @@ class BubbleClient {
     return this.request(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
+=======
+   * @param {string} tenantId Optional tenant ID
+   * @returns {Promise<Object>} Created record
+   */
+  async createThing(dataType, data, tenantId) {
+    const endpoint = `/obj/${dataType}`;
+    const payload = { ...data };
+    
+    if (tenantId) {
+      payload.tenant_id = tenantId;
+    }
+
+    return this.request(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+>>>>>>> codex/getnet-prod-fix
     });
   }
 
@@ -174,10 +215,19 @@ class BubbleClient {
    *
    * @param {string} dataType Data type name
    * @param {string} query Search query
+<<<<<<< HEAD
    * @returns {Promise<Array>} Search results
    */
   async search(dataType, query) {
     return this.getThings(dataType, {
+=======
+   * @param {string} tenantId Optional tenant ID
+   * @returns {Promise<Array>} Search results
+   */
+  async search(dataType, query, tenantId) {
+    return this.getThings(dataType, {
+      tenantId,
+>>>>>>> codex/getnet-prod-fix
       constraints: [
         {
           key: 'search_term',

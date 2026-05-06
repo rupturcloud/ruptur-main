@@ -3,12 +3,21 @@
 saas_enabled: true
 saas_deploy_dir: /opt/ruptur/saas
 saas_container_name: saas-web
+<<<<<<< HEAD
 saas_port: 4173
 saas_domains:
   - app.ruptur.cloud
   - ruptur.cloud
   - saas.ruptur.cloud
 saas_network: ruptur-edge
+=======
+saas_port: 3001
+saas_domains:
+  - app.ruptur.cloud
+  - api.ruptur.cloud
+  - ruptur.cloud
+  - saas.ruptur.cloud
+>>>>>>> codex/getnet-prod-fix
 saas_restart_policy: unless-stopped
 
 # Repositório (opcional - se usar git clone)
@@ -19,6 +28,10 @@ saas_repo_path: ruptur-main/saas
 # Runtime
 saas_runtime_host: 0.0.0.0
 saas_node_env: production
+<<<<<<< HEAD
+=======
+saas_warmup_runtime_url: http://warmup-runtime:4173
+>>>>>>> codex/getnet-prod-fix
 
 # Volumes
 saas_data_dir: /opt/ruptur/data/saas

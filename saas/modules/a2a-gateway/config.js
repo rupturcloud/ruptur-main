@@ -14,7 +14,8 @@ export const TOPICS = {
   TASKS: 'ruptur-tasks',
   APPROVALS: 'ruptur-approvals',
   RESULTS: 'ruptur-results',
-  VALIDATIONS: 'ruptur-validations'
+  VALIDATIONS: 'ruptur-validations',
+  NOTIFICATIONS: 'notification-events'
 };
 
 /**
@@ -25,7 +26,8 @@ export const SUBSCRIPTIONS = {
   TASKS: 'ruptur-tasks-sub',
   APPROVALS: 'ruptur-approvals-sub',
   RESULTS: 'ruptur-results-sub',
-  VALIDATIONS: 'ruptur-validations-sub'
+  VALIDATIONS: 'ruptur-validations-sub',
+  NOTIFICATIONS: 'notification-events-sub'
 };
 
 /**

@@ -7,6 +7,12 @@
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+<<<<<<< HEAD
+=======
+import { walletManager } from '../wallet/index.js';
+import UaZAPIClient from '../../integrations/uazapi/client.js';
+import { EventPublisher } from '../notifications/event-publisher.js';
+>>>>>>> codex/getnet-prod-fix
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,6 +44,12 @@ const state = {
   scheduler: null
 };
 
+<<<<<<< HEAD
+=======
+// UAZAPI Client
+const uazapiClient = new UaZAPIClient();
+
+>>>>>>> codex/getnet-prod-fix
 /**
  * Create a new campaign
  */
@@ -51,11 +63,25 @@ export async function createCampaign(campaignData) {
     recipients = [],
     schedule = null,
     throttle = { minDelay: 5, maxDelay: 15 },
+<<<<<<< HEAD
     variables = []
   } = campaignData;
 
   const campaign = {
     id: crypto.randomUUID(),
+=======
+    variables = [],
+    tenantId
+  } = campaignData;
+
+  if (!tenantId) {
+    throw new Error('tenantId is required for creating a campaign');
+  }
+
+  const campaign = {
+    id: crypto.randomUUID(),
+    tenantId,
+>>>>>>> codex/getnet-prod-fix
     name,
     description,
     messageId,
@@ -113,6 +139,14 @@ export async function listCampaigns(options = {}) {
   
   let campaigns = Array.from(state.campaigns.values());
   
+<<<<<<< HEAD
+=======
+  // Filter by tenantId
+  if (options.tenantId) {
+    campaigns = campaigns.filter(c => c.tenantId === options.tenantId);
+  }
+  
+>>>>>>> codex/getnet-prod-fix
   if (status) {
     campaigns = campaigns.filter(c => c.status === status);
   }
@@ -183,14 +217,25 @@ export async function deleteCampaign(campaignId) {
 
 /**
  * Start campaign
+<<<<<<< HEAD
  */
 export async function startCampaign(campaignId) {
+=======
+ * @param {string} campaignId - Campaign ID
+ * @param {Object} [user] - Optional user object with id, email, name for notifications
+ */
+export async function startCampaign(campaignId, user = null) {
+>>>>>>> codex/getnet-prod-fix
   const campaign = state.campaigns.get(campaignId);
   if (!campaign) {
     throw new Error(`Campaign not found: ${campaignId}`);
   }
 
+<<<<<<< HEAD
   if (campaign.status !== CAMPAIGN_STATUS.DRAFT && 
+=======
+  if (campaign.status !== CAMPAIGN_STATUS.DRAFT &&
+>>>>>>> codex/getnet-prod-fix
       campaign.status !== CAMPAIGN_STATUS.PAUSED &&
       campaign.status !== CAMPAIGN_STATUS.SCHEDULED) {
     throw new Error(`Cannot start campaign with status: ${campaign.status}`);
@@ -218,13 +263,34 @@ export async function startCampaign(campaignId) {
 
   console.log(`[campaigns:start] Started campaign ${campaignId} with ${recipients.length} recipients`);
 
+<<<<<<< HEAD
+=======
+  // Publish notification event if user is provided
+  if (user) {
+    try {
+      const publisher = new EventPublisher();
+      await publisher.campaignLaunched(campaign.tenantId, campaign, user);
+    } catch (error) {
+      console.error(`[campaigns:start] Failed to publish campaign_launched event: ${error.message}`);
+      // Don't fail the campaign start if notification fails
+    }
+  }
+
+>>>>>>> codex/getnet-prod-fix
   return campaign;
 }
 
 /**
  * Pause campaign
+<<<<<<< HEAD
  */
 export async function pauseCampaign(campaignId) {
+=======
+ * @param {string} campaignId - Campaign ID
+ * @param {Object} [user] - Optional user object for notifications
+ */
+export async function pauseCampaign(campaignId, user = null) {
+>>>>>>> codex/getnet-prod-fix
   const campaign = state.campaigns.get(campaignId);
   if (!campaign) {
     throw new Error(`Campaign not found: ${campaignId}`);
@@ -247,10 +313,22 @@ export async function pauseCampaign(campaignId) {
  * Create message template
  */
 export async function createMessageTemplate(templateData) {
+<<<<<<< HEAD
   const { name, text, category, variables = [] } = templateData;
 
   const template = {
     id: crypto.randomUUID(),
+=======
+  const { name, text, category, variables = [], tenantId } = templateData;
+
+  if (!tenantId) {
+    throw new Error('tenantId is required for creating a template');
+  }
+
+  const template = {
+    id: crypto.randomUUID(),
+    tenantId,
+>>>>>>> codex/getnet-prod-fix
     name,
     text,
     category,
@@ -274,6 +352,14 @@ export async function listMessageTemplates(options = {}) {
   
   let templates = Array.from(state.messages.values());
   
+<<<<<<< HEAD
+=======
+  // Filter by tenantId
+  if (options.tenantId) {
+    templates = templates.filter(t => t.tenantId === options.tenantId);
+  }
+
+>>>>>>> codex/getnet-prod-fix
   if (category) {
     templates = templates.filter(t => t.category === category);
   }
@@ -290,10 +376,18 @@ export async function listMessageTemplates(options = {}) {
 }
 
 /**
+<<<<<<< HEAD
  * Compose message with variables
  */
 export function composeMessage(templateText, variables = {}, recipientData = {}) {
   let composed = templateText;
+=======
+ * Compose message with variables and spintext support
+ */
+export function composeMessage(templateText, variables = {}, recipientData = {}, options = {}) {
+  let composed = templateText;
+  const { enableSpinText = true } = options;
+>>>>>>> codex/getnet-prod-fix
   
   // Replace template variables
   for (const [key, value] of Object.entries(variables)) {
@@ -305,6 +399,14 @@ export function composeMessage(templateText, variables = {}, recipientData = {})
     composed = composed.replace(new RegExp(`{{recipient.${key}}}`, 'g'), value || '');
   }
   
+<<<<<<< HEAD
+=======
+  // Process spintext syntax: {option1|option2|option3}
+  if (enableSpinText) {
+    composed = uazapiClient.processSpinText(composed);
+  }
+  
+>>>>>>> codex/getnet-prod-fix
   return composed;
 }
 
@@ -394,6 +496,7 @@ async function processQueue() {
   
   for (const item of toProcess) {
     try {
+<<<<<<< HEAD
       // TODO: Integrate with UAZAPI to send message
       console.log(`[campaigns:send] Sending to ${item.recipient.number} via ${item.instanceToken}`);
       
@@ -407,6 +510,126 @@ async function processQueue() {
         campaign.progress.sent++;
         campaign.progress.remaining--;
       }
+=======
+      // 1. Verify credits before sending
+      const campaign = state.campaigns.get(item.campaignId);
+      if (!campaign) throw new Error(`Campaign not found: ${item.campaignId}`);
+
+      const hasCredits = await walletManager.hasEnoughCredits(campaign.tenantId, 1);
+      if (!hasCredits) {
+        console.warn(`[campaigns:send] Tenant ${campaign.tenantId} has insufficient credits. Pausing campaign.`);
+        await pauseCampaign(item.campaignId);
+        continue; 
+      }
+
+      // 2. Deduct credit
+      await walletManager.deductCredit(campaign.tenantId, 1, {
+        description: `Disparo da campanha: ${campaign.name}`,
+        campaignId: campaign.id
+      });
+
+       // 3. Send via UAZAPI (supports mixed media, spintext, buttons)
+       try {
+         let result;
+         const recipient = item.recipient;
+         const mediaType = recipient.mediaType || item.campaignMediaType || 'text';
+         const mediaUrl = recipient.mediaUrl || item.campaignMediaUrl;
+         
+         // Process message with spintext and variables
+         const processedMessage = composeMessage(
+           item.campaign.messageText || item.campaign.message,
+           item.campaign.variables || {},
+           recipient,
+           { enableSpinText: item.campaign.enableSpinText !== false }
+         );
+         
+         // Determine message type and send accordingly
+         if (mediaType !== 'text') {
+           // Media message (image, video, videoplay, audio, myaudio, ptt, ptv, document, sticker)
+           result = await uazapiClient.sendMedia(item.instanceToken, {
+             number: recipient.number,
+             type: mediaType,
+             file: mediaUrl,
+             text: processedMessage, // Caption
+             viewOnce: mediaType === 'image' || mediaType === 'video' || mediaType === 'ptv',
+             replyid: recipient.replyTo
+           });
+           
+         } else if (recipient.menuType && (recipient.buttons || recipient.sections)) {
+           // Interactive menu/button message
+           result = await uazapiClient.sendMenu(item.instanceToken, {
+             number: recipient.number,
+             type: recipient.menuType, // 'button' or 'list'
+             text: processedMessage,
+             buttons: recipient.buttons, // For button type: [{buttonId, buttonText}]
+             sections: recipient.sections, // For list type: [{title, rows: [{title, description, rowId}]}]
+             footerText: recipient.footerText
+           });
+           
+         } else if (recipient.latitude && recipient.longitude) {
+           // Location with button
+           result = await uazapiClient.sendLocationButton(item.instanceToken, {
+             number: recipient.number,
+             latitude: recipient.latitude,
+             longitude: recipient.longitude,
+             name: recipient.locationName || '',
+             address: recipient.address || ''
+           });
+           
+         } else {
+           // Regular text message (supports placeholders and spintext)
+           result = await uazapiClient.sendText(item.instanceToken, {
+             number: recipient.number,
+             text: processedMessage,
+             replyid: recipient.replyTo,
+             linkPreview: true
+           });
+         }
+         
+         // Mark as sent
+         item.recipient.sentAt = now.toISOString();
+         item.recipient.status = 'sent';
+         item.recipient.uazapiId = result.id || result.messageId; // Save UAZAPI message ID
+         
+         console.log(`[campaigns:send] Message sent via UAZAPI: ${item.recipient.uazapiId} (type: ${mediaType})`);
+       } catch (error) {
+         console.error(`[campaigns:send] Failed to send via UAZAPI: ${error.message}`);
+         item.recipient.status = 'failed';
+         item.recipient.error = error.message;
+         
+         // Ainda conta como tentativa para o limite de retentativas
+         item.attempts++;
+         
+         if (item.attempts >= 3) {
+           // Desiste após 3 tentativas
+           item.recipient.status = 'failed';
+           item.recipient.error = error.message;
+           
+           const campaign = state.campaigns.get(item.campaignId);
+           if (campaign) {
+             campaign.progress.failed++;
+             campaign.progress.remaining--;
+           }
+           
+           state.stats.totalFailed++;
+           
+           // Remove da fila
+           const index = state.queue.indexOf(item);
+           if (index > -1) {
+             state.queue.splice(index, 1);
+           }
+           
+           continue; // Vai para o próximo item da fila
+         }
+         
+         // Se ainda tem tentativas, continua no loop para tentar novamente
+         continue;
+       }
+      
+      // Update campaign progress
+      campaign.progress.sent++;
+      campaign.progress.remaining--;
+>>>>>>> codex/getnet-prod-fix
       
       state.stats.totalSent++;
       
@@ -446,8 +669,23 @@ async function processQueue() {
       campaign.status = CAMPAIGN_STATUS.COMPLETED;
       campaign.completedAt = new Date().toISOString();
       state.stats.activeCampaigns--;
+<<<<<<< HEAD
       
       console.log(`[campaigns:complete] Campaign ${campaign.id} completed`);
+=======
+
+      console.log(`[campaigns:complete] Campaign ${campaign.id} completed`);
+
+      // Publish campaign completion event
+      try {
+        const publisher = new EventPublisher();
+        // Create a synthetic user object with campaign context for completion event
+        // (in a real scenario, you'd track who started the campaign)
+        // For now, we'll skip this or store campaign initiator info
+      } catch (error) {
+        console.error(`[campaigns:complete] Failed to publish campaign completion event: ${error.message}`);
+      }
+>>>>>>> codex/getnet-prod-fix
     }
   }
 }

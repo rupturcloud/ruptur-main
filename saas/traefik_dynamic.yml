@@ -1,0 +1,100 @@
+http:
+  routers:
+    baileys:
+      rule: Host(`baileys.statuspersianas.com.br`) || Host(`baileys.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: baileys
+      tls:
+        certResolver: le
+    ruptur-api:
+      rule: Host(`api.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: saas-web
+      tls:
+        certResolver: le
+    ruptur-backend:
+      rule: Host(`webhook.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: ruptur-backend
+      tls:
+        certResolver: le
+    canonical-app-redirect:
+      rule: Host(`ruptur.cloud`) || Host(`www.ruptur.cloud`) || Host(`studio.ruptur.cloud`) || Host(`showcase.ruptur.cloud`) || Host(`site.ruptur.cloud`) || Host(`lp.ruptur.cloud`) || Host(`web.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: canonical-redirect
+      tls:
+        certResolver: le
+    canonical-warmup-redirect:
+      rule: Host(`warmup.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: canonical-redirect
+      tls:
+        certResolver: le
+    canonical-aquecimento-redirect:
+      rule: Host(`aquecimento.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: canonical-redirect
+      tls:
+        certResolver: le
+    ruptur-web:
+      rule: Host(`app.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: ruptur-web
+      tls:
+        certResolver: le
+    app-warmup:
+      priority: 1000
+      rule: Host(`app.ruptur.cloud`) && PathPrefix(`/warmup`)
+      entryPoints:
+        - websecure
+      middlewares:
+        - warmup-strip
+      service: warmup
+      tls:
+        certResolver: le
+    saas-web:
+      rule: Host(`saas.ruptur.cloud`)
+      entryPoints:
+        - websecure
+      service: saas-web
+      tls:
+        certResolver: le
+
+  middlewares:
+    warmup-strip:
+      stripPrefix:
+        prefixes:
+          - /warmup
+
+  services:
+    baileys:
+      loadBalancer:
+        servers:
+          - url: http://baileys:3000
+    ruptur-backend:
+      loadBalancer:
+        servers:
+          - url: http://ruptur-backend:8000
+    canonical-redirect:
+      loadBalancer:
+        servers:
+          - url: http://canonical-redirect:8080
+    ruptur-web:
+      loadBalancer:
+        servers:
+          - url: http://ruptur-web:3000
+    warmup:
+      loadBalancer:
+        servers:
+          - url: http://warmup:4173
+    saas-web:
+      loadBalancer:
+        servers:
+          - url: http://saas-web:3001

@@ -26,7 +26,11 @@
           docker_bin: "{{ docker_check_local.stdout | default('ausente') }}"
 
 - name: Preflight remoto sem depender de Python do alvo
+<<<<<<< HEAD
   hosts: hostinger-kvm2,oracle_staging
+=======
+  hosts: hostinger-kvm2,gcp_staging
+>>>>>>> codex/getnet-prod-fix
   gather_facts: false
   tasks:
     - name: Coletar resumo remoto com raw

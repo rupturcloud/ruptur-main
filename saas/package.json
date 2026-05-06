@@ -6,16 +6,64 @@
   "scripts": {
     "start": "node modules/warmup-core/server.mjs",
     "runtime": "node modules/warmup-core/server.mjs",
+<<<<<<< HEAD
     "preview": "WARMUP_RUNTIME_HOST=127.0.0.1 WARMUP_RUNTIME_PORT=4173 npm start",
     "preview:playwright": "playwright open http://127.0.0.1:4173/",
     "preview:screenshot": "mkdir -p tmp/playwright && playwright screenshot --full-page http://127.0.0.1:4173/ tmp/playwright/preview-home.png",
+=======
+    "saas": "node api/gateway.mjs",
+    "saas:dev": "PORT_API=3001 node api/gateway.mjs",
+    "preview": "WARMUP_RUNTIME_HOST=127.0.0.1 WARMUP_RUNTIME_PORT=4173 npm start",
+    "preview:playwright": "playwright open http://127.0.0.1:4173/",
+    "preview:screenshot": "mkdir -p tmp/playwright && playwright screenshot --full-page http://127.0.0.1:4173/ tmp/playwright/preview-home.png",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+>>>>>>> codex/getnet-prod-fix
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "jarvis:ativar": "node scripts/jarvis/resolve-activation.mjs",
+<<<<<<< HEAD
     "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1"
+=======
+    "jarvis:ativar:json": "node scripts/jarvis/resolve-activation.mjs --json",
+    "supabase:prepare": "node scripts/supabase-prepare-cli.mjs",
+    "supabase:version": "supabase --version",
+    "supabase:status": "supabase status",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:db:push": "supabase db push",
+    "supabase:db:pull": "supabase db pull",
+    "supabase:migration:new": "supabase migration new",
+    "supabase:gen:types": "mkdir -p web/client-area/src/types && supabase gen types typescript --local > web/client-area/src/types/supabase.ts",
+    "supabase:link": "supabase link",
+    "supabase:start:core": "supabase start --exclude storage-api,imgproxy,logflare,vector,realtime,edge-runtime",
+    "supabase:start:full": "supabase start",
+    "supabase:start:app": "supabase start --exclude storage-api,imgproxy,logflare,vector,realtime,edge-runtime",
+    "lint": "node scripts/lint-node-syntax.mjs && npm --prefix web/client-area run lint",
+    "build": "npm --prefix web/client-area run build -- --emptyOutDir",
+    "test:unit": "npm test -- --runInBand",
+    "test:coverage": "npm test -- --runInBand --coverage",
+    "quality": "npm run lint && npm run test:unit && npm run build",
+    "review": "node scripts/review-checklist.mjs && node scripts/security-check.mjs"
+  },
+  "dependencies": {
+    "@google-cloud/pubsub": "^5.3.0",
+    "@sendgrid/mail": "^8.1.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.20.0",
+    "uuid": "^9.0.1",
+    "zod": "^4.4.2"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.3.0",
+    "@playwright/test": "^1.59.1",
+    "jest": "^30.3.0"
+>>>>>>> codex/getnet-prod-fix
   }
 }

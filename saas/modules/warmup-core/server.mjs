@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { createReadStream, existsSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import http from "node:http";
@@ -7,7 +10,14 @@ import crypto from "node:crypto";
 // Import new modules
 import { inboxManager } from '../inbox/index.js';
 import { campaignManager } from '../campaigns/index.js';
+<<<<<<< HEAD
 import { walletManager } from '../wallet/index.js';
+=======
+import { createWalletManager, getWalletManager } from '../wallet/index.js';
+import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.js';
+
+const walletManager = createWalletManager(supabase);
+>>>>>>> codex/getnet-prod-fix
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -22,7 +32,11 @@ function resolveAssetDir(dirname) {
   return path.resolve(process.cwd(), "web", dirname);
 }
 
+<<<<<<< HEAD
 const FRONT_DIST_DIR = resolveAssetDir("dist"); // Front Lindona
+=======
+const FRONT_DIST_DIR = resolveAssetDir("dist"); // Front Lindona / Página de Vendas
+>>>>>>> codex/getnet-prod-fix
 const DASHBOARD_DIST_DIR = resolveAssetDir("dashboard-dist"); // Legacy Dashboard SafeFlow
 const MANAGER_DIST_DIR = resolveAssetDir("manager-dist"); // Warmup Manager
 
@@ -264,13 +278,14 @@ const WARMUP_MANAGER_SETTINGS_ACTIONS_HTML = `
 let state = await loadState();
 let tickTimer = null;
 let tickInFlight = null;
+let warmupControlVersion = 0;
 
 function getDefaultSettings() {
   return {
     serverUrl: process.env.WARMUP_SERVER_URL || "https://tiatendeai.uazapi.com",
     adminToken: process.env.WARMUP_ADMIN_TOKEN || "",
     supabaseUrl: process.env.VITE_SUPABASE_URL || "https://axrwlboyowoskdxeogba.supabase.co",
-    supabaseKey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4cndsYm95b3dvc2tkeGVvZ2JhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzkzNTYsImV4cCI6MjA4OTUxNTM1Nn0.jrVy7OzLgidDYlK2rFuF1NX2SRP0EVmQycx3d_s7vV8",
+    supabaseKey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
     defaultDelay: 3000,
     warmupMinIntervalMs: 2 * 60 * 1000,
     warmupMaxDailyPerInstance: 250,
@@ -703,7 +718,11 @@ function normalizeInstanceState({ currentState, instance, round, now, resolvedNu
             : "unknown",
     updatedAt: now.toISOString(),
     nextEligibleAt: undefined,
+<<<<<<< HEAD
     tenantId: instanceData?.bubble_user_id || instanceData?.tenantId || base.tenantId, // Multi-tenant: Vincula a instância ao cliente
+=======
+    tenantId: getTenantHintsFromInstance(instanceData)[0] || base.tenantId, // Multi-tenant: Vincula a instância ao cliente
+>>>>>>> codex/getnet-prod-fix
     lastReconnectAttemptAt: base.lastReconnectAttemptAt,
   };
 
@@ -849,7 +868,22 @@ function clearWarmingFlags() {
   state.summary.heatingNow = 0;
   state.summary.queuedEntries = 0;
   state.summary.subpoolCount = 0;
-  state.currentPool.currentRound = undefined;
+  state.summary.isPulsing = false;
+  state.currentPool = createEmptyPoolState();
+}
+
+function requestWarmupStop(status = 'stopped', reason) {
+  warmupControlVersion += 1;
+  state.scheduler.enabled = false;
+  state.scheduler.status = status;
+  state.scheduler.lastPausedAt = new Date().toISOString();
+  if (reason) state.scheduler.lastError = reason;
+  stopLoop();
+  clearWarmingFlags();
+}
+
+function isWarmupRunCurrent(version) {
+  return state.scheduler.enabled && version === warmupControlVersion;
 }
 
 function createTrackId(routineId, round, senderToken, receiverToken) {
@@ -1053,6 +1087,144 @@ async function fetchAllInstancesForSettings(settings = {}) {
       admintoken: settings.adminToken,
     },
   }, "Erro ao buscar instâncias");
+}
+
+function parseMaybeJsonObject(value) {
+  if (!value || typeof value !== "string") return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function getTenantHintsFromInstance(instance = {}) {
+  const metadata =
+    (instance.metadata && typeof instance.metadata === "object" ? instance.metadata : null)
+    || parseMaybeJsonObject(instance.adminField02)
+    || parseMaybeJsonObject(instance.adminField01)
+    || parseMaybeJsonObject(instance.fieldsMap?.metadata)
+    || {};
+
+  return [
+    instance.bubble_user_id,
+    instance.tenantId,
+    instance.tenant_id,
+    instance.adminField01,
+    metadata.tenantId,
+    metadata.tenant_id,
+    metadata.bubble_user_id,
+    metadata.tenantSlug,
+    metadata.tenant_slug,
+  ]
+    .filter((value) => value !== undefined && value !== null)
+    .map((value) => String(value).trim())
+    .flatMap((value) => value.startsWith('tenant:') ? [value, value.slice('tenant:'.length)] : [value])
+    .filter(Boolean);
+}
+
+function isTenantUazapiInstance(instance = {}, tenant = {}) {
+  const tenantKeys = [tenant.id, tenant.slug, tenant.name]
+    .filter((value) => value !== undefined && value !== null)
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+
+  if (tenantKeys.length === 0) return false;
+  const hints = getTenantHintsFromInstance(instance);
+  return hints.some((hint) => tenantKeys.includes(hint));
+}
+
+function normalizeUazapiInstance(instance = {}) {
+  const status = String(instance.status || instance.connectionStatus || "").toLowerCase();
+  const connected = Boolean(
+    instance.connected
+    || instance.loggedIn
+    || status === "connected"
+    || status === "open"
+  );
+
+  return {
+    id: instance.id,
+    name: instance.name || instance.instanceName || instance.id || "Instância",
+    token: instance.token,
+    status: status || (connected ? "connected" : "disconnected"),
+    connected,
+    loggedIn: Boolean(instance.loggedIn || connected),
+    phone: instance.phone || instance.phoneNumber || instance.number || instance.owner || instance.jid?.user,
+    owner: instance.owner,
+    profileName: instance.profileName,
+    profilePicUrl: instance.profilePicUrl,
+    isBusiness: instance.isBusiness,
+    platform: instance.plataform || instance.platform,
+    systemName: instance.systemName,
+    paircode: instance.paircode,
+    qrcode: instance.qrcode,
+    lastDisconnect: instance.lastDisconnect,
+    lastDisconnectReason: instance.lastDisconnectReason,
+    created: instance.created,
+    updated: instance.updated,
+    adminField01: instance.adminField01,
+    adminField02: instance.adminField02,
+  };
+}
+
+async function fetchTenantUazapiInstances(tenant = {}) {
+  if (!state.config.settings.adminToken?.trim()) return [];
+  const allInstances = await fetchAllInstances();
+  return allInstances
+    .filter((instance) => isTenantUazapiInstance(instance, tenant))
+    .map(normalizeUazapiInstance);
+}
+
+async function findTenantUazapiInstance(instanceKey, tenant = {}) {
+  const key = String(instanceKey || "").trim();
+  if (!key) return null;
+
+  const instances = await fetchTenantUazapiInstances(tenant);
+  return instances.find((instance) => (
+    instance.token === key
+    || instance.id === key
+    || instance.name === key
+  )) || null;
+}
+
+function buildTenantAdminField02(tenant = {}, user = {}) {
+  return JSON.stringify({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    tenantName: tenant.name,
+    userId: user?.id,
+    createdFrom: "ruptur-dashboard",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+async function createUazapiInstanceForTenant({ tenant, user, payload = {} }) {
+  if (!state.config.settings.adminToken?.trim()) {
+    throw new Error("Admin token não configurado no runtime.");
+  }
+
+  const name = String(payload.name || "").trim();
+  if (!name) {
+    const error = new Error("Nome da instância é obrigatório.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return fetchJson(`${state.config.settings.serverUrl}/instance/create`, {
+    method: "POST",
+    headers: {
+      admintoken: state.config.settings.adminToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name,
+      systemName: String(payload.systemName || "ruptur-dashboard").trim(),
+      adminField01: `tenant:${tenant.id}`,
+      adminField02: buildTenantAdminField02(tenant, user),
+    }),
+  }, "Erro ao criar instância");
 }
 
 async function fetchInstanceStatus(token) {
@@ -1559,7 +1731,13 @@ function buildCurrentRoundPool(routines, instancesByToken, round, tickStartedAt)
   return roundPool;
 }
 
-async function executePoolEntry(entry, instancesByToken, round) {
+async function executePoolEntry(entry, instancesByToken, round, runVersion = warmupControlVersion) {
+  if (!isWarmupRunCurrent(runVersion)) {
+    entry.status = 'cancelled';
+    entry.updatedAt = new Date().toISOString();
+    return { sentCount: 0 };
+  }
+
   const sender = instancesByToken.get(entry.senderToken);
   const senderState = state.instanceStates[entry.senderToken];
   const now = new Date();
@@ -1581,6 +1759,10 @@ async function executePoolEntry(entry, instancesByToken, round) {
   const tenantId = senderState.tenantId;
   if (tenantId) {
     try {
+<<<<<<< HEAD
+=======
+      const walletManager = getWalletManager();
+>>>>>>> codex/getnet-prod-fix
       const hasCredits = await walletManager.hasEnoughCredits(tenantId, 1);
       if (!hasCredits) {
         addRuntimeLog({
@@ -1597,6 +1779,15 @@ async function executePoolEntry(entry, instancesByToken, round) {
       }
       
       // Debita o crédito
+<<<<<<< HEAD
+=======
+      if (!isWarmupRunCurrent(runVersion)) {
+        entry.status = 'cancelled';
+        entry.updatedAt = new Date().toISOString();
+        return { sentCount: 0 };
+      }
+
+>>>>>>> codex/getnet-prod-fix
       await walletManager.deductCredit(tenantId, 1, { 
         type: 'warmup', 
         instanceToken: entry.senderToken,
@@ -1616,10 +1807,21 @@ async function executePoolEntry(entry, instancesByToken, round) {
 
     const presenceType = message.contentType === "audio" ? "recording" : "composing";
     try {
+      if (!isWarmupRunCurrent(runVersion)) {
+        entry.status = 'cancelled';
+        entry.updatedAt = new Date().toISOString();
+        return { sentCount: 0 };
+      }
       await sendPresence(entry.senderToken, { number: receiverNumber, presence: presenceType, delay: 1000 });
       await new Promise(r => setTimeout(r, 1500));
     } catch (err) {
       console.error(`[warmup] Erro ao simular presença (${presenceType}) para ${receiverNumber}`);
+    }
+
+    if (!isWarmupRunCurrent(runVersion)) {
+      entry.status = 'cancelled';
+      entry.updatedAt = new Date().toISOString();
+      return { sentCount: 0 };
     }
 
     if (message.contentType === "audio" && message.audioUrl) {
@@ -1699,7 +1901,7 @@ async function executePoolEntry(entry, instancesByToken, round) {
   }
 }
 
-async function executeRoundPool(roundPool, instancesByToken, round, maxExecutionsAllowed = MAX_QUEUE_EXECUTIONS_PER_TICK) {
+async function executeRoundPool(roundPool, instancesByToken, round, maxExecutionsAllowed = MAX_QUEUE_EXECUTIONS_PER_TICK, runVersion = warmupControlVersion) {
   const groupedQueues = Array.from(
     roundPool.entries.reduce((groups, entry) => {
       const key = `${entry.activityKind}:${entry.activityLabel}`;
@@ -1716,17 +1918,18 @@ async function executeRoundPool(roundPool, instancesByToken, round, maxExecution
   const executionLimit = Math.min(MAX_QUEUE_EXECUTIONS_PER_TICK, Math.max(0, maxExecutionsAllowed));
 
   while (executedCount < executionLimit) {
-    if (!state.scheduler.enabled) break;
+    if (!isWarmupRunCurrent(runVersion)) break;
 
     let progressed = false;
 
     for (const queue of groupedQueues) {
-      if (!state.scheduler.enabled) break;
+      if (!isWarmupRunCurrent(runVersion)) break;
 
       const entry = queue.shift();
       if (!entry) continue;
 
-      const result = await executePoolEntry(entry, instancesByToken, round);
+      const result = await executePoolEntry(entry, instancesByToken, round, runVersion);
+      if (!isWarmupRunCurrent(runVersion)) break;
       sentCount += result.sentCount;
       executedCount += 1;
       progressed = true;
@@ -1824,6 +2027,8 @@ async function tick(reason = "interval") {
   if (tickInFlight) return tickInFlight;
   if (!state.scheduler.enabled) return buildSnapshot();
 
+  const runVersion = warmupControlVersion;
+
   tickInFlight = (async () => {
     const tickStartedAt = new Date();
     state.scheduler.status = "active";
@@ -1835,6 +2040,7 @@ async function tick(reason = "interval") {
 
     try {
       const instances = await fetchAllInstances();
+      if (!isWarmupRunCurrent(runVersion)) return buildSnapshot();
       ensureDefaultRoutine(instances);
       const instancesByToken = new Map(instances.map((i) => [i.token, i]));
       const round = state.scheduler.round;
@@ -1924,6 +2130,8 @@ async function tick(reason = "interval") {
         }
       });
 
+      if (!isWarmupRunCurrent(runVersion)) return buildSnapshot();
+
       const persistentPool = buildPersistentPool(instances, tickStartedAt);
       const currentRoundPool = buildCurrentRoundPool(
         state.config.routines.filter((r) => r.isActive),
@@ -1946,7 +2154,7 @@ async function tick(reason = "interval") {
       let executionResult = { sentCount: 0, heatingNow: 0 };
       if (currentRoundPool && currentRoundPool.queuedEntries > 0) {
         if (allowedThisTick > 0) {
-          executionResult = await executeRoundPool(currentRoundPool, instancesByToken, round, allowedThisTick);
+          executionResult = await executeRoundPool(currentRoundPool, instancesByToken, round, allowedThisTick, runVersion);
         } else {
           addRuntimeLog({
             type: "scheduler",
@@ -1957,6 +2165,8 @@ async function tick(reason = "interval") {
           executionResult = { sentCount: 0, heatingNow: currentRoundPool.queuedEntries };
         }
       }
+
+      if (!isWarmupRunCurrent(runVersion)) return buildSnapshot();
 
       const sentCount = executionResult.sentCount;
       const heatingNow = executionResult.heatingNow;
@@ -1990,6 +2200,9 @@ async function tick(reason = "interval") {
       state.scheduler.lastError = error instanceof Error ? error.message : "Erro desconhecido no runtime";
     } finally {
       state.summary.isPulsing = false;
+      if (!state.scheduler.enabled) {
+        clearWarmingFlags();
+      }
       await saveState();
     }
 
@@ -2088,14 +2301,6 @@ function buildPublicSettings(settings = {}) {
     ...settings,
     adminToken: "",
   };
-}
-
-async function parseBody(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  if (!chunks.length) return {};
-  const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? JSON.parse(raw) : {};
 }
 
 function stripRoutePrefix(pathname, prefix) {
@@ -2817,6 +3022,10 @@ async function handleCampaignRoute(req, res, url) {
     if (pathParts.length === 2 && req.method === 'GET') {
       const options = {
         status: url.searchParams.get('status'),
+<<<<<<< HEAD
+=======
+        tenantId: url.searchParams.get('tenantId') || req.headers['x-tenant-id'],
+>>>>>>> codex/getnet-prod-fix
         limit: parseInt(url.searchParams.get('limit') || '50'),
         offset: parseInt(url.searchParams.get('offset') || '0')
       };
@@ -2842,9 +3051,50 @@ async function handleCampaignRoute(req, res, url) {
     // POST /api/campaigns/:campaignId/launch
     if (pathParts.length === 4 && pathParts[3] === 'launch' && req.method === 'POST') {
       const campaignId = pathParts[2];
+<<<<<<< HEAD
       const success = await campaignManager.launchCampaign(campaignId);
       return createResponse(res, 200, { success, campaignId });
     }
+=======
+      const body = await parseBody(req);
+      const tenantId = body.tenantId || req.headers['x-tenant-id'];
+      const campaign = await campaignManager.getCampaign(campaignId);
+      if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      if (tenantId && campaign.tenantId !== tenantId) {
+        return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
+      }
+      const success = await campaignManager.launchCampaign(campaignId);
+      return createResponse(res, 200, { success, campaignId });
+    }
+
+    // POST /api/campaigns/:campaignId/pause
+    if (pathParts.length === 4 && pathParts[3] === 'pause' && req.method === 'POST') {
+      const campaignId = pathParts[2];
+      const body = await parseBody(req);
+      const tenantId = body.tenantId || req.headers['x-tenant-id'];
+      const campaign = await campaignManager.getCampaign(campaignId);
+      if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      if (tenantId && campaign.tenantId !== tenantId) {
+        return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
+      }
+      const success = await campaignManager.pauseCampaign(campaignId);
+      return createResponse(res, 200, { success, campaignId });
+    }
+
+    // POST /api/campaigns/:campaignId/stop
+    if (pathParts.length === 4 && pathParts[3] === 'stop' && req.method === 'POST') {
+      const campaignId = pathParts[2];
+      const body = await parseBody(req);
+      const tenantId = body.tenantId || req.headers['x-tenant-id'];
+      const campaign = await campaignManager.getCampaign(campaignId);
+      if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      if (tenantId && campaign.tenantId !== tenantId) {
+        return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
+      }
+      const success = await campaignManager.stopCampaign(campaignId);
+      return createResponse(res, 200, { success, campaignId });
+    }
+>>>>>>> codex/getnet-prod-fix
     
     // GET /api/campaigns/:campaignId/stats
     if (pathParts.length === 4 && pathParts[3] === 'stats' && req.method === 'GET') {
@@ -2870,14 +3120,31 @@ async function handleDashboardRoute(req, res, url) {
     const balance = await walletManager.getBalance(tenantId);
     const campaigns = await campaignManager.getAllCampaigns({ tenantId, limit: 100 });
     const inboxSummary = await inboxManager.getInboxSummary(tenantId);
+<<<<<<< HEAD
+=======
+    let tenantInstances = inboxSummary.instances || [];
+    try {
+      const uazapiInstances = await fetchTenantUazapiInstances({ id: tenantId, slug: tenantId, name: tenantId });
+      if (uazapiInstances.length > 0 || state.config.settings.adminToken?.trim()) {
+        tenantInstances = uazapiInstances;
+      }
+    } catch (error) {
+      console.warn('[Dashboard API] Falha ao buscar instâncias UazAPI:', error.message);
+    }
+>>>>>>> codex/getnet-prod-fix
 
     // Aggregate stats
     const stats = {
       walletBalance: balance,
       activeCampaignsCount: campaigns.campaigns.filter(c => c.status === 'active' || c.status === 'running').length,
       totalCampaigns: campaigns.total,
+<<<<<<< HEAD
       connectedInstances: inboxSummary.instances.filter(i => i.connected).length,
       totalInstances: inboxSummary.instances.length,
+=======
+      connectedInstances: tenantInstances.filter(i => i.connected).length,
+      totalInstances: tenantInstances.length,
+>>>>>>> codex/getnet-prod-fix
       sendsToday: campaigns.campaigns.reduce((acc, c) => acc + (c.metrics?.sentCount || 0), 0),
       queueCount: campaignManager.sendingQueue.filter(item => item.campaign.tenantId === tenantId).length
     };
@@ -2889,7 +3156,572 @@ async function handleDashboardRoute(req, res, url) {
   }
 }
 
+<<<<<<< HEAD
+=======
+// Authenticated Wallet Route Handler
+async function handleAuthenticatedWalletRoute(req, res, url) {
+  try {
+    // Aplica autenticação e tenant
+    const authResult = await new Promise((resolve, reject) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return; // Autenticação falhou, resposta já enviada
+
+    const { tenant } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // GET /api/wallet/balance
+    if (pathParts[2] === 'balance' && req.method === 'GET') {
+      const balance = await walletManager.getBalance(tenant.id);
+      return createResponse(res, 200, { 
+        balance, 
+        tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+        credits_balance: tenant.credits_balance
+      });
+    }
+    
+    createResponse(res, 404, { error: 'Wallet endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Wallet API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
+// Authenticated Instances Route Handler
+async function handleAuthenticatedInstancesRoute(req, res, url) {
+  try {
+    // Aplica autenticação e tenant
+    const authResult = await new Promise((resolve, reject) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return; // Autenticação falhou, resposta já enviada
+
+    const { tenant, user } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // GET /api/instances
+    if (pathParts.length === 2 && req.method === 'GET') {
+      const instances = await fetchTenantUazapiInstances(tenant);
+      
+      return createResponse(res, 200, {
+        instances,
+        total: instances.length,
+        connected: instances.filter(i => i.connected).length,
+        tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name }
+      });
+    }
+
+    // POST /api/instances — cria instância UazAPI já vinculada ao tenant.
+    if (pathParts.length === 2 && req.method === 'POST') {
+      const payload = await parseBody(req);
+      const result = await createUazapiInstanceForTenant({ tenant, user, payload });
+      const instance = normalizeUazapiInstance(result.instance || {
+        id: result.id,
+        name: result.name || payload.name,
+        token: result.token,
+        status: "disconnected",
+        connected: result.connected,
+        loggedIn: result.loggedIn,
+        adminField01: `tenant:${tenant.id}`,
+      });
+
+      addAuditEntry({
+        type: "manual_control",
+        actor: user?.email || user?.id || "dashboard",
+        action: "uazapi_instance_create",
+        details: `Instância ${instance.name} criada para tenant ${tenant.id}`,
+      });
+
+      return createResponse(res, 201, {
+        ...result,
+        instance,
+        tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+      });
+    }
+
+    // POST /api/instances/:instanceKey/connect — inicia QR code ou pareamento por telefone.
+    if (pathParts.length === 4 && pathParts[3] === 'connect' && req.method === 'POST') {
+      const instance = await findTenantUazapiInstance(decodeURIComponent(pathParts[2]), tenant);
+      if (!instance?.token) {
+        return createResponse(res, 404, { error: 'Instância não encontrada ou não pertence ao tenant' });
+      }
+
+      const payload = await parseBody(req);
+      const phone = String(payload.phone || "").replace(/\D/g, "");
+      const body = phone ? { phone } : {};
+      const result = await fetchJson(`${state.config.settings.serverUrl}/instance/connect`, {
+        method: "POST",
+        headers: {
+          token: instance.token,
+          admintoken: state.config.settings.adminToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }, "Erro ao conectar instância");
+
+      return createResponse(res, 200, {
+        ...result,
+        instance: normalizeUazapiInstance(result.instance || instance),
+      });
+    }
+
+    // GET /api/instances/:instanceKey/status — consulta status, qrcode e paircode.
+    if (pathParts.length === 4 && pathParts[3] === 'status' && req.method === 'GET') {
+      const instance = await findTenantUazapiInstance(decodeURIComponent(pathParts[2]), tenant);
+      if (!instance?.token) {
+        return createResponse(res, 404, { error: 'Instância não encontrada ou não pertence ao tenant' });
+      }
+
+      const result = await fetchJson(`${state.config.settings.serverUrl}/instance/status`, {
+        headers: { token: instance.token },
+      }, "Erro ao buscar status da instância");
+
+      return createResponse(res, 200, {
+        ...result,
+        instance: normalizeUazapiInstance(result.instance || instance),
+      });
+    }
+    
+    createResponse(res, 404, { error: 'Instances endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Instances API] Error:', error.message);
+    createResponse(res, error.statusCode || 500, { error: error.message });
+  }
+}
+
+// Authenticated Send Message Route Handler
+async function handleAuthenticatedSendMessageRoute(req, res, url) {
+  try {
+    // Aplica autenticação e tenant
+    const authResult = await new Promise((resolve, reject) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return; // Autenticação falhou, resposta já enviada
+
+    const { tenant } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // POST /api/send-message
+    if (pathParts[2] === 'send-message' && req.method === 'POST') {
+      const body = await parseBody(req);
+      
+      const { instanceId, recipient, message, type = 'text' } = body;
+      
+      if (!instanceId || !recipient || !message) {
+        return createResponse(res, 400, { 
+          error: 'Campos obrigatórios: instanceId, recipient, message' 
+        });
+      }
+
+      // Verifica se a instância pertence ao tenant
+      const inboxSummary = await inboxManager.getInboxSummary(tenant.id);
+      const instance = inboxSummary.instances.find(i => i.id === instanceId || i.token === instanceId);
+      
+      if (!instance) {
+        return createResponse(res, 404, { 
+          error: 'Instância não encontrada ou não pertence ao tenant' 
+        });
+      }
+
+      if (!instance.connected) {
+        return createResponse(res, 400, { 
+          error: 'Instância não está conectada' 
+        });
+      }
+
+      // Envia mensagem via inbox manager
+      const result = await inboxManager.sendMessage(instanceId, {
+        recipient,
+        message,
+        type
+      });
+
+      if (result.success) {
+        return createResponse(res, 200, {
+          success: true,
+          messageId: result.messageId,
+          instance: { id: instance.id, name: instance.name },
+          recipient,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        return createResponse(res, 500, {
+          success: false,
+          error: result.error || 'Falha ao enviar mensagem'
+        });
+      }
+    }
+    
+    createResponse(res, 404, { error: 'Send message endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Send Message API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
+>>>>>>> codex/getnet-prod-fix
 await bootstrapProtectedRoutine();
+
+function warmupTenantKeys(tenant) {
+  return new Set([
+    tenant?.id,
+    tenant?.slug,
+    tenant?.name,
+    tenant?.email,
+    tenant?.metadata?.slug,
+  ].filter(Boolean).map((value) => String(value).toLowerCase()));
+}
+
+function tenantHintMatches(candidate, tenant) {
+  if (!candidate) return false;
+  const keys = warmupTenantKeys(tenant);
+  const normalized = String(candidate).trim().toLowerCase();
+  const variants = normalized.startsWith('tenant:')
+    ? [normalized, normalized.slice('tenant:'.length)]
+    : [normalized, `tenant:${normalized}`];
+  return variants.some((variant) => keys.has(variant) || Array.from(keys).some((key) => variant.includes(key)));
+}
+
+function isTenantWarmupState(instanceState, tenant) {
+  const candidates = [
+    instanceState?.tenantId,
+    instanceState?.tenant_id,
+    instanceState?.bubble_user_id,
+    instanceState?.adminField01,
+    instanceState?.adminField02,
+    instanceState?.metadata?.tenantId,
+    instanceState?.metadata?.tenant_id,
+    instanceState?.metadata?.tenantSlug,
+    instanceState?.metadata?.tenantName,
+  ];
+
+  return candidates.some((candidate) => tenantHintMatches(candidate, tenant));
+}
+
+function buildTenantWarmupIndexes(instanceStates = []) {
+  const instanceNames = new Set(instanceStates.map((instanceState) => String(instanceState.instanceName || instanceState.instanceId || '').toLowerCase()).filter(Boolean));
+  const instanceIds = new Set(instanceStates.map((instanceState) => String(instanceState.instanceId || instanceState.instanceToken || instanceState.token || '').toLowerCase()).filter(Boolean));
+  return { instanceNames, instanceIds };
+}
+
+const TENANT_WARMUP_SETTING_KEYS = [
+  'warmupMinIntervalMs',
+  'warmupMaxDailyPerInstance',
+  'warmupCooldownRounds',
+  'warmupReadChat',
+  'warmupReadMessages',
+  'warmupAsync',
+  'antiBanMaxPerMinute',
+  'defaultDelay',
+];
+
+function pickTenantWarmupSettings(settings = {}) {
+  return TENANT_WARMUP_SETTING_KEYS.reduce((safe, key) => {
+    if (settings[key] !== undefined) safe[key] = settings[key];
+    return safe;
+  }, {});
+}
+
+function sanitizeTenantWarmupRoutine(routine = {}) {
+  return {
+    id: routine.id,
+    name: routine.name,
+    mode: routine.mode,
+    delayMin: routine.delayMin,
+    delayMax: routine.delayMax,
+    isActive: routine.isActive !== false,
+    totalSent: routine.totalSent || 0,
+    senderInstances: [],
+    receiverInstances: [],
+    messages: [],
+    senderCount: Array.isArray(routine.senderInstances) ? routine.senderInstances.length : 0,
+    receiverCount: Array.isArray(routine.receiverInstances) ? routine.receiverInstances.length : 0,
+    messageCount: Array.isArray(routine.messages) ? routine.messages.length : 0,
+  };
+}
+
+function mergeTenantWarmupSettings(previousSettings = {}, incomingSettings = {}, user = {}) {
+  const allowedSettings = pickTenantWarmupSettings(incomingSettings);
+  return mergeRuntimeSettings(previousSettings, {
+    ...allowedSettings,
+    operatorLabel: user?.email || previousSettings.operatorLabel,
+    adminToken: previousSettings.adminToken,
+    serverUrl: previousSettings.serverUrl,
+    supabaseUrl: previousSettings.supabaseUrl,
+    supabaseKey: previousSettings.supabaseKey,
+    riskOverride: previousSettings.riskOverride,
+  });
+}
+
+function filterWarmupRoutineForTenant(routine, indexes) {
+  const senderInstances = (routine.senderInstances || []).filter((value) => indexes.instanceIds.has(String(value).toLowerCase()) || indexes.instanceNames.has(String(value).toLowerCase()));
+  const receiverInstances = (routine.receiverInstances || []).filter((value) => indexes.instanceIds.has(String(value).toLowerCase()) || indexes.instanceNames.has(String(value).toLowerCase()));
+
+  // Rotinas sem lista explícita são globais/legadas. Não expomos para edição do cliente.
+  if (!senderInstances.length && !receiverInstances.length) return null;
+
+  return {
+    ...routine,
+    senderInstances,
+    receiverInstances,
+  };
+}
+
+function filterWarmupSnapshotForTenant(snapshot, tenant) {
+  const instanceStates = (snapshot.instanceStates || []).filter((instanceState) => isTenantWarmupState(instanceState, tenant));
+  const indexes = buildTenantWarmupIndexes(instanceStates);
+
+  const recentLogs = (snapshot.recentLogs || []).filter((log) => {
+    const logInstance = String(log.instanceName || log.instanceId || log.token || '').toLowerCase();
+    return indexes.instanceNames.has(logInstance) || indexes.instanceIds.has(logInstance) || logInstance === 'warmup runtime' || logInstance === 'runtime';
+  });
+
+  const eligibleNow = instanceStates.filter((instanceState) => instanceState.eligibleNow).length;
+  const heatingNow = instanceStates.filter((instanceState) => instanceState.warmingNow).length;
+  const sentToday = instanceStates.reduce((sum, instanceState) => sum + Number(instanceState.sentToday || 0), 0);
+  const blocked = instanceStates.filter((instanceState) => instanceState.heatStage === 'blocked').length;
+  const waiting = instanceStates.filter((instanceState) => instanceState.heatStage === 'waiting' || instanceState.heatStage === 'regenerating').length;
+  const routines = state.config.routines
+    .map((routine) => filterWarmupRoutineForTenant(routine, indexes))
+    .filter(Boolean);
+
+  return {
+    ...snapshot,
+    tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+    summary: {
+      ...snapshot.summary,
+      totalInstances: instanceStates.length,
+      activeRoutines: routines.filter((routine) => routine.isActive).length,
+      heatingNow,
+      eligibleNow,
+      sentToday,
+      blocked,
+      waiting,
+    },
+    currentPool: {
+      ...snapshot.currentPool,
+      entries: (snapshot.currentPool?.entries || []).filter((entry) => {
+        const sender = String(entry.senderToken || entry.senderName || '').toLowerCase();
+        const receiver = String(entry.receiverToken || entry.receiverName || '').toLowerCase();
+        return indexes.instanceIds.has(sender) || indexes.instanceNames.has(sender) || indexes.instanceIds.has(receiver) || indexes.instanceNames.has(receiver);
+      }),
+    },
+    recentLogs,
+    instanceStates,
+  };
+}
+
+function buildWarmupConfigForTenant(tenant, snapshot = buildSnapshot()) {
+  const scopedSnapshot = filterWarmupSnapshotForTenant(snapshot, tenant);
+  const indexes = buildTenantWarmupIndexes(scopedSnapshot.instanceStates);
+  const routines = state.config.routines
+    .map((routine) => filterWarmupRoutineForTenant(routine, indexes))
+    .filter(Boolean);
+  const messageIds = new Set(routines.flatMap((routine) => routine.messages || []).map(String));
+  const messages = messageIds.size
+    ? state.config.messages.filter((message) => messageIds.has(String(message.id)))
+    : [];
+
+  return {
+    settings: pickTenantWarmupSettings(state.config.settings),
+    runtime: buildRuntimeSecretMeta(state.config.settings),
+    routines: routines.map(sanitizeTenantWarmupRoutine),
+    messages,
+    lastSyncedAt: state.lastSyncedAt,
+    scheduler: {
+      enabled: state.scheduler.enabled,
+      status: state.scheduler.status,
+    },
+  };
+}
+
+function mergeTenantWarmupRoutines(existingRoutines = [], incomingRoutines = [], tenant, snapshot = buildSnapshot()) {
+  const scopedSnapshot = filterWarmupSnapshotForTenant(snapshot, tenant);
+  const indexes = buildTenantWarmupIndexes(scopedSnapshot.instanceStates);
+  const scopedIds = new Set(
+    existingRoutines
+      .map((routine) => filterWarmupRoutineForTenant(routine, indexes))
+      .filter(Boolean)
+      .map((routine) => String(routine.id))
+  );
+  const incomingById = new Map(
+    incomingRoutines
+      .filter((routine) => routine?.id && scopedIds.has(String(routine.id)))
+      .map((routine) => [String(routine.id), routine])
+  );
+
+  return existingRoutines.map((routine) => {
+    const incoming = incomingById.get(String(routine.id));
+    if (!incoming) return routine;
+    return {
+      ...routine,
+      name: incoming.name ?? routine.name,
+      mode: incoming.mode ?? routine.mode,
+      delayMin: incoming.delayMin ?? routine.delayMin,
+      delayMax: incoming.delayMax ?? routine.delayMax,
+      isActive: incoming.isActive !== undefined ? incoming.isActive : routine.isActive,
+      // Nunca aceitamos tokens/listas de instâncias da área do cliente.
+      senderInstances: routine.senderInstances,
+      receiverInstances: routine.receiverInstances,
+      messages: routine.messages,
+    };
+  });
+}
+
+
+function mergeWarmupMessages(existingMessages = [], incomingMessages = []) {
+  const incomingById = new Map(
+    incomingMessages
+      .filter((message) => message?.id)
+      .map((message) => [String(message.id), message])
+  );
+
+  return existingMessages.map((message) => {
+    const incoming = incomingById.get(String(message.id));
+    if (!incoming) return message;
+    return {
+      ...message,
+      name: incoming.name ?? message.name,
+      category: incoming.category ?? message.category,
+      text: incoming.text ?? message.text,
+    };
+  });
+}
+
+
+// Authenticated Warmup Route Handler — visão do cliente, filtrada por tenant.
+async function handleAuthenticatedWarmupRoute(req, res, url) {
+  try {
+    const authResult = await new Promise((resolve) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return;
+
+    const { tenant, user } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const action = pathParts[2] || 'state';
+
+    if (pathParts.length === 2 && req.method === 'GET') {
+      return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+    }
+
+    if (action === 'state' && req.method === 'GET') {
+      return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+    }
+
+    if (action === 'config' && req.method === 'GET') {
+      return createResponse(res, 200, buildWarmupConfigForTenant(tenant));
+    }
+
+    if (action === 'sync' && req.method === 'POST') {
+      const payload = await parseBody(req);
+      const previousSettings = state.config.settings ?? {};
+      const safeIncomingSettings = payload.settings && typeof payload.settings === 'object' ? payload.settings : {};
+      const nextSettings = mergeTenantWarmupSettings(previousSettings, safeIncomingSettings, user);
+
+      state.config = {
+        settings: nextSettings,
+        routines: Array.isArray(payload.routines)
+          ? mergeTenantWarmupRoutines(state.config.routines, payload.routines, tenant)
+          : state.config.routines,
+        messages: Array.isArray(payload.messages)
+          ? mergeWarmupMessages(state.config.messages, payload.messages)
+          : state.config.messages,
+      };
+      state.summary.activeRoutines = state.config.routines.filter((routine) => routine.isActive).length;
+      state.lastSyncedAt = new Date().toISOString();
+
+      addAuditEntry({
+        type: 'manual_control',
+        actor: user?.email || user?.id || tenant?.name || tenant?.id || 'cliente',
+        action: 'warmup_client_sync',
+        details: `Configuração sincronizada pela área do cliente para tenant ${tenant.id}`,
+      });
+      addRuntimeLog({
+        type: 'scheduler',
+        status: 'info',
+        message: 'Configuração de warmup sincronizada pela área do cliente.',
+        details: `Tenant ${tenant.id}`,
+        instanceName: 'Warmup Runtime',
+      });
+
+      await saveState();
+      return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+    }
+
+    if (['start', 'pause', 'stop', 'restart', 'tick'].includes(action) && req.method === 'POST') {
+      const payload = await parseBody(req);
+      const actor = user?.email || user?.id || tenant?.name || tenant?.id || 'cliente';
+      const body = {
+        ...payload,
+        actor,
+        reason: payload.reason || `Ação ${action} solicitada pela área do cliente`,
+      };
+
+      if (action === 'tick') {
+        const result = await tick('client-manual');
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(result, tenant));
+      }
+
+      if (action === 'start') {
+        state.scheduler.enabled = true;
+        state.scheduler.status = 'active';
+        state.scheduler.lastManualAction = { action: 'start', actor, reason: body.reason, acceptedAt: new Date().toISOString() };
+        addAuditEntry({ type: 'manual_control', actor, action: 'warmup_client_start', details: body.reason });
+        addRuntimeLog({ type: 'scheduler', status: 'info', message: `Warmup iniciado pela área do cliente por ${actor}.`, details: body.reason, instanceName: 'Warmup Runtime' });
+        startLoop();
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(await tick('client-start'), tenant));
+      }
+
+      if (action === 'pause' || action === 'stop') {
+        const status = action === 'stop' ? 'stopped' : 'paused';
+        const reason = `Warmup ${action === 'stop' ? 'parado' : 'pausado'} pela área do cliente por ${actor}${body.reason ? ` · ${body.reason}` : ''}`;
+        requestWarmupStop(status, reason);
+        state.scheduler.lastManualAction = { action, actor, reason: body.reason, acceptedAt: new Date().toISOString() };
+        addAuditEntry({ type: 'manual_control', actor, action: `warmup_client_${action}`, details: body.reason });
+        addRuntimeLog({ type: 'scheduler', status: 'info', message: `Warmup ${action === 'stop' ? 'parado' : 'pausado'} pela área do cliente por ${actor}.`, details: body.reason, instanceName: 'Warmup Runtime' });
+        await saveState();
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+      }
+
+      if (action === 'restart') {
+        state.scheduler.enabled = true;
+        state.scheduler.status = 'active';
+        state.scheduler.lastManualAction = { action: 'restart', actor, reason: body.reason, acceptedAt: new Date().toISOString() };
+        addAuditEntry({ type: 'manual_control', actor, action: 'warmup_client_restart', details: body.reason });
+        addRuntimeLog({ type: 'scheduler', status: 'info', message: `Warmup reiniciado pela área do cliente por ${actor}.`, details: body.reason, instanceName: 'Warmup Runtime' });
+        clearWarmingFlags();
+        startLoop();
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(await tick('client-restart'), tenant));
+      }
+    }
+
+    return createResponse(res, 404, { error: 'Warmup endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Warmup API] Error:', error.message);
+    return createResponse(res, error.statusCode || 500, { error: error.message });
+  }
+}
 
 const server = http.createServer(async (req, res) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.headers.host}${req.url}`);
@@ -2923,16 +3755,48 @@ const server = http.createServer(async (req, res) => {
       return createResponse(res, 200, { received: true });
     }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> codex/getnet-prod-fix
     // Inbox API Routes
     if (normalizedPathname.startsWith("/api/inbox/")) {
       return handleInboxRoute(req, res, url);
     }
 
+<<<<<<< HEAD
     // Wallet API Routes
     if (normalizedPathname.startsWith("/api/wallet/")) {
       return handleWalletRoute(req, res, url);
     }
 
+=======
+    // Wallet API Routes (Legacy - sem autenticação)
+    if (normalizedPathname.startsWith("/api/wallet/") && !normalizedPathname.startsWith("/api/wallet/balance")) {
+      return handleWalletRoute(req, res, url);
+    }
+
+    // Authenticated Wallet API Routes
+    if (normalizedPathname.startsWith("/api/wallet/balance")) {
+      return handleAuthenticatedWalletRoute(req, res, url);
+    }
+
+    // Authenticated Instances API Routes
+    if (normalizedPathname.startsWith("/api/instances")) {
+      return handleAuthenticatedInstancesRoute(req, res, url);
+    }
+
+    // Authenticated Warmup API Routes — cliente
+    if (normalizedPathname.startsWith("/api/warmup")) {
+      return handleAuthenticatedWarmupRoute(req, res, url);
+    }
+
+    // Authenticated Send Message API Routes
+    if (normalizedPathname.startsWith("/api/send-message")) {
+      return handleAuthenticatedSendMessageRoute(req, res, url);
+    }
+
+>>>>>>> codex/getnet-prod-fix
     // Campaigns API Routes
     if (normalizedPathname.startsWith("/api/campaigns")) {
       return handleCampaignRoute(req, res, url);
@@ -2942,12 +3806,33 @@ const server = http.createServer(async (req, res) => {
     if (normalizedPathname.startsWith("/api/dashboard")) {
       return handleDashboardRoute(req, res, url);
     }
+<<<<<<< HEAD
     if (normalizedPathname === "/api/local/uazapi/instance/all") {
+=======
+    if (normalizedPathname.startsWith("/api/local/uazapi/instance/all")) {
+      // Parse query parameters
+      const queryParams = new URLSearchParams(url.search);
+      const tenantId = queryParams.get('tenantId');
+      
+>>>>>>> codex/getnet-prod-fix
       if (!state.config.settings.adminToken?.trim()) {
         return createResponse(res, 200, []);
       }
-      const instances = await fetchAllInstances();
-      return createResponse(res, 200, instances);
+      
+      const allInstances = await fetchAllInstances();
+      
+      // Filter instances by tenantId if provided
+      if (tenantId) {
+        const filteredInstances = allInstances.filter(instance => isTenantUazapiInstance(instance, {
+          id: tenantId,
+          slug: tenantId,
+          name: tenantId,
+        }));
+        return createResponse(res, 200, filteredInstances);
+      }
+      
+      // If no tenantId specified, return all (admin only)
+      return createResponse(res, 200, allInstances);
     }
     if (normalizedPathname === "/api/local/warmup/state") return createResponse(res, 200, buildSnapshot());
     if (normalizedPathname === "/api/local/warmup/config") {
@@ -3097,10 +3982,7 @@ const server = http.createServer(async (req, res) => {
     if (normalizedPathname === "/api/local/warmup/pause") {
       const payload = await parseBody(req);
       const actor = resolveManualActor(payload);
-      state.scheduler.enabled = false;
-      state.scheduler.status = "paused";
-      state.scheduler.lastPausedAt = new Date().toISOString();
-      state.scheduler.lastError = `Warmup pausado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`;
+      requestWarmupStop("paused", `Warmup pausado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`);
       state.scheduler.lastManualAction = {
         action: "pause",
         actor,
@@ -3120,17 +4002,13 @@ const server = http.createServer(async (req, res) => {
         details: payload.reason || "Pausa manual confirmada",
         instanceName: "Warmup Runtime",
       });
-      stopLoop();
-      clearWarmingFlags();
       await saveState();
       return createResponse(res, 200, buildSnapshot());
     }
     if (normalizedPathname === "/api/local/warmup/stop") {
       const payload = await parseBody(req);
       const actor = resolveManualActor(payload);
-      state.scheduler.enabled = false;
-      state.scheduler.status = "stopped";
-      state.scheduler.lastError = `Warmup parado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`;
+      requestWarmupStop("stopped", `Warmup parado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`);
       state.scheduler.lastManualAction = {
         action: "stop",
         actor,
@@ -3150,8 +4028,6 @@ const server = http.createServer(async (req, res) => {
         details: payload.reason || "Parada manual confirmada",
         instanceName: "Warmup Runtime",
       });
-      stopLoop();
-      clearWarmingFlags();
       await saveState();
       return createResponse(res, 200, buildSnapshot());
     }
@@ -3231,6 +4107,36 @@ const server = http.createServer(async (req, res) => {
         });
         if (served) return;
       }
+    }
+
+    // Client Area - Área do Usuário
+    if (url.pathname.startsWith("/client-area")) {
+      const served = await serveStaticFromDir(req, res, {
+        distDir: "./web/dist-client",
+        stripPrefix: "/client-area",
+        htmlTransform: (html) => injectEcosystemChrome(html, { includeWarmupButton: false }),
+      });
+      if (served) return;
+    }
+
+    // Dashboard SaaS - Área Admin
+    if (url.pathname.startsWith("/dashboard")) {
+      const served = await serveStaticFromDir(req, res, {
+        distDir: "./web/dashboard-dist",
+        stripPrefix: "/dashboard",
+        htmlTransform: (html) => injectEcosystemChrome(html, { includeWarmupButton: false }),
+      });
+      if (served) return;
+    }
+
+    // Manager Interface - Admin Avançado
+    if (url.pathname.startsWith("/manager")) {
+      const served = await serveStaticFromDir(req, res, {
+        distDir: "./web/manager-dist",
+        stripPrefix: "/manager",
+        htmlTransform: (html) => injectEcosystemChrome(html, { includeWarmupButton: false }),
+      });
+      if (served) return;
     }
 
     createResponse(res, 404, { error: "Não encontrado" });

@@ -3,3 +3,11 @@ node_modules/
 tmp/
 playwright-report/
 test-results/
+<<<<<<< HEAD
+=======
+runtime-data/warmup-state.json
+runtime-data/warmup-state.json.backup
+runtime-data/instance-dna/**
+coverage/
+.nyc_output/
+>>>>>>> codex/getnet-prod-fix

@@ -8,6 +8,7 @@ services:
     env_file:
       - .env
     environment:
+<<<<<<< HEAD
       WARMUP_RUNTIME_HOST: {{ saas_runtime_host }}
       WARMUP_RUNTIME_PORT: {{ saas_port }}
       NODE_ENV: {{ saas_node_env }}
@@ -29,3 +30,13 @@ services:
 networks:
   {{ saas_network }}:
     external: true
+=======
+      API_HOST: 0.0.0.0
+      PORT_API: {{ saas_port }}
+      WARMUP_RUNTIME_HOST: {{ saas_runtime_host }}
+      WARMUP_RUNTIME_URL: {{ saas_warmup_runtime_url }}
+      NODE_ENV: {{ saas_node_env }}
+    volumes:
+      - {{ saas_data_dir }}:/app/runtime-data
+      - {{ saas_logs_dir }}:/app/logs
+>>>>>>> codex/getnet-prod-fix

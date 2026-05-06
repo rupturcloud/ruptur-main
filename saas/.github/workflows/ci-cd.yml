@@ -27,6 +27,7 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
+<<<<<<< HEAD
         
     - name: Install dependencies
       run: npm ci
@@ -39,6 +40,35 @@ jobs:
       
     - name: Security audit
       run: npm audit --audit-level moderate || echo "Vulnerabilities found"
+=======
+        cache-dependency-path: |
+          package-lock.json
+          web/client-area/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        npm --prefix web/client-area ci
+      
+    - name: Automated review checklist
+      run: npm run review
+      
+    - name: Quality gate
+      run: npm run quality
+      
+    - name: Coverage report
+      run: npm run test:coverage
+      
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        if-no-files-found: error
+      
+    - name: Security audit
+      run: npm audit --audit-level moderate
+>>>>>>> codex/getnet-prod-fix
       
     - name: Build Docker image
       run: |
