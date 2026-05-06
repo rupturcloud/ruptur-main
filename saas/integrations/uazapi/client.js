@@ -3,10 +3,7 @@
  *
  * Provides a wrapper around the UAZAPI REST endpoints
  * Handles authentication and credential management
-<<<<<<< HEAD
-=======
  * Supports all message types: text, media, menu, carousel, location, etc.
->>>>>>> codex/getnet-prod-fix
  */
 
 class UaZAPIClient {
@@ -35,13 +32,6 @@ class UaZAPIClient {
    */
   async request(endpoint, options = {}) {
     const url = `${this.serverUrl}${endpoint}`;
-<<<<<<< HEAD
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.adminToken}`,
-      ...options.headers,
-=======
     const { token, admin = false, headers: customHeaders = {}, ...fetchOptions } = options;
     const resolvedToken = token || options.instanceToken;
 
@@ -50,26 +40,15 @@ class UaZAPIClient {
       ...(admin || (!resolvedToken && this.adminToken) ? { admintoken: this.adminToken } : {}),
       ...(resolvedToken ? { token: resolvedToken } : {}),
       ...customHeaders,
->>>>>>> codex/getnet-prod-fix
     };
 
     try {
       const response = await fetch(url, {
-<<<<<<< HEAD
-        ...options,
-=======
         ...fetchOptions,
->>>>>>> codex/getnet-prod-fix
         headers,
       });
 
       if (!response.ok) {
-<<<<<<< HEAD
-        throw new Error(`UAZAPI request failed: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
-=======
         const errorText = await response.text();
         throw new Error(`UAZAPI request failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
@@ -81,7 +60,6 @@ class UaZAPIClient {
       } catch {
         return { ok: true, raw: text };
       }
->>>>>>> codex/getnet-prod-fix
     } catch (error) {
       console.error(`UAZAPI request error: ${error.message}`);
       throw error;
@@ -95,11 +73,7 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Instance data
    */
   async getInstance(instanceId) {
-<<<<<<< HEAD
-    return this.request(`/instances/${instanceId}`);
-=======
     return this.request('/instance/status', { token: instanceId });
->>>>>>> codex/getnet-prod-fix
   }
 
   /**
@@ -108,22 +82,6 @@ class UaZAPIClient {
    * @returns {Promise<Array>} Array of instances
    */
   async listInstances() {
-<<<<<<< HEAD
-    return this.request('/instances');
-  }
-
-  /**
-   * Send message through instance
-   *
-   * @param {string} instanceId Instance identifier
-   * @param {Object} messageData Message payload
-   * @returns {Promise<Object>} Message response
-   */
-  async sendMessage(instanceId, messageData) {
-    return this.request(`/instances/${instanceId}/send`, {
-      method: 'POST',
-      body: JSON.stringify(messageData),
-=======
     return this.request('/instance/all', { admin: true });
   }
 
@@ -187,13 +145,10 @@ class UaZAPIClient {
       method: 'POST',
       token: instanceId,
       body: JSON.stringify(mediaData),
->>>>>>> codex/getnet-prod-fix
     });
   }
 
   /**
-<<<<<<< HEAD
-=======
    * Send interactive menu, button, or list message
    * Endpoint: /send/menu
    *
@@ -442,7 +397,6 @@ class UaZAPIClient {
   }
 
   /**
->>>>>>> codex/getnet-prod-fix
    * Get campaign details
    *
    * @param {string} campaignId Campaign identifier
@@ -468,13 +422,9 @@ class UaZAPIClient {
    * @returns {Promise<Object>} Warmup support data
    */
   async getWarmupStatus(instanceId) {
-<<<<<<< HEAD
-    return this.request(`/instances/${instanceId}/warmup-status`);
-=======
     // A OpenAPI oficial não expõe /instance/:id/warmup-status.
     // Mantemos compatibilidade retornando o status oficial da instância.
     return this.getInstance(instanceId);
->>>>>>> codex/getnet-prod-fix
   }
 }
 

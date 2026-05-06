@@ -44,11 +44,7 @@ export { StripeClient };
 /**
  * Export checkout operations directly
  */
-<<<<<<< HEAD
-export * as checkout from './checkout.js';
-=======
 export { checkoutFlow as checkoutOperations };
->>>>>>> codex/getnet-prod-fix
 
 export default {
   getClient,

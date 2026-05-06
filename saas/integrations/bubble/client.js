@@ -64,13 +64,6 @@ class BubbleClient {
    * @param {Object} options Query options (filters, constraints, etc)
    * @returns {Promise<Array>} Data records
    */
-<<<<<<< HEAD
-  async getThings(dataType, options = {}) {
-    const queryParams = new URLSearchParams();
-
-    if (options.constraints) {
-      queryParams.append('constraints', JSON.stringify(options.constraints));
-=======
   /**
    * Get data from a database thing
    *
@@ -92,7 +85,6 @@ class BubbleClient {
 
     if (constraints.length > 0) {
       queryParams.append('constraints', JSON.stringify(constraints));
->>>>>>> codex/getnet-prod-fix
     }
 
     if (options.sorting) {
@@ -128,15 +120,6 @@ class BubbleClient {
    *
    * @param {string} dataType Data type name
    * @param {Object} data Record data
-<<<<<<< HEAD
-   * @returns {Promise<Object>} Created record
-   */
-  async createThing(dataType, data) {
-    const endpoint = `/obj/${dataType}`;
-    return this.request(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-=======
    * @param {string} tenantId Optional tenant ID
    * @returns {Promise<Object>} Created record
    */
@@ -151,7 +134,6 @@ class BubbleClient {
     return this.request(endpoint, {
       method: 'POST',
       body: JSON.stringify(payload),
->>>>>>> codex/getnet-prod-fix
     });
   }
 
@@ -215,19 +197,12 @@ class BubbleClient {
    *
    * @param {string} dataType Data type name
    * @param {string} query Search query
-<<<<<<< HEAD
-   * @returns {Promise<Array>} Search results
-   */
-  async search(dataType, query) {
-    return this.getThings(dataType, {
-=======
    * @param {string} tenantId Optional tenant ID
    * @returns {Promise<Array>} Search results
    */
   async search(dataType, query, tenantId) {
     return this.getThings(dataType, {
       tenantId,
->>>>>>> codex/getnet-prod-fix
       constraints: [
         {
           key: 'search_term',
