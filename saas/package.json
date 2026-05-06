@@ -31,7 +31,13 @@
     "supabase:link": "supabase link",
     "supabase:start:core": "supabase start --exclude storage-api,imgproxy,logflare,vector,realtime,edge-runtime",
     "supabase:start:full": "supabase start",
-    "supabase:start:app": "supabase start --exclude storage-api,imgproxy,logflare,vector,realtime,edge-runtime"
+    "supabase:start:app": "supabase start --exclude storage-api,imgproxy,logflare,vector,realtime,edge-runtime",
+    "lint": "node scripts/lint-node-syntax.mjs && npm --prefix web/client-area run lint",
+    "build": "npm --prefix web/client-area run build -- --emptyOutDir",
+    "test:unit": "npm test -- --runInBand",
+    "test:coverage": "npm test -- --runInBand --coverage",
+    "quality": "npm run lint && npm run test:unit && npm run build",
+    "review": "node scripts/review-checklist.mjs && node scripts/security-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",

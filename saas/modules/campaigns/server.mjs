@@ -425,6 +425,7 @@ async function processQueue() {
   ).slice(0, 10); // Process max 10 at a time
   
   for (const item of toProcess) {
+    try {
       // 1. Verify credits before sending
       const campaign = state.campaigns.get(item.campaignId);
       if (!campaign) throw new Error(`Campaign not found: ${item.campaignId}`);

@@ -6,3 +6,5 @@ test-results/
 runtime-data/warmup-state.json
 runtime-data/warmup-state.json.backup
 runtime-data/instance-dna/**
+coverage/
+.nyc_output/

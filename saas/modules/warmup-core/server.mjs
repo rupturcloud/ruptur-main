@@ -277,7 +277,7 @@ function getDefaultSettings() {
     serverUrl: process.env.WARMUP_SERVER_URL || "https://tiatendeai.uazapi.com",
     adminToken: process.env.WARMUP_ADMIN_TOKEN || "",
     supabaseUrl: process.env.VITE_SUPABASE_URL || "https://axrwlboyowoskdxeogba.supabase.co",
-    supabaseKey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4cndsYm95b3dvc2tkeGVvZ2JhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzkzNTYsImV4cCI6MjA4OTUxNTM1Nn0.jrVy7OzLgidDYlK2rFuF1NX2SRP0EVmQycx3d_s7vV8",
+    supabaseKey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
     defaultDelay: 3000,
     warmupMinIntervalMs: 2 * 60 * 1000,
     warmupMaxDailyPerInstance: 250,

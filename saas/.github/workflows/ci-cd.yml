@@ -27,18 +27,33 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
+        cache-dependency-path: |
+          package-lock.json
+          web/client-area/package-lock.json
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm ci
+        npm --prefix web/client-area ci
       
-    - name: Run lint
-      run: npm run lint || echo "Lint failed but continuing"
+    - name: Automated review checklist
+      run: npm run review
       
-    - name: Run tests
-      run: npm test || echo "No tests configured"
+    - name: Quality gate
+      run: npm run quality
+      
+    - name: Coverage report
+      run: npm run test:coverage
+      
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        if-no-files-found: error
       
     - name: Security audit
-      run: npm audit --audit-level moderate || echo "Vulnerabilities found"
+      run: npm audit --audit-level moderate
       
     - name: Build Docker image
       run: |
