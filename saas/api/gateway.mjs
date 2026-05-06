@@ -21,6 +21,7 @@ import http from 'node:http';
 import { createReadStream, existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import ws from 'ws';
 import { createClient } from '@supabase/supabase-js';
 import { BillingService } from '../modules/billing/getnet.js';
 import { WebhookService } from '../modules/billing/webhook.service.js';
@@ -67,7 +68,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const supabase = supabaseUrl && (supabaseServiceKey || supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+      realtime: { transport: ws },
+    })
   : null;
 
 // --- Services ---
