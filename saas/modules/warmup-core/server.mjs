@@ -10,8 +10,10 @@ import crypto from "node:crypto";
 // Import new modules
 import { inboxManager } from '../inbox/index.js';
 import { campaignManager } from '../campaigns/index.js';
-import { getWalletManager } from '../wallet/index.js';
+import { createWalletManager, getWalletManager } from '../wallet/index.js';
 import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.js';
+
+const walletManager = createWalletManager(supabase);
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -268,6 +270,7 @@ const WARMUP_MANAGER_SETTINGS_ACTIONS_HTML = `
 let state = await loadState();
 let tickTimer = null;
 let tickInFlight = null;
+let warmupControlVersion = 0;
 
 function getDefaultSettings() {
   return {
@@ -853,7 +856,22 @@ function clearWarmingFlags() {
   state.summary.heatingNow = 0;
   state.summary.queuedEntries = 0;
   state.summary.subpoolCount = 0;
-  state.currentPool.currentRound = undefined;
+  state.summary.isPulsing = false;
+  state.currentPool = createEmptyPoolState();
+}
+
+function requestWarmupStop(status = 'stopped', reason) {
+  warmupControlVersion += 1;
+  state.scheduler.enabled = false;
+  state.scheduler.status = status;
+  state.scheduler.lastPausedAt = new Date().toISOString();
+  if (reason) state.scheduler.lastError = reason;
+  stopLoop();
+  clearWarmingFlags();
+}
+
+function isWarmupRunCurrent(version) {
+  return state.scheduler.enabled && version === warmupControlVersion;
 }
 
 function createTrackId(routineId, round, senderToken, receiverToken) {
@@ -1701,7 +1719,13 @@ function buildCurrentRoundPool(routines, instancesByToken, round, tickStartedAt)
   return roundPool;
 }
 
-async function executePoolEntry(entry, instancesByToken, round) {
+async function executePoolEntry(entry, instancesByToken, round, runVersion = warmupControlVersion) {
+  if (!isWarmupRunCurrent(runVersion)) {
+    entry.status = 'cancelled';
+    entry.updatedAt = new Date().toISOString();
+    return { sentCount: 0 };
+  }
+
   const sender = instancesByToken.get(entry.senderToken);
   const senderState = state.instanceStates[entry.senderToken];
   const now = new Date();
@@ -1723,6 +1747,7 @@ async function executePoolEntry(entry, instancesByToken, round) {
   const tenantId = senderState.tenantId;
   if (tenantId) {
     try {
+      const walletManager = getWalletManager();
       const hasCredits = await walletManager.hasEnoughCredits(tenantId, 1);
       if (!hasCredits) {
         addRuntimeLog({
@@ -1739,6 +1764,12 @@ async function executePoolEntry(entry, instancesByToken, round) {
       }
       
       // Debita o crédito
+      if (!isWarmupRunCurrent(runVersion)) {
+        entry.status = 'cancelled';
+        entry.updatedAt = new Date().toISOString();
+        return { sentCount: 0 };
+      }
+
       await walletManager.deductCredit(tenantId, 1, { 
         type: 'warmup', 
         instanceToken: entry.senderToken,
@@ -1758,10 +1789,21 @@ async function executePoolEntry(entry, instancesByToken, round) {
 
     const presenceType = message.contentType === "audio" ? "recording" : "composing";
     try {
+      if (!isWarmupRunCurrent(runVersion)) {
+        entry.status = 'cancelled';
+        entry.updatedAt = new Date().toISOString();
+        return { sentCount: 0 };
+      }
       await sendPresence(entry.senderToken, { number: receiverNumber, presence: presenceType, delay: 1000 });
       await new Promise(r => setTimeout(r, 1500));
     } catch (err) {
       console.error(`[warmup] Erro ao simular presença (${presenceType}) para ${receiverNumber}`);
+    }
+
+    if (!isWarmupRunCurrent(runVersion)) {
+      entry.status = 'cancelled';
+      entry.updatedAt = new Date().toISOString();
+      return { sentCount: 0 };
     }
 
     if (message.contentType === "audio" && message.audioUrl) {
@@ -1841,7 +1883,7 @@ async function executePoolEntry(entry, instancesByToken, round) {
   }
 }
 
-async function executeRoundPool(roundPool, instancesByToken, round, maxExecutionsAllowed = MAX_QUEUE_EXECUTIONS_PER_TICK) {
+async function executeRoundPool(roundPool, instancesByToken, round, maxExecutionsAllowed = MAX_QUEUE_EXECUTIONS_PER_TICK, runVersion = warmupControlVersion) {
   const groupedQueues = Array.from(
     roundPool.entries.reduce((groups, entry) => {
       const key = `${entry.activityKind}:${entry.activityLabel}`;
@@ -1858,17 +1900,18 @@ async function executeRoundPool(roundPool, instancesByToken, round, maxExecution
   const executionLimit = Math.min(MAX_QUEUE_EXECUTIONS_PER_TICK, Math.max(0, maxExecutionsAllowed));
 
   while (executedCount < executionLimit) {
-    if (!state.scheduler.enabled) break;
+    if (!isWarmupRunCurrent(runVersion)) break;
 
     let progressed = false;
 
     for (const queue of groupedQueues) {
-      if (!state.scheduler.enabled) break;
+      if (!isWarmupRunCurrent(runVersion)) break;
 
       const entry = queue.shift();
       if (!entry) continue;
 
-      const result = await executePoolEntry(entry, instancesByToken, round);
+      const result = await executePoolEntry(entry, instancesByToken, round, runVersion);
+      if (!isWarmupRunCurrent(runVersion)) break;
       sentCount += result.sentCount;
       executedCount += 1;
       progressed = true;
@@ -1966,6 +2009,8 @@ async function tick(reason = "interval") {
   if (tickInFlight) return tickInFlight;
   if (!state.scheduler.enabled) return buildSnapshot();
 
+  const runVersion = warmupControlVersion;
+
   tickInFlight = (async () => {
     const tickStartedAt = new Date();
     state.scheduler.status = "active";
@@ -1977,6 +2022,7 @@ async function tick(reason = "interval") {
 
     try {
       const instances = await fetchAllInstances();
+      if (!isWarmupRunCurrent(runVersion)) return buildSnapshot();
       ensureDefaultRoutine(instances);
       const instancesByToken = new Map(instances.map((i) => [i.token, i]));
       const round = state.scheduler.round;
@@ -2066,6 +2112,8 @@ async function tick(reason = "interval") {
         }
       });
 
+      if (!isWarmupRunCurrent(runVersion)) return buildSnapshot();
+
       const persistentPool = buildPersistentPool(instances, tickStartedAt);
       const currentRoundPool = buildCurrentRoundPool(
         state.config.routines.filter((r) => r.isActive),
@@ -2088,7 +2136,7 @@ async function tick(reason = "interval") {
       let executionResult = { sentCount: 0, heatingNow: 0 };
       if (currentRoundPool && currentRoundPool.queuedEntries > 0) {
         if (allowedThisTick > 0) {
-          executionResult = await executeRoundPool(currentRoundPool, instancesByToken, round, allowedThisTick);
+          executionResult = await executeRoundPool(currentRoundPool, instancesByToken, round, allowedThisTick, runVersion);
         } else {
           addRuntimeLog({
             type: "scheduler",
@@ -2099,6 +2147,8 @@ async function tick(reason = "interval") {
           executionResult = { sentCount: 0, heatingNow: currentRoundPool.queuedEntries };
         }
       }
+
+      if (!isWarmupRunCurrent(runVersion)) return buildSnapshot();
 
       const sentCount = executionResult.sentCount;
       const heatingNow = executionResult.heatingNow;
@@ -2132,6 +2182,9 @@ async function tick(reason = "interval") {
       state.scheduler.lastError = error instanceof Error ? error.message : "Erro desconhecido no runtime";
     } finally {
       state.summary.isPulsing = false;
+      if (!state.scheduler.enabled) {
+        clearWarmingFlags();
+      }
       await saveState();
     }
 
@@ -2951,6 +3004,7 @@ async function handleCampaignRoute(req, res, url) {
     if (pathParts.length === 2 && req.method === 'GET') {
       const options = {
         status: url.searchParams.get('status'),
+        tenantId: url.searchParams.get('tenantId') || req.headers['x-tenant-id'],
         limit: parseInt(url.searchParams.get('limit') || '50'),
         offset: parseInt(url.searchParams.get('offset') || '0')
       };
@@ -2976,7 +3030,42 @@ async function handleCampaignRoute(req, res, url) {
     // POST /api/campaigns/:campaignId/launch
     if (pathParts.length === 4 && pathParts[3] === 'launch' && req.method === 'POST') {
       const campaignId = pathParts[2];
+      const body = await parseBody(req);
+      const tenantId = body.tenantId || req.headers['x-tenant-id'];
+      const campaign = await campaignManager.getCampaign(campaignId);
+      if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      if (tenantId && campaign.tenantId !== tenantId) {
+        return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
+      }
       const success = await campaignManager.launchCampaign(campaignId);
+      return createResponse(res, 200, { success, campaignId });
+    }
+
+    // POST /api/campaigns/:campaignId/pause
+    if (pathParts.length === 4 && pathParts[3] === 'pause' && req.method === 'POST') {
+      const campaignId = pathParts[2];
+      const body = await parseBody(req);
+      const tenantId = body.tenantId || req.headers['x-tenant-id'];
+      const campaign = await campaignManager.getCampaign(campaignId);
+      if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      if (tenantId && campaign.tenantId !== tenantId) {
+        return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
+      }
+      const success = await campaignManager.pauseCampaign(campaignId);
+      return createResponse(res, 200, { success, campaignId });
+    }
+
+    // POST /api/campaigns/:campaignId/stop
+    if (pathParts.length === 4 && pathParts[3] === 'stop' && req.method === 'POST') {
+      const campaignId = pathParts[2];
+      const body = await parseBody(req);
+      const tenantId = body.tenantId || req.headers['x-tenant-id'];
+      const campaign = await campaignManager.getCampaign(campaignId);
+      if (!campaign) return createResponse(res, 404, { error: 'Campaign not found' });
+      if (tenantId && campaign.tenantId !== tenantId) {
+        return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
+      }
+      const success = await campaignManager.stopCampaign(campaignId);
       return createResponse(res, 200, { success, campaignId });
     }
     
@@ -3567,15 +3656,12 @@ async function handleAuthenticatedWarmupRoute(req, res, url) {
       }
 
       if (action === 'pause' || action === 'stop') {
-        state.scheduler.enabled = false;
-        state.scheduler.status = action === 'stop' ? 'stopped' : 'paused';
-        state.scheduler.lastPausedAt = new Date().toISOString();
-        state.scheduler.lastError = `Warmup ${action === 'stop' ? 'parado' : 'pausado'} pela área do cliente por ${actor}${body.reason ? ` · ${body.reason}` : ''}`;
+        const status = action === 'stop' ? 'stopped' : 'paused';
+        const reason = `Warmup ${action === 'stop' ? 'parado' : 'pausado'} pela área do cliente por ${actor}${body.reason ? ` · ${body.reason}` : ''}`;
+        requestWarmupStop(status, reason);
         state.scheduler.lastManualAction = { action, actor, reason: body.reason, acceptedAt: new Date().toISOString() };
         addAuditEntry({ type: 'manual_control', actor, action: `warmup_client_${action}`, details: body.reason });
         addRuntimeLog({ type: 'scheduler', status: 'info', message: `Warmup ${action === 'stop' ? 'parado' : 'pausado'} pela área do cliente por ${actor}.`, details: body.reason, instanceName: 'Warmup Runtime' });
-        stopLoop();
-        clearWarmingFlags();
         await saveState();
         return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
       }
@@ -3843,10 +3929,7 @@ const server = http.createServer(async (req, res) => {
     if (normalizedPathname === "/api/local/warmup/pause") {
       const payload = await parseBody(req);
       const actor = resolveManualActor(payload);
-      state.scheduler.enabled = false;
-      state.scheduler.status = "paused";
-      state.scheduler.lastPausedAt = new Date().toISOString();
-      state.scheduler.lastError = `Warmup pausado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`;
+      requestWarmupStop("paused", `Warmup pausado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`);
       state.scheduler.lastManualAction = {
         action: "pause",
         actor,
@@ -3866,17 +3949,13 @@ const server = http.createServer(async (req, res) => {
         details: payload.reason || "Pausa manual confirmada",
         instanceName: "Warmup Runtime",
       });
-      stopLoop();
-      clearWarmingFlags();
       await saveState();
       return createResponse(res, 200, buildSnapshot());
     }
     if (normalizedPathname === "/api/local/warmup/stop") {
       const payload = await parseBody(req);
       const actor = resolveManualActor(payload);
-      state.scheduler.enabled = false;
-      state.scheduler.status = "stopped";
-      state.scheduler.lastError = `Warmup parado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`;
+      requestWarmupStop("stopped", `Warmup parado manualmente por ${actor}${payload.reason ? ` · ${payload.reason}` : ""}`);
       state.scheduler.lastManualAction = {
         action: "stop",
         actor,
@@ -3896,8 +3975,6 @@ const server = http.createServer(async (req, res) => {
         details: payload.reason || "Parada manual confirmada",
         instanceName: "Warmup Runtime",
       });
-      stopLoop();
-      clearWarmingFlags();
       await saveState();
       return createResponse(res, 200, buildSnapshot());
     }

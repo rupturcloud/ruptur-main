@@ -9,6 +9,9 @@ import {
   Send,
   Wallet,
   MessageSquare,
+  MessageSquareText,
+  History,
+  BarChart3,
   Smartphone,
   LogOut,
   Zap,
@@ -23,6 +26,9 @@ const menuItems = [
   { to: '/carteira',   label: 'Carteira',   icon: <Wallet size={20} /> },
   { to: '/instancias', label: 'Instâncias', icon: <Smartphone size={20} /> },
   { to: '/aquecimento', label: 'Aquecimento', icon: <Flame size={20} /> },
+  { to: '/mensagens', label: 'Mensagens', icon: <MessageSquareText size={20} /> },
+  { to: '/relatorios', label: 'Relatórios', icon: <BarChart3 size={20} /> },
+  { to: '/logs', label: 'Logs', icon: <History size={20} /> },
   { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare size={20} /> },
 ];
 

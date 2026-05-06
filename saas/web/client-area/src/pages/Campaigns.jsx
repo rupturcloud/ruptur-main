@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Upload } from 'lucide-react';
+import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Square, Upload } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
@@ -54,6 +54,7 @@ const Campaigns = () => {
   const { data: campaigns, loading, request: fetchCampaigns } = useApi(apiService.getCampaigns);
   const [newCampaign, setNewCampaign] = useState(initialCampaignState);
   const [csvContacts, setCsvContacts] = useState([]);
+  const [campaignAction, setCampaignAction] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -109,11 +110,39 @@ const Campaigns = () => {
    };
 
   const handleLaunch = async (campaignId) => {
+    setCampaignAction(`launch:${campaignId}`);
     try {
       await apiService.launchCampaign(tenantId, campaignId);
       fetchCampaigns(tenantId);
     } catch (err) {
       alert(err.message);
+    } finally {
+      setCampaignAction('');
+    }
+  };
+
+  const handlePause = async (campaignId) => {
+    setCampaignAction(`pause:${campaignId}`);
+    try {
+      await apiService.pauseCampaign(tenantId, campaignId);
+      fetchCampaigns(tenantId);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCampaignAction('');
+    }
+  };
+
+  const handleStop = async (campaignId) => {
+    if (!window.confirm('Parar esta campanha agora? A fila pendente será cancelada.')) return;
+    setCampaignAction(`stop:${campaignId}`);
+    try {
+      await apiService.stopCampaign(tenantId, campaignId);
+      fetchCampaigns(tenantId);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCampaignAction('');
     }
   };
 
@@ -423,9 +452,19 @@ const Campaigns = () => {
                       <td>
                         <div className="row-actions">
                           {c.status === 'draft' && (
-                            <button className="btn-launch" onClick={() => handleLaunch(c.id)}>
+                            <button className="btn-launch" onClick={() => handleLaunch(c.id)} disabled={campaignAction === `launch:${c.id}`}>
                               <Play size={14} /> Disparar
                             </button>
+                          )}
+                          {(c.status === 'active' || c.status === 'running') && (
+                            <>
+                              <button className="icon-btn" title="Pausar campanha" onClick={() => handlePause(c.id)} disabled={campaignAction === `pause:${c.id}`}>
+                                <Pause size={16} />
+                              </button>
+                              <button className="icon-btn danger" title="Parar campanha" onClick={() => handleStop(c.id)} disabled={campaignAction === `stop:${c.id}`}>
+                                <Square size={16} />
+                              </button>
+                            </>
                           )}
                           <button className="icon-btn"><Clock size={16} /></button>
                           <button className="icon-btn danger"><Trash2 size={16} /></button>

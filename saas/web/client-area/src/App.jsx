@@ -25,6 +25,9 @@ import Wallet from './pages/Wallet';
 import Inbox from './pages/Inbox';
 import Instances from './pages/Instances';
 import Warmup from './pages/Warmup';
+import MessageLibrary from './pages/MessageLibrary';
+import ClientLogs from './pages/ClientLogs';
+import Reports from './pages/Reports';
 import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AcceptAdminInvite from './pages/AcceptAdminInvite';
@@ -53,6 +56,9 @@ function App() {
             <Route path="/carteira" element={<Wallet />} />
             <Route path="/instancias" element={<Instances />} />
             <Route path="/aquecimento" element={<Warmup />} />
+            <Route path="/mensagens" element={<MessageLibrary />} />
+            <Route path="/relatorios" element={<Reports />} />
+            <Route path="/logs" element={<ClientLogs />} />
             <Route path="/inbox" element={<Inbox />} />
           </Route>
         </Route>

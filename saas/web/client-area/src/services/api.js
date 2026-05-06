@@ -130,6 +130,20 @@ export const apiService = {
     });
   },
 
+  async pauseCampaign(tenantId, campaignId) {
+    return authFetch(`/api/campaigns/${campaignId}/pause`, {
+      method: 'POST',
+      body: JSON.stringify({ tenantId }),
+    });
+  },
+
+  async stopCampaign(tenantId, campaignId) {
+    return authFetch(`/api/campaigns/${campaignId}/stop`, {
+      method: 'POST',
+      body: JSON.stringify({ tenantId }),
+    });
+  },
+
   // --- Instances ---
   async getInstances() {
     return authFetch('/api/instances');

@@ -29,12 +29,9 @@ const TABS = [
   { key: 'overview', label: 'Visão geral', icon: BarChart3 },
   { key: 'instances', label: 'Instâncias', icon: Smartphone },
   { key: 'routines', label: 'Rotinas', icon: ListChecks },
-  { key: 'messages', label: 'Mensagens', icon: MessageSquareText },
   { key: 'pool', label: 'Grupos & pool', icon: Activity },
   { key: 'telemetry', label: 'Telemetria', icon: Gauge },
   { key: 'regeneration', label: 'Auto-regeneração', icon: RotateCcw },
-  { key: 'reports', label: 'Relatórios', icon: BarChart3 },
-  { key: 'logs', label: 'Logs & auditoria', icon: History },
   { key: 'settings', label: 'Configurações', icon: Settings },
 ];
 
