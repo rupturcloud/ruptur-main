@@ -24,6 +24,7 @@ import Campaigns from './pages/Campaigns';
 import Wallet from './pages/Wallet';
 import Inbox from './pages/Inbox';
 import Instances from './pages/Instances';
+import Warmup from './pages/Warmup';
 import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AcceptAdminInvite from './pages/AcceptAdminInvite';
@@ -51,6 +52,7 @@ function App() {
             <Route path="/campanhas" element={<Campaigns />} />
             <Route path="/carteira" element={<Wallet />} />
             <Route path="/instancias" element={<Instances />} />
+            <Route path="/aquecimento" element={<Warmup />} />
             <Route path="/inbox" element={<Inbox />} />
           </Route>
         </Route>

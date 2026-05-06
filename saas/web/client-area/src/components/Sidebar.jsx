@@ -12,6 +12,7 @@ import {
   Smartphone,
   LogOut,
   Zap,
+  Flame,
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const menuItems = [
   { to: '/campanhas',  label: 'Campanhas',  icon: <Send size={20} /> },
   { to: '/carteira',   label: 'Carteira',   icon: <Wallet size={20} /> },
   { to: '/instancias', label: 'Instâncias', icon: <Smartphone size={20} /> },
+  { to: '/aquecimento', label: 'Aquecimento', icon: <Flame size={20} /> },
   { to: '/inbox',      label: 'Inbox',      icon: <MessageSquare size={20} /> },
 ];
 

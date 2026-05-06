@@ -707,7 +707,7 @@ function normalizeInstanceState({ currentState, instance, round, now, resolvedNu
             : "unknown",
     updatedAt: now.toISOString(),
     nextEligibleAt: undefined,
-    tenantId: instanceData?.bubble_user_id || instanceData?.tenantId || base.tenantId, // Multi-tenant: Vincula a instância ao cliente
+    tenantId: getTenantHintsFromInstance(instanceData)[0] || base.tenantId, // Multi-tenant: Vincula a instância ao cliente
     lastReconnectAttemptAt: base.lastReconnectAttemptAt,
   };
 
@@ -3250,6 +3250,355 @@ async function handleAuthenticatedSendMessageRoute(req, res, url) {
 
 await bootstrapProtectedRoutine();
 
+function warmupTenantKeys(tenant) {
+  return new Set([
+    tenant?.id,
+    tenant?.slug,
+    tenant?.name,
+    tenant?.email,
+    tenant?.metadata?.slug,
+  ].filter(Boolean).map((value) => String(value).toLowerCase()));
+}
+
+function tenantHintMatches(candidate, tenant) {
+  if (!candidate) return false;
+  const keys = warmupTenantKeys(tenant);
+  const normalized = String(candidate).trim().toLowerCase();
+  const variants = normalized.startsWith('tenant:')
+    ? [normalized, normalized.slice('tenant:'.length)]
+    : [normalized, `tenant:${normalized}`];
+  return variants.some((variant) => keys.has(variant) || Array.from(keys).some((key) => variant.includes(key)));
+}
+
+function isTenantWarmupState(instanceState, tenant) {
+  const candidates = [
+    instanceState?.tenantId,
+    instanceState?.tenant_id,
+    instanceState?.bubble_user_id,
+    instanceState?.adminField01,
+    instanceState?.adminField02,
+    instanceState?.metadata?.tenantId,
+    instanceState?.metadata?.tenant_id,
+    instanceState?.metadata?.tenantSlug,
+    instanceState?.metadata?.tenantName,
+  ];
+
+  return candidates.some((candidate) => tenantHintMatches(candidate, tenant));
+}
+
+function buildTenantWarmupIndexes(instanceStates = []) {
+  const instanceNames = new Set(instanceStates.map((instanceState) => String(instanceState.instanceName || instanceState.instanceId || '').toLowerCase()).filter(Boolean));
+  const instanceIds = new Set(instanceStates.map((instanceState) => String(instanceState.instanceId || instanceState.instanceToken || instanceState.token || '').toLowerCase()).filter(Boolean));
+  return { instanceNames, instanceIds };
+}
+
+const TENANT_WARMUP_SETTING_KEYS = [
+  'warmupMinIntervalMs',
+  'warmupMaxDailyPerInstance',
+  'warmupCooldownRounds',
+  'warmupReadChat',
+  'warmupReadMessages',
+  'warmupAsync',
+  'antiBanMaxPerMinute',
+  'defaultDelay',
+];
+
+function pickTenantWarmupSettings(settings = {}) {
+  return TENANT_WARMUP_SETTING_KEYS.reduce((safe, key) => {
+    if (settings[key] !== undefined) safe[key] = settings[key];
+    return safe;
+  }, {});
+}
+
+function sanitizeTenantWarmupRoutine(routine = {}) {
+  return {
+    id: routine.id,
+    name: routine.name,
+    mode: routine.mode,
+    delayMin: routine.delayMin,
+    delayMax: routine.delayMax,
+    isActive: routine.isActive !== false,
+    totalSent: routine.totalSent || 0,
+    senderInstances: [],
+    receiverInstances: [],
+    messages: [],
+    senderCount: Array.isArray(routine.senderInstances) ? routine.senderInstances.length : 0,
+    receiverCount: Array.isArray(routine.receiverInstances) ? routine.receiverInstances.length : 0,
+    messageCount: Array.isArray(routine.messages) ? routine.messages.length : 0,
+  };
+}
+
+function mergeTenantWarmupSettings(previousSettings = {}, incomingSettings = {}, user = {}) {
+  const allowedSettings = pickTenantWarmupSettings(incomingSettings);
+  return mergeRuntimeSettings(previousSettings, {
+    ...allowedSettings,
+    operatorLabel: user?.email || previousSettings.operatorLabel,
+    adminToken: previousSettings.adminToken,
+    serverUrl: previousSettings.serverUrl,
+    supabaseUrl: previousSettings.supabaseUrl,
+    supabaseKey: previousSettings.supabaseKey,
+    riskOverride: previousSettings.riskOverride,
+  });
+}
+
+function filterWarmupRoutineForTenant(routine, indexes) {
+  const senderInstances = (routine.senderInstances || []).filter((value) => indexes.instanceIds.has(String(value).toLowerCase()) || indexes.instanceNames.has(String(value).toLowerCase()));
+  const receiverInstances = (routine.receiverInstances || []).filter((value) => indexes.instanceIds.has(String(value).toLowerCase()) || indexes.instanceNames.has(String(value).toLowerCase()));
+
+  // Rotinas sem lista explícita são globais/legadas. Não expomos para edição do cliente.
+  if (!senderInstances.length && !receiverInstances.length) return null;
+
+  return {
+    ...routine,
+    senderInstances,
+    receiverInstances,
+  };
+}
+
+function filterWarmupSnapshotForTenant(snapshot, tenant) {
+  const instanceStates = (snapshot.instanceStates || []).filter((instanceState) => isTenantWarmupState(instanceState, tenant));
+  const indexes = buildTenantWarmupIndexes(instanceStates);
+
+  const recentLogs = (snapshot.recentLogs || []).filter((log) => {
+    const logInstance = String(log.instanceName || log.instanceId || log.token || '').toLowerCase();
+    return indexes.instanceNames.has(logInstance) || indexes.instanceIds.has(logInstance) || logInstance === 'warmup runtime' || logInstance === 'runtime';
+  });
+
+  const eligibleNow = instanceStates.filter((instanceState) => instanceState.eligibleNow).length;
+  const heatingNow = instanceStates.filter((instanceState) => instanceState.warmingNow).length;
+  const sentToday = instanceStates.reduce((sum, instanceState) => sum + Number(instanceState.sentToday || 0), 0);
+  const blocked = instanceStates.filter((instanceState) => instanceState.heatStage === 'blocked').length;
+  const waiting = instanceStates.filter((instanceState) => instanceState.heatStage === 'waiting' || instanceState.heatStage === 'regenerating').length;
+  const routines = state.config.routines
+    .map((routine) => filterWarmupRoutineForTenant(routine, indexes))
+    .filter(Boolean);
+
+  return {
+    ...snapshot,
+    tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+    summary: {
+      ...snapshot.summary,
+      totalInstances: instanceStates.length,
+      activeRoutines: routines.filter((routine) => routine.isActive).length,
+      heatingNow,
+      eligibleNow,
+      sentToday,
+      blocked,
+      waiting,
+    },
+    currentPool: {
+      ...snapshot.currentPool,
+      entries: (snapshot.currentPool?.entries || []).filter((entry) => {
+        const sender = String(entry.senderToken || entry.senderName || '').toLowerCase();
+        const receiver = String(entry.receiverToken || entry.receiverName || '').toLowerCase();
+        return indexes.instanceIds.has(sender) || indexes.instanceNames.has(sender) || indexes.instanceIds.has(receiver) || indexes.instanceNames.has(receiver);
+      }),
+    },
+    recentLogs,
+    instanceStates,
+  };
+}
+
+function buildWarmupConfigForTenant(tenant, snapshot = buildSnapshot()) {
+  const scopedSnapshot = filterWarmupSnapshotForTenant(snapshot, tenant);
+  const indexes = buildTenantWarmupIndexes(scopedSnapshot.instanceStates);
+  const routines = state.config.routines
+    .map((routine) => filterWarmupRoutineForTenant(routine, indexes))
+    .filter(Boolean);
+  const messageIds = new Set(routines.flatMap((routine) => routine.messages || []).map(String));
+  const messages = messageIds.size
+    ? state.config.messages.filter((message) => messageIds.has(String(message.id)))
+    : [];
+
+  return {
+    settings: pickTenantWarmupSettings(state.config.settings),
+    runtime: buildRuntimeSecretMeta(state.config.settings),
+    routines: routines.map(sanitizeTenantWarmupRoutine),
+    messages,
+    lastSyncedAt: state.lastSyncedAt,
+    scheduler: {
+      enabled: state.scheduler.enabled,
+      status: state.scheduler.status,
+    },
+  };
+}
+
+function mergeTenantWarmupRoutines(existingRoutines = [], incomingRoutines = [], tenant, snapshot = buildSnapshot()) {
+  const scopedSnapshot = filterWarmupSnapshotForTenant(snapshot, tenant);
+  const indexes = buildTenantWarmupIndexes(scopedSnapshot.instanceStates);
+  const scopedIds = new Set(
+    existingRoutines
+      .map((routine) => filterWarmupRoutineForTenant(routine, indexes))
+      .filter(Boolean)
+      .map((routine) => String(routine.id))
+  );
+  const incomingById = new Map(
+    incomingRoutines
+      .filter((routine) => routine?.id && scopedIds.has(String(routine.id)))
+      .map((routine) => [String(routine.id), routine])
+  );
+
+  return existingRoutines.map((routine) => {
+    const incoming = incomingById.get(String(routine.id));
+    if (!incoming) return routine;
+    return {
+      ...routine,
+      name: incoming.name ?? routine.name,
+      mode: incoming.mode ?? routine.mode,
+      delayMin: incoming.delayMin ?? routine.delayMin,
+      delayMax: incoming.delayMax ?? routine.delayMax,
+      isActive: incoming.isActive !== undefined ? incoming.isActive : routine.isActive,
+      // Nunca aceitamos tokens/listas de instâncias da área do cliente.
+      senderInstances: routine.senderInstances,
+      receiverInstances: routine.receiverInstances,
+      messages: routine.messages,
+    };
+  });
+}
+
+
+function mergeWarmupMessages(existingMessages = [], incomingMessages = []) {
+  const incomingById = new Map(
+    incomingMessages
+      .filter((message) => message?.id)
+      .map((message) => [String(message.id), message])
+  );
+
+  return existingMessages.map((message) => {
+    const incoming = incomingById.get(String(message.id));
+    if (!incoming) return message;
+    return {
+      ...message,
+      name: incoming.name ?? message.name,
+      category: incoming.category ?? message.category,
+      text: incoming.text ?? message.text,
+    };
+  });
+}
+
+
+// Authenticated Warmup Route Handler — visão do cliente, filtrada por tenant.
+async function handleAuthenticatedWarmupRoute(req, res, url) {
+  try {
+    const authResult = await new Promise((resolve) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return;
+
+    const { tenant, user } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    const action = pathParts[2] || 'state';
+
+    if (pathParts.length === 2 && req.method === 'GET') {
+      return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+    }
+
+    if (action === 'state' && req.method === 'GET') {
+      return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+    }
+
+    if (action === 'config' && req.method === 'GET') {
+      return createResponse(res, 200, buildWarmupConfigForTenant(tenant));
+    }
+
+    if (action === 'sync' && req.method === 'POST') {
+      const payload = await parseBody(req);
+      const previousSettings = state.config.settings ?? {};
+      const safeIncomingSettings = payload.settings && typeof payload.settings === 'object' ? payload.settings : {};
+      const nextSettings = mergeTenantWarmupSettings(previousSettings, safeIncomingSettings, user);
+
+      state.config = {
+        settings: nextSettings,
+        routines: Array.isArray(payload.routines)
+          ? mergeTenantWarmupRoutines(state.config.routines, payload.routines, tenant)
+          : state.config.routines,
+        messages: Array.isArray(payload.messages)
+          ? mergeWarmupMessages(state.config.messages, payload.messages)
+          : state.config.messages,
+      };
+      state.summary.activeRoutines = state.config.routines.filter((routine) => routine.isActive).length;
+      state.lastSyncedAt = new Date().toISOString();
+
+      addAuditEntry({
+        type: 'manual_control',
+        actor: user?.email || user?.id || tenant?.name || tenant?.id || 'cliente',
+        action: 'warmup_client_sync',
+        details: `Configuração sincronizada pela área do cliente para tenant ${tenant.id}`,
+      });
+      addRuntimeLog({
+        type: 'scheduler',
+        status: 'info',
+        message: 'Configuração de warmup sincronizada pela área do cliente.',
+        details: `Tenant ${tenant.id}`,
+        instanceName: 'Warmup Runtime',
+      });
+
+      await saveState();
+      return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+    }
+
+    if (['start', 'pause', 'stop', 'restart', 'tick'].includes(action) && req.method === 'POST') {
+      const payload = await parseBody(req);
+      const actor = user?.email || user?.id || tenant?.name || tenant?.id || 'cliente';
+      const body = {
+        ...payload,
+        actor,
+        reason: payload.reason || `Ação ${action} solicitada pela área do cliente`,
+      };
+
+      if (action === 'tick') {
+        const result = await tick('client-manual');
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(result, tenant));
+      }
+
+      if (action === 'start') {
+        state.scheduler.enabled = true;
+        state.scheduler.status = 'active';
+        state.scheduler.lastManualAction = { action: 'start', actor, reason: body.reason, acceptedAt: new Date().toISOString() };
+        addAuditEntry({ type: 'manual_control', actor, action: 'warmup_client_start', details: body.reason });
+        addRuntimeLog({ type: 'scheduler', status: 'info', message: `Warmup iniciado pela área do cliente por ${actor}.`, details: body.reason, instanceName: 'Warmup Runtime' });
+        startLoop();
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(await tick('client-start'), tenant));
+      }
+
+      if (action === 'pause' || action === 'stop') {
+        state.scheduler.enabled = false;
+        state.scheduler.status = action === 'stop' ? 'stopped' : 'paused';
+        state.scheduler.lastPausedAt = new Date().toISOString();
+        state.scheduler.lastError = `Warmup ${action === 'stop' ? 'parado' : 'pausado'} pela área do cliente por ${actor}${body.reason ? ` · ${body.reason}` : ''}`;
+        state.scheduler.lastManualAction = { action, actor, reason: body.reason, acceptedAt: new Date().toISOString() };
+        addAuditEntry({ type: 'manual_control', actor, action: `warmup_client_${action}`, details: body.reason });
+        addRuntimeLog({ type: 'scheduler', status: 'info', message: `Warmup ${action === 'stop' ? 'parado' : 'pausado'} pela área do cliente por ${actor}.`, details: body.reason, instanceName: 'Warmup Runtime' });
+        stopLoop();
+        clearWarmingFlags();
+        await saveState();
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(buildSnapshot(), tenant));
+      }
+
+      if (action === 'restart') {
+        state.scheduler.enabled = true;
+        state.scheduler.status = 'active';
+        state.scheduler.lastManualAction = { action: 'restart', actor, reason: body.reason, acceptedAt: new Date().toISOString() };
+        addAuditEntry({ type: 'manual_control', actor, action: 'warmup_client_restart', details: body.reason });
+        addRuntimeLog({ type: 'scheduler', status: 'info', message: `Warmup reiniciado pela área do cliente por ${actor}.`, details: body.reason, instanceName: 'Warmup Runtime' });
+        clearWarmingFlags();
+        startLoop();
+        return createResponse(res, 200, filterWarmupSnapshotForTenant(await tick('client-restart'), tenant));
+      }
+    }
+
+    return createResponse(res, 404, { error: 'Warmup endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Warmup API] Error:', error.message);
+    return createResponse(res, error.statusCode || 500, { error: error.message });
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.headers.host}${req.url}`);
   if (!req.url || !req.method) return createResponse(res, 400, { error: "Requisição inválida" });
@@ -3282,6 +3631,7 @@ const server = http.createServer(async (req, res) => {
       return createResponse(res, 200, { received: true });
     }
 
+
     // Inbox API Routes
     if (normalizedPathname.startsWith("/api/inbox/")) {
       return handleInboxRoute(req, res, url);
@@ -3300,6 +3650,11 @@ const server = http.createServer(async (req, res) => {
     // Authenticated Instances API Routes
     if (normalizedPathname.startsWith("/api/instances")) {
       return handleAuthenticatedInstancesRoute(req, res, url);
+    }
+
+    // Authenticated Warmup API Routes — cliente
+    if (normalizedPathname.startsWith("/api/warmup")) {
+      return handleAuthenticatedWarmupRoute(req, res, url);
     }
 
     // Authenticated Send Message API Routes

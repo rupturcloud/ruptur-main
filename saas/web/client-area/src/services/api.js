@@ -148,6 +148,57 @@ export const apiService = {
     return authFetch(`/api/instances/${encodeURIComponent(instanceKey)}/status`);
   },
 
+  // --- Warmup / Aquecimento ---
+  async getWarmupState() {
+    return authFetch('/api/warmup/state');
+  },
+
+  async getWarmupConfig() {
+    return authFetch('/api/warmup/config');
+  },
+
+  async syncWarmupConfig(payload) {
+    return authFetch('/api/warmup/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async startWarmup(reason = 'Iniciado pela área do cliente') {
+    return authFetch('/api/warmup/start', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async pauseWarmup(reason = 'Pausado pela área do cliente') {
+    return authFetch('/api/warmup/pause', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async stopWarmup(reason = 'Parado pela área do cliente') {
+    return authFetch('/api/warmup/stop', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async restartWarmup(reason = 'Reiniciado pela área do cliente') {
+    return authFetch('/api/warmup/restart', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async tickWarmup(reason = 'Pulso manual pela área do cliente') {
+    return authFetch('/api/warmup/tick', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
   // --- Inbox ---
   async getMessages(instanceId, tenantId) {
     const data = await authFetch(`/api/inbox/messages/${instanceId}?tenantId=${tenantId}`);

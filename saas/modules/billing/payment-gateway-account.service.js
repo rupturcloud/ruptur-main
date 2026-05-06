@@ -134,7 +134,7 @@ function envFallbackAccounts() {
       public_config: buildPublicConfig('cakto', {}, {}),
       metadata: {
         source: 'env',
-        note: 'Fallback operacional até a migration payment_gateway_accounts ser aplicada no Supabase de produção.',
+        note: 'Fallback operacional quando a tabela payment_gateway_accounts ainda não está disponível no Supabase configurado.',
       },
       created_by: null,
       created_at: now,
@@ -243,6 +243,28 @@ export class PaymentGatewayAccountService {
   async updateStatus(id, status) {
     const normalized = String(status || '').trim().toLowerCase();
     if (!VALID_STATUSES.has(normalized)) throw new Error('Status inválido');
+
+    const { data: current, error: currentError } = await this.supabase
+      .from('payment_gateway_accounts')
+      .select('id, provider, environment')
+      .eq('id', id)
+      .single();
+    if (currentError) throw currentError;
+
+    // A migration garante apenas um gateway ativo por provider + environment.
+    // Antes de ativar um novo, colocamos os demais em testing para evitar erro
+    // de índice único e deixar a ação do painel previsível.
+    if (normalized === 'active') {
+      const { error: demoteError } = await this.supabase
+        .from('payment_gateway_accounts')
+        .update({ status: 'testing', updated_at: new Date().toISOString() })
+        .eq('provider', current.provider)
+        .eq('environment', current.environment)
+        .eq('status', 'active')
+        .neq('id', id);
+      if (demoteError) throw demoteError;
+    }
+
     const { data, error } = await this.supabase
       .from('payment_gateway_accounts')
       .update({ status: normalized, updated_at: new Date().toISOString() })
