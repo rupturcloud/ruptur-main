@@ -40,6 +40,8 @@ services:
       WARMUP_RUNTIME_PORT: 8787
     expose:
       - "8787"
+    networks:
+      - ruptur-edge
 
 networks:
   ruptur-edge:
