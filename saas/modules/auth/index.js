@@ -63,10 +63,39 @@ async function requireAuth(req, res, next) {
 
 /**
  * Obtém tenant do usuário autenticado
+ * Tenta user_tenant_roles primeiro (novo modelo), depois user_tenant_memberships (legacy)
  */
 async function getUserTenant(user) {
   try {
-    const { data: tenantMember, error } = await supabase
+    // Tenta o novo modelo: user_tenant_roles
+    const { data: tenantRole, error: roleError } = await supabase
+      .from('user_tenant_roles')
+      .select(`
+        tenant_id,
+        role,
+        tenants:tenant_id (
+          id,
+          slug,
+          name,
+          status,
+          plan,
+          credits_balance
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .in('tenants.status', ['active', 'suspended', 'trial'])
+      .single();
+
+    if (!roleError && tenantRole) {
+      return {
+        tenant: tenantRole.tenants,
+        role: tenantRole.role
+      };
+    }
+
+    // Fallback: tenta o modelo legacy: user_tenant_memberships
+    const { data: tenantMember, error: memberError } = await supabase
       .from('user_tenant_memberships')
       .select(`
         tenant_id,
@@ -84,8 +113,12 @@ async function getUserTenant(user) {
       .in('tenants.status', ['active', 'suspended', 'trial'])
       .single();
 
-    if (error || !tenantMember) {
-      console.error('[Auth] No tenant found for user:', error?.message);
+    if (memberError || !tenantMember) {
+      console.log('[Auth] No tenant found in user_tenant_roles or user_tenant_memberships:', {
+        userId: user.id,
+        roleError: roleError?.message,
+        memberError: memberError?.message
+      });
       return null;
     }
 
@@ -100,17 +133,102 @@ async function getUserTenant(user) {
 }
 
 /**
- * Middleware que requer tenant ativo
+ * Auto-provisiona tenant para novo usuário se não tiver um
+ */
+async function getOrCreateUserTenant(user) {
+  try {
+    // Tenta obter tenant existente (query simples sem relationship)
+    const { data: existingRoles } = await supabase
+      .from('user_tenant_roles')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (existingRoles && existingRoles.length > 0) {
+      // Já tem tenant, busca os detalhes
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', existingRoles[0].tenant_id)
+        .single();
+
+      if (tenant) {
+        return {
+          tenant,
+          role: existingRoles[0].role || 'member'
+        };
+      }
+    }
+
+    // Se não tiver, cria um novo tenant usando service role
+    const tenantName = user.email?.split('@')[0] || user.id;
+    const tenantSlug = `tenant-${user.id.slice(0, 8)}`;
+
+    const { data: newTenant, error: tenantError } = await supabase
+      .from('tenants')
+      .insert({
+        slug: tenantSlug,
+        name: `${tenantName}'s Workspace`,
+        email: user.email || `user+${user.id}@ruptur.cloud`,
+        plan: 'trial',
+        status: 'active',
+        credits_balance: 1000,
+        trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .select('*')
+      .single();
+
+    if (tenantError) {
+      console.error('[Auth] Erro ao criar tenant:', tenantError.message);
+      return null;
+    }
+
+    // Vincula usuário ao novo tenant como owner (usando service role)
+    const { error: roleError } = await supabase
+      .from('user_tenant_roles')
+      .insert({
+        user_id: user.id,
+        tenant_id: newTenant.id,
+        role: 'owner'
+      });
+
+    if (roleError) {
+      console.error('[Auth] Erro ao vincular usuário ao tenant (roles):', roleError.message);
+      // Mesmo com erro, retorna o tenant que foi criado
+    }
+
+    // Também vincula em user_tenant_memberships para compatibilidade (silenciosamente)
+    await supabase
+      .from('user_tenant_memberships')
+      .insert({
+        user_id: user.id,
+        tenant_id: newTenant.id,
+        role: 'owner'
+      })
+      .catch(() => {}); // ignora erros do legacy
+
+    return {
+      tenant: newTenant,
+      role: 'owner'
+    };
+  } catch (error) {
+    console.error('[Auth] Erro em getOrCreateUserTenant:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Middleware que requer tenant ativo (com auto-provisioning)
  */
 async function requireTenant(req, res, next) {
-  const userTenant = await getUserTenant(req.user);
-  
+  const userTenant = await getOrCreateUserTenant(req.user);
+
   if (!userTenant) {
-    return createResponse(res, 403, { 
-      error: 'Usuário não possui tenant ativo vinculado' 
+    return createResponse(res, 403, {
+      error: 'Falha ao provisionar tenant para usuário'
     });
   }
-  
+
   req.tenant = userTenant.tenant;
   req.userRole = userTenant.role;
   next();
@@ -149,6 +267,7 @@ export {
   verifyToken,
   requireAuth,
   getUserTenant,
+  getOrCreateUserTenant,
   requireTenant,
   parseBody,
   supabase

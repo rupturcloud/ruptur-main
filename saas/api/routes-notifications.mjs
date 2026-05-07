@@ -6,10 +6,17 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let supabase = null;
+
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.VITE_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 /**
  * GET /api/notifications/preferences
@@ -24,7 +31,7 @@ export async function getNotificationPreferences(req, res, json) {
       return json ? json(res, 400, { error: 'Missing userId or tenantId' }, req) : res.status(400).json({ error: 'Missing userId or tenantId' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('notification_preferences')
       .select('*')
       .eq('tenant_id', tenantId)
@@ -54,7 +61,7 @@ export async function updateNotificationPreferences(req, res, json) {
       return json ? json(res, 400, { error: 'Missing required fields' }, req) : res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('notification_preferences')
       .upsert({
         tenant_id: tenantId,
@@ -94,7 +101,7 @@ export async function getNotificationLogs(req, res, json) {
       return json ? json(res, 400, { error: 'Missing userId or tenantId' }, req) : res.status(400).json({ error: 'Missing userId or tenantId' });
     }
 
-    const { data, error, count } = await supabase
+    const { data, error, count } = await getSupabase()
       .from('notification_logs')
       .select('*', { count: 'exact' })
       .eq('tenant_id', tenantId)
@@ -132,7 +139,7 @@ export async function getNotificationStats(req, res, json) {
     }
 
     // Contar por status
-    const { data: byStatus, error: err1 } = await supabase
+    const { data: byStatus, error: err1 } = await getSupabase()
       .from('notification_logs')
       .select('status', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
@@ -140,7 +147,7 @@ export async function getNotificationStats(req, res, json) {
 
     // Contar notificações enviadas nos últimos 7 dias
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { count: sentLast7Days } = await supabase
+    const { count: sentLast7Days } = await getSupabase()
       .from('notification_logs')
       .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)

@@ -1059,6 +1059,71 @@ async function handler(req, res) {
     }
   }
 
+  // --- Teste de auto-provisioning (sem autenticação) ---
+  if (pathname === '/api/test/auto-provision' && req.method === 'POST') {
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const { getOrCreateUserTenant } = await import('../modules/auth/index.js');
+
+      // Cria usuário de teste
+      const testEmail = 'test-' + Date.now() + '@test.com';
+      const { data: { user: newUser }, error: signUpError } = await supabase.auth.admin.createUser({
+        email: testEmail,
+        password: 'Test123456!',
+        email_confirm: true
+      });
+
+      if (signUpError || !newUser) {
+        return json(res, 400, { error: 'Falha ao criar usuário: ' + signUpError?.message }, req);
+      }
+
+      // Auto-provisiona tenant
+      const userTenant = await getOrCreateUserTenant(newUser);
+      if (!userTenant) {
+        return json(res, 400, { error: 'Falha ao provisionar tenant' }, req);
+      }
+
+      return json(res, 200, {
+        userId: newUser.id,
+        email: newUser.email,
+        tenantId: userTenant.tenant.id,
+        tenantSlug: userTenant.tenant.slug,
+        tenantName: userTenant.tenant.name,
+        role: userTenant.role
+      }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Warmup Config (com auto-provisioning de tenant) ---
+  if (pathname === '/api/warmup/config' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    try {
+      const { getOrCreateUserTenant } = await import('../modules/auth/index.js');
+      const userTenant = await getOrCreateUserTenant(user);
+      if (!userTenant) {
+        return json(res, 403, { error: 'Falha ao provisionar tenant para usuário' }, req);
+      }
+
+      // Retorna config básica do warmup
+      return json(res, 200, {
+        tenantId: userTenant.tenant.id,
+        tenantSlug: userTenant.tenant.slug,
+        tenantName: userTenant.tenant.name,
+        role: userTenant.role,
+        warmupUrl: WARMUP_URL,
+        instanceToken: process.env.INSTANCE_TOKEN
+      }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
   // --- Platform Admin: Verificar se é superadmin (sem restrição) ---
   if (pathname === '/api/admin/platform/check' && req.method === 'GET') {
     const user = await extractUser(req);
