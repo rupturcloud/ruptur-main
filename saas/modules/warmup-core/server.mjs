@@ -535,11 +535,28 @@ async function saveState() {
   }
 }
 
-function createResponse(res, statusCode, payload) {
+const CORS_WHITELIST = [
+  process.env.CORS_ORIGIN || 'https://app.ruptur.cloud',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:8787',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:8787',
+];
+
+function getCorsHeader(req) {
+  const origin = req.headers['origin'] || '';
+  return CORS_WHITELIST.includes(origin) ? origin : 'null';
+}
+
+function createResponse(res, statusCode, payload, req) {
+  const corsOrigin = req ? getCorsHeader(req) : 'null';
   res.writeHead(statusCode, {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    "Access-Control-Allow-Credentials": "true",
     "Content-Type": "application/json; charset=utf-8",
   });
   res.end(JSON.stringify(payload));
@@ -2986,6 +3003,72 @@ async function handleInboxRoute(req, res, url) {
   }
 }
 
+// Authenticated Inbox Route Handler
+async function handleAuthenticatedInboxRoute(req, res, url) {
+  try {
+    // Aplica autenticação e tenant
+    const authResult = await new Promise((resolve, reject) => {
+      requireAuth(req, res, () => {
+        requireTenant(req, res, () => {
+          resolve({ user: req.user, tenant: req.tenant, userRole: req.userRole });
+        });
+      });
+    });
+
+    if (!authResult) return; // Autenticação falhou, resposta já enviada
+
+    const { tenant } = authResult;
+    const pathParts = url.pathname.split('/').filter(Boolean);
+
+    // GET /api/inbox/summary
+    if (pathParts[2] === 'summary' && req.method === 'GET') {
+      const summary = await inboxManager.getInboxSummary(tenant.id);
+      return createResponse(res, 200, summary);
+    }
+
+    // POST /api/inbox/initialize/:instanceId
+    if (pathParts[2] === 'initialize' && req.method === 'POST') {
+      const instanceId = pathParts[3];
+      const success = await inboxManager.initializeInstance(instanceId, tenant.id);
+      return createResponse(res, 200, { success, instanceId, tenantId: tenant.id });
+    }
+
+    // GET /api/inbox/messages/:instanceId
+    if (pathParts[2] === 'messages' && req.method === 'GET') {
+      const instanceId = pathParts[3];
+      const options = {
+        limit: parseInt(url.searchParams.get('limit') || '50'),
+        offset: parseInt(url.searchParams.get('offset') || '0'),
+        unreadOnly: url.searchParams.get('unreadOnly') === 'true',
+        since: url.searchParams.get('since')
+      };
+      const result = await inboxManager.getMessages(instanceId, tenant.id, options);
+      return createResponse(res, 200, result);
+    }
+
+    // PUT /api/inbox/messages/:instanceId/:messageId/read
+    if (pathParts[2] === 'messages' && pathParts[4] === 'read' && req.method === 'PUT') {
+      const instanceId = pathParts[3];
+      const messageId = pathParts[4];
+      const success = await inboxManager.markAsRead(instanceId, tenant.id, messageId);
+      return createResponse(res, 200, { success });
+    }
+
+    // POST /api/inbox/send/:instanceId
+    if (pathParts[2] === 'send' && req.method === 'POST') {
+      const instanceId = pathParts[3];
+      const body = await parseBody(req);
+      const result = await inboxManager.sendMessage(instanceId, tenant.id, body.recipient, body.content, body.type);
+      return createResponse(res, 200, result);
+    }
+
+    createResponse(res, 404, { error: 'Inbox endpoint not found' });
+  } catch (error) {
+    console.error('[Auth Inbox API] Error:', error.message);
+    createResponse(res, 500, { error: error.message });
+  }
+}
+
 // Campaign Route Handler
 async function handleCampaignRoute(req, res, url) {
   try {
@@ -3137,17 +3220,37 @@ async function handleAuthenticatedWalletRoute(req, res, url) {
 
     const { tenant } = authResult;
     const pathParts = url.pathname.split('/').filter(Boolean);
-    
+
     // GET /api/wallet/balance
     if (pathParts[2] === 'balance' && req.method === 'GET') {
       const balance = await walletManager.getBalance(tenant.id);
-      return createResponse(res, 200, { 
-        balance, 
+      return createResponse(res, 200, {
+        balance,
         tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
         credits_balance: tenant.credits_balance
       });
     }
-    
+
+    // GET /api/wallet/transactions
+    if (pathParts[2] === 'transactions' && req.method === 'GET') {
+      const transactions = await walletManager.getTransactions(tenant.id);
+      return createResponse(res, 200, { transactions, tenantId: tenant.id });
+    }
+
+    // POST /api/wallet/add-credits (Admin or Internal) - requires admin role
+    if (pathParts[2] === 'add-credits' && req.method === 'POST') {
+      // Only allow admin/super-admin to add credits
+      if (authResult.userRole !== 'admin' && authResult.userRole !== 'super_admin') {
+        return createResponse(res, 403, { error: 'Insufficient permissions to add credits' });
+      }
+      const body = await parseBody(req);
+      const amount = Number(body.amount);
+      if (isNaN(amount)) return createResponse(res, 400, { error: 'Invalid amount' });
+
+      const newBalance = await walletManager.addCredits(tenant.id, amount, body.description);
+      return createResponse(res, 200, { balance: newBalance, tenantId: tenant.id });
+    }
+
     createResponse(res, 404, { error: 'Wallet endpoint not found' });
   } catch (error) {
     console.error('[Auth Wallet API] Error:', error.message);
@@ -3718,18 +3821,13 @@ const server = http.createServer(async (req, res) => {
     }
 
 
-    // Inbox API Routes
+    // Authenticated Inbox API Routes (REQUIRES JWT + TENANT)
     if (normalizedPathname.startsWith("/api/inbox/")) {
-      return handleInboxRoute(req, res, url);
+      return handleAuthenticatedInboxRoute(req, res, url);
     }
 
-    // Wallet API Routes (Legacy - sem autenticação)
-    if (normalizedPathname.startsWith("/api/wallet/") && !normalizedPathname.startsWith("/api/wallet/balance")) {
-      return handleWalletRoute(req, res, url);
-    }
-
-    // Authenticated Wallet API Routes
-    if (normalizedPathname.startsWith("/api/wallet/balance")) {
+    // Authenticated Wallet API Routes (REQUIRES JWT + TENANT)
+    if (normalizedPathname.startsWith("/api/wallet/")) {
       return handleAuthenticatedWalletRoute(req, res, url);
     }
 
