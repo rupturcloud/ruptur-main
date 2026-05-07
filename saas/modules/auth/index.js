@@ -8,6 +8,18 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   realtime: { transport: ws },
 });
 
+// Lazy-load client com service role (para criação de tenants, etc)
+let supabaseAdmin = null;
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+    supabaseAdmin = serviceKey
+      ? createClient(supabaseUrl, serviceKey, { realtime: { transport: ws } })
+      : supabase;
+  }
+  return supabaseAdmin;
+}
+
 /**
  * Extrai token JWT do header Authorization
  */
@@ -170,7 +182,7 @@ async function getOrCreateUserTenant(user) {
     const tenantName = user.email?.split('@')[0] || user.id;
     const tenantSlug = `tenant-${user.id.slice(0, 8)}`;
 
-    const { data: newTenant, error: tenantError } = await supabase
+    const { data: newTenant, error: tenantError } = await getSupabaseAdmin()
       .from('tenants')
       .insert({
         slug: tenantSlug,
@@ -192,7 +204,7 @@ async function getOrCreateUserTenant(user) {
     }
 
     // Vincula usuário ao novo tenant como owner (usando service role)
-    const { error: roleError } = await supabase
+    const { error: roleError } = await getSupabaseAdmin()
       .from('user_tenant_roles')
       .insert({
         user_id: user.id,
@@ -206,14 +218,17 @@ async function getOrCreateUserTenant(user) {
     }
 
     // Também vincula em user_tenant_memberships para compatibilidade (silenciosamente)
-    await supabase
-      .from('user_tenant_memberships')
-      .insert({
-        user_id: user.id,
-        tenant_id: newTenant.id,
-        role: 'owner'
-      })
-      .catch(() => {}); // ignora erros do legacy
+    try {
+      await getSupabaseAdmin()
+        .from('user_tenant_memberships')
+        .insert({
+          user_id: user.id,
+          tenant_id: newTenant.id,
+          role: 'owner'
+        });
+    } catch {
+      // ignora erros do legacy
+    }
 
     return {
       tenant: newTenant,
