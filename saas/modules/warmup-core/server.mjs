@@ -15,6 +15,56 @@ import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.j
 
 const walletManager = createWalletManager(supabase);
 
+// Simple in-memory rate limiter
+class RateLimiter {
+  constructor(maxRequests = 100, windowMs = 60000) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+    this.store = new Map();
+  }
+
+  isAllowed(key) {
+    const now = Date.now();
+    const record = this.store.get(key);
+
+    if (!record) {
+      this.store.set(key, { count: 1, resetAt: now + this.windowMs });
+      return true;
+    }
+
+    if (now > record.resetAt) {
+      // Window expired, reset
+      record.count = 1;
+      record.resetAt = now + this.windowMs;
+      return true;
+    }
+
+    record.count += 1;
+    return record.count <= this.maxRequests;
+  }
+
+  cleanup() {
+    const now = Date.now();
+    for (const [key, record] of this.store.entries()) {
+      if (now > record.resetAt) {
+        this.store.delete(key);
+      }
+    }
+  }
+}
+
+// Rate limiters for different endpoints
+const globalLimiter = new RateLimiter(1000, 60000); // 1000 req/min global
+const walletLimiter = new RateLimiter(50, 60000); // 50 req/min per tenant
+const inboxLimiter = new RateLimiter(100, 60000); // 100 req/min per tenant
+
+// Cleanup rate limiter storage every 5 minutes
+setInterval(() => {
+  globalLimiter.cleanup();
+  walletLimiter.cleanup();
+  inboxLimiter.cleanup();
+}, 5 * 60 * 1000);
+
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
 const TICK_INTERVAL_MS = Number(process.env.WARMUP_TICK_INTERVAL_MS || 60_000);
@@ -3006,6 +3056,12 @@ async function handleInboxRoute(req, res, url) {
 // Authenticated Inbox Route Handler
 async function handleAuthenticatedInboxRoute(req, res, url) {
   try {
+    // Apply rate limiting
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    if (!globalLimiter.isAllowed(clientIp)) {
+      return createResponse(res, 429, { error: 'Too many requests. Please try again later.' }, req);
+    }
+
     // Aplica autenticação e tenant
     const authResult = await new Promise((resolve, reject) => {
       requireAuth(req, res, () => {
@@ -3018,6 +3074,13 @@ async function handleAuthenticatedInboxRoute(req, res, url) {
     if (!authResult) return; // Autenticação falhou, resposta já enviada
 
     const { tenant } = authResult;
+
+    // Apply per-tenant rate limiting for inbox
+    const tenantKey = `inbox:${tenant.id}`;
+    if (!inboxLimiter.isAllowed(tenantKey)) {
+      return createResponse(res, 429, { error: 'Too many requests for this tenant. Please try again later.' }, req);
+    }
+
     const pathParts = url.pathname.split('/').filter(Boolean);
 
     // GET /api/inbox/summary
@@ -3207,6 +3270,12 @@ async function handleDashboardRoute(req, res, url) {
 // Authenticated Wallet Route Handler
 async function handleAuthenticatedWalletRoute(req, res, url) {
   try {
+    // Apply rate limiting
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    if (!globalLimiter.isAllowed(clientIp)) {
+      return createResponse(res, 429, { error: 'Too many requests. Please try again later.' }, req);
+    }
+
     // Aplica autenticação e tenant
     const authResult = await new Promise((resolve, reject) => {
       requireAuth(req, res, () => {
@@ -3219,6 +3288,13 @@ async function handleAuthenticatedWalletRoute(req, res, url) {
     if (!authResult) return; // Autenticação falhou, resposta já enviada
 
     const { tenant } = authResult;
+
+    // Apply per-tenant rate limiting for wallet operations
+    const tenantKey = `wallet:${tenant.id}`;
+    if (!walletLimiter.isAllowed(tenantKey)) {
+      return createResponse(res, 429, { error: 'Too many wallet requests for this tenant. Please try again later.' }, req);
+    }
+
     const pathParts = url.pathname.split('/').filter(Boolean);
 
     // GET /api/wallet/balance
