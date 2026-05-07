@@ -4,8 +4,8 @@
  * Rate limiting, auditoria e validações incluídas
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const RateLimiter = require('./rate-limiter.service');
+import { createClient } from '@supabase/supabase-js';
+import RateLimiter from './rate-limiter.service.js';
 
 class UserManagementService {
   constructor(supabaseUrl, supabaseKey) {
@@ -216,4 +216,4 @@ class UserManagementService {
   }
 }
 
-module.exports = UserManagementService;
+export default UserManagementService;

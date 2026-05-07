@@ -32,6 +32,7 @@ import { WebhookQueueIntegration } from '../modules/webhook-core/webhook-queue-i
 import * as billingRoutes from './routes-billing.mjs';
 import * as notificationRoutes from './routes-notifications.mjs';
 import { handleUserRoutes } from './routes-users.mjs';
+import { handleAdminTenantRoutes } from './routes-admin-tenants.mjs';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import {
@@ -1634,6 +1635,26 @@ async function handler(req, res) {
 
     req.user = user;
     return handleUserRoutes(req, res);
+  }
+
+  // --- Admin: Configuração de Tenants ---
+  if (pathname.startsWith('/api/admin/tenants') && pathname.includes('/settings')) {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    req.user = user;
+    return handleAdminTenantRoutes(req, res, supabase);
+  }
+
+  if (pathname.match(/^\/api\/admin\/tenants\/[a-f0-9-]{36}\/(members|billing|audit)/) ||
+      pathname.match(/^\/api\/admin\/tenants\/[a-f0-9-]{36}\/members\/[a-f0-9-]{36}\/role/)) {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    req.user = user;
+    return handleAdminTenantRoutes(req, res, supabase);
   }
 
   // --- Admin: Lançar créditos ---

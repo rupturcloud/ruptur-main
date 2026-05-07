@@ -3,10 +3,10 @@
  * Jest - Testa cada método isoladamente com mocks
  */
 
-import UserManagementService from '../../modules/users/user-management.service';
+import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import UserManagementService from '../../modules/users/user-management.service.js';
 
-// Mock Supabase
-jest.mock('@supabase/supabase-js', () => ({
+jest.unstable_mockModule('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
     from: jest.fn((table) => ({
       insert: jest.fn().mockReturnThis(),

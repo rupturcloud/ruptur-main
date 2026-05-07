@@ -4,7 +4,7 @@
  * Os triggers do Supabase mantêm o registro automaticamente
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 class AuditService {
   constructor(supabaseUrl, supabaseKey) {
@@ -155,4 +155,4 @@ class AuditService {
   }
 }
 
-module.exports = AuditService;
+export default AuditService;

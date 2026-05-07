@@ -4,9 +4,9 @@
  * Validação de email dupla, rate limiting e auditoria automática
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const crypto = require('crypto');
-const RateLimiter = require('./rate-limiter.service');
+import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
+import RateLimiter from './rate-limiter.service.js';
 
 class InviteService {
   constructor(supabaseUrl, supabaseKey) {
@@ -219,4 +219,4 @@ class InviteService {
   }
 }
 
-module.exports = InviteService;
+export default InviteService;
