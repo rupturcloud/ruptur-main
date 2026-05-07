@@ -153,3 +153,115 @@ export async function getAuditReport(req, res, metricsService, tenantId, json) {
     return json(res, 500, { error: e.message }, null);
   }
 }
+
+/**
+ * Monitoramento da fila de webhooks (admin only)
+ */
+export async function getWebhookQueueStatus(req, res, webhookQueueIntegration, json) {
+  try {
+    if (!webhookQueueIntegration) {
+      return json(res, 503, { error: 'Webhook queue not available' }, null);
+    }
+
+    const status = await webhookQueueIntegration.getQueueStatus();
+    const dlq = await webhookQueueIntegration.getDeadLetterQueue();
+
+    return json(res, 200, {
+      queueStatus: status,
+      deadLetterQueue: dlq,
+      timestamp: new Date().toISOString(),
+    }, null);
+  } catch (e) {
+    return json(res, 500, { error: e.message }, null);
+  }
+}
+
+/**
+ * Handler de webhook com Job Queue (versão confiável)
+ * Enfileira o webhook para processamento assíncrono com retry automático
+ */
+export async function handleWebhookGetnetWithQueue(req, res, webhookQueueIntegration, pathname, json) {
+  if (pathname !== '/api/webhooks/getnet' || req.method !== 'POST') {
+    return null;
+  }
+
+  const rawBodyChunks = [];
+  req.on('data', c => rawBodyChunks.push(c));
+  req.on('end', async () => {
+    const rawBody = Buffer.concat(rawBodyChunks).toString();
+
+    const WEBHOOK_SECRET = process.env.GETNET_WEBHOOK_SECRET || '';
+    const allowUnsignedWebhook = process.env.GETNET_WEBHOOK_ALLOW_UNSIGNED === 'true';
+    const signature = req.headers['x-getnet-signature'] || req.headers['x-signature'] || '';
+
+    if (!WEBHOOK_SECRET && process.env.NODE_ENV === 'production' && !allowUnsignedWebhook) {
+      return json(res, 503, { error: 'GETNET_WEBHOOK_SECRET não configurado' }, null);
+    }
+
+    let isValid = true;
+    if (WEBHOOK_SECRET && !signature) {
+      isValid = false;
+    } else if (WEBHOOK_SECRET && signature) {
+      const crypto = await import('node:crypto');
+      const expected = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
+      try {
+        const sigBuf = Buffer.from(signature, 'hex');
+        const expBuf = Buffer.from(expected, 'hex');
+        if (sigBuf.length !== expBuf.length) isValid = false;
+        else isValid = crypto.timingSafeEqual(sigBuf, expBuf);
+      } catch {
+        isValid = (signature === expected);
+      }
+    }
+
+    if (!isValid) {
+      return json(res, 401, { error: 'Invalid signature' }, null);
+    }
+
+    let parsedBody;
+    try { parsedBody = JSON.parse(rawBody); } catch { parsedBody = {}; }
+
+    const { external_event_id, event_type, data: payload } = parsedBody;
+    const tenantId = parsedBody.tenant_id || payload?.tenant_id;
+
+    if (!tenantId || !external_event_id) {
+      console.warn('[Webhook:Queue] Missing tenantId or external_event_id');
+      return json(res, 400, { error: 'Missing tenantId or external_event_id' }, null);
+    }
+
+    try {
+      const result = await webhookQueueIntegration.enqueuePaymentWebhook({
+        tenantId,
+        externalEventId: external_event_id,
+        eventType: event_type || 'payment_status_update',
+        payload,
+        headers: {
+          'x-signature': signature,
+          'x-getnet-signature': req.headers['x-getnet-signature'],
+        },
+      });
+
+      console.log('[Webhook:Queue] Enfileirado:', {
+        tenantId,
+        external_event_id,
+        jobId: result.jobId,
+      });
+
+      return json(res, 202, {
+        ok: true,
+        received: true,
+        queued: true,
+        jobId: result.jobId,
+        webhookId: result.webhookId,
+        status: 'processing',
+      }, null);
+    } catch (error) {
+      console.error('[Webhook:Queue] Erro ao enfileirar:', error.message);
+      return json(res, 500, {
+        ok: false,
+        error: 'Failed to queue webhook',
+        message: error.message,
+      }, null);
+    }
+  });
+}

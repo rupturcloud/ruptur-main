@@ -27,6 +27,8 @@ import { BillingService } from '../modules/billing/getnet.js';
 import { WebhookService } from '../modules/billing/webhook.service.js';
 import { MetricsService } from '../modules/billing/metrics.service.js';
 import { AuditService } from '../modules/billing/audit.service.js';
+import { WebhookQueueService } from '../modules/webhook-core/webhook-queue.service.js';
+import { WebhookQueueIntegration } from '../modules/webhook-core/webhook-queue-integration.js';
 import * as billingRoutes from './routes-billing.mjs';
 import * as notificationRoutes from './routes-notifications.mjs';
 import TenantService from '../modules/tenants/service.js';
@@ -102,6 +104,26 @@ function gatewayStatus() {
 const webhookService = supabase ? new WebhookService(supabase, null) : null;
 const metricsService = supabase ? new MetricsService(supabase, null) : null;
 const auditService = supabase ? new AuditService(supabase) : null;
+
+// --- Webhook Queue (Bull + Redis) ---
+const webhookQueueService = supabase ? new WebhookQueueService({
+  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  billingService: billing,
+}) : null;
+
+const webhookQueueIntegration = webhookQueueService && webhookService
+  ? new WebhookQueueIntegration({
+      webhookQueue: webhookQueueService,
+      webhookService,
+    })
+  : null;
+
+// Inicializar webhook queue na startup
+if (webhookQueueService) {
+  webhookQueueService.initialize().catch(err => {
+    console.warn('[Webhook Queue] Falha ao inicializar (continuando sem fila):', err.message);
+  });
+}
 
 const tenantService = supabase ? new TenantService(supabase) : null;
 const platformAdminService = supabase ? new PlatformAdminService(supabase, null) : null;
@@ -815,11 +837,19 @@ async function handler(req, res) {
     }
   }
 
-  // --- Webhooks: Processar eventos da adquirente ---
+  // --- Webhooks: Processar eventos da adquirente (com Job Queue) ---
   if (pathname === '/api/webhooks/getnet' && req.method === 'POST') {
-    billingRoutes.handleWebhookGetnet(
-      req, res, webhookService, auditService, pathname, json
-    );
+    if (webhookQueueIntegration) {
+      billingRoutes.handleWebhookGetnetWithQueue(
+        req, res, webhookQueueIntegration, pathname, json
+      );
+    } else {
+      // Fallback para modo síncrono se fila não estiver disponível
+      console.warn('[Webhook] Fila não disponível, usando modo síncrono');
+      billingRoutes.handleWebhookGetnet(
+        req, res, webhookService, auditService, pathname, json
+      );
+    }
     return;
   }
 
@@ -866,6 +896,15 @@ async function handler(req, res) {
     const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
     if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
     return billingRoutes.getAuditReport(req, res, metricsService, tenantId, json);
+  }
+
+  // --- Billing: Status da fila de webhooks (admin only) ---
+  if (pathname === '/api/billing/queue/status' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getWebhookQueueStatus(req, res, webhookQueueIntegration, json);
   }
 
   // --- Tenant: Provisioning (autenticado) ---
