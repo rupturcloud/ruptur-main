@@ -32,6 +32,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AcceptAdminInvite from './pages/AcceptAdminInvite';
 import AccessDenied from './pages/AccessDenied';
+import Health from './pages/Health';
 import './App.css';
 
 import LandingPage from './pages/LandingPage';
@@ -46,6 +47,7 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/admin/accept-invite" element={<AcceptAdminInvite />} />
         <Route path="/403" element={<AccessDenied />} />
+        <Route path="/health" element={<Health />} />
 
         {/* Rotas autenticadas — Cliente */}
         <Route element={<ProtectedRoute />}>

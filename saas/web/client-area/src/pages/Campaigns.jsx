@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+/* eslint-disable no-unused-vars */
+import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Square } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
