@@ -137,12 +137,16 @@ async function getUserTenant(user) {
  */
 async function getOrCreateUserTenant(user) {
   try {
+    console.log('[Auth] getOrCreateUserTenant called for user:', user.id);
+
     // Tenta obter tenant existente (query simples sem relationship)
-    const { data: existingRoles } = await supabase
+    const { data: existingRoles, error: rolesError } = await supabase
       .from('user_tenant_roles')
-      .select('tenant_id')
+      .select('tenant_id,role')
       .eq('user_id', user.id)
       .limit(1);
+
+    console.log('[Auth] Existing roles query:', { rolesError: rolesError?.message, found: existingRoles?.length });
 
     if (existingRoles && existingRoles.length > 0) {
       // Já tem tenant, busca os detalhes
@@ -153,6 +157,7 @@ async function getOrCreateUserTenant(user) {
         .single();
 
       if (tenant) {
+        console.log('[Auth] Found existing tenant:', tenant.id);
         return {
           tenant,
           role: existingRoles[0].role || 'member'
@@ -160,7 +165,8 @@ async function getOrCreateUserTenant(user) {
       }
     }
 
-    // Se não tiver, cria um novo tenant usando service role
+    // Se não tiver, cria um novo tenant
+    console.log('[Auth] No existing tenant found, creating new one...');
     const tenantName = user.email?.split('@')[0] || user.id;
     const tenantSlug = `tenant-${user.id.slice(0, 8)}`;
 
@@ -178,8 +184,10 @@ async function getOrCreateUserTenant(user) {
       .select('*')
       .single();
 
+    console.log('[Auth] Insert tenant result:', { error: tenantError?.message, tenantId: newTenant?.id });
+
     if (tenantError) {
-      console.error('[Auth] Erro ao criar tenant:', tenantError.message);
+      console.error('[Auth] Erro ao criar tenant:', { message: tenantError.message, code: tenantError.code, details: tenantError.details });
       return null;
     }
 
