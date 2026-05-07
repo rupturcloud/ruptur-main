@@ -81,14 +81,14 @@ async function getUserTenant(user) {
         )
       `)
       .eq('user_id', user.id)
-      .eq('tenants.status', 'active')
+      .in('tenants.status', ['active', 'suspended', 'trial'])
       .single();
-    
+
     if (error || !tenantMember) {
       console.error('[Auth] No tenant found for user:', error?.message);
       return null;
     }
-    
+
     return {
       tenant: tenantMember.tenants,
       role: tenantMember.role
