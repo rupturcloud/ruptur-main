@@ -28,6 +28,7 @@ import { WebhookService } from '../modules/billing/webhook.service.js';
 import { MetricsService } from '../modules/billing/metrics.service.js';
 import { AuditService } from '../modules/billing/audit.service.js';
 import * as billingRoutes from './routes-billing.mjs';
+import * as notificationRoutes from './routes-notifications.mjs';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import {
@@ -1482,6 +1483,45 @@ async function handler(req, res) {
     }
   }
 
+  // --- Notifications: Preferências ---
+  if (pathname === '/api/notifications/preferences' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+
+    req.user = user;
+    req.query = Object.fromEntries(url.searchParams);
+    return notificationRoutes.getNotificationPreferences(req, res, json);
+  }
+
+  if (pathname === '/api/notifications/preferences' && req.method === 'PUT') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+
+    req.user = user;
+    req.body = await parseBody(req);
+    return notificationRoutes.updateNotificationPreferences(req, res, json);
+  }
+
+  // --- Notifications: Histórico ---
+  if (pathname === '/api/notifications/logs' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+
+    req.user = user;
+    req.query = Object.fromEntries(url.searchParams);
+    return notificationRoutes.getNotificationLogs(req, res, json);
+  }
+
+  // --- Notifications: Estatísticas ---
+  if (pathname === '/api/notifications/stats' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+
+    req.user = user;
+    req.query = Object.fromEntries(url.searchParams);
+    return notificationRoutes.getNotificationStats(req, res, json);
+  }
+
   // --- Admin: Lançar créditos ---
   if (pathname === '/api/admin/credits' && req.method === 'POST') {
     const adminUser = await requirePlatformAdmin(req, res);
@@ -1544,7 +1584,7 @@ async function handler(req, res) {
   }
 
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications')) {
     // Proxy para o Warmup Manager existente
     try {
       const proxyUrl = `${WARMUP_URL}${pathname}${url.search}`;
