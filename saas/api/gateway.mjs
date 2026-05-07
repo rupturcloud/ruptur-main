@@ -31,6 +31,7 @@ import { WebhookQueueService } from '../modules/webhook-core/webhook-queue.servi
 import { WebhookQueueIntegration } from '../modules/webhook-core/webhook-queue-integration.js';
 import * as billingRoutes from './routes-billing.mjs';
 import * as notificationRoutes from './routes-notifications.mjs';
+import { handleUserRoutes } from './routes-users.mjs';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import {
@@ -1561,6 +1562,15 @@ async function handler(req, res) {
     return notificationRoutes.getNotificationStats(req, res, json);
   }
 
+  // --- User Management: Convites, roles, etc ---
+  if (pathname.startsWith('/api/users')) {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+
+    req.user = user;
+    return handleUserRoutes(req, res);
+  }
+
   // --- Admin: Lançar créditos ---
   if (pathname === '/api/admin/credits' && req.method === 'POST') {
     const adminUser = await requirePlatformAdmin(req, res);
@@ -1623,7 +1633,7 @@ async function handler(req, res) {
   }
 
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications') && !pathname.startsWith('/api/users')) {
     // Proxy para o Warmup Manager existente
     try {
       const proxyUrl = `${WARMUP_URL}${pathname}${url.search}`;
