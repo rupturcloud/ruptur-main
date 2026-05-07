@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
@@ -10,15 +10,16 @@ const TOAST_STYLES = {
 };
 
 export default function Toast({ type = 'info', message, onClose, duration = 4000 }) {
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(onClose, duration);
+    return () => clearTimeout(timer);
+  }, [message, duration, onClose]);
+
   if (!message) return null;
 
   const style = TOAST_STYLES[type];
   const Icon = style.icon;
-
-  React.useEffect(() => {
-    const timer = setTimeout(onClose, duration);
-    return () => clearTimeout(timer);
-  }, [duration, onClose]);
 
   return (
     <AnimatePresence>

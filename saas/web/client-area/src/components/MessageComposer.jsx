@@ -1,12 +1,8 @@
 import { useState } from 'react';
-import {
-  Bold, Italic, Code, Link2, Image, Music, Film,
-  FileText, Plus, Trash2, Copy, Settings
-} from 'lucide-react';
+import { Bold, Italic, Code, Link2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function MessageComposer({ value, onChange, showAdvanced = true }) {
-  const [selectedFormat, setSelectedFormat] = useState('text');
+export default function MessageComposer({ value, onChange }) {
   const [showVariables, setShowVariables] = useState(false);
 
   const variables = [

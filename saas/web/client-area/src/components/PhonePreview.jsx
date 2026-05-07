@@ -1,4 +1,4 @@
-import { ChevronDown, Check, CheckCheck, Paperclip } from 'lucide-react';
+import { CheckCheck, Paperclip } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function PhonePreview({
@@ -6,7 +6,6 @@ export default function PhonePreview({
   mediaUrl = '',
   mediaType = 'text',
   buttons = [],
-  title = 'Preview em Tempo Real',
   showTimestamp = true,
 }) {
   const parseFormatting = (text) => {
@@ -14,7 +13,6 @@ export default function PhonePreview({
 
     // Split by formatting markers e variáveis
     const parts = [];
-    let remaining = text;
 
     // Regex para capturar: *bold*, _italic_, `code`, {{vars}}, {opt1|opt2}
     const patterns = [

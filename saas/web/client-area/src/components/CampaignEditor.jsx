@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MessageComposer from './MessageComposer';
@@ -16,7 +15,6 @@ export default function CampaignEditor({
   onClearCsv,
   loading,
 }) {
-  const [csvFile, setCsvFile] = useState(null);
 
   return (
     <motion.div

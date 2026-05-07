@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
-  CheckCircle2,
   Clock,
   Flame,
   Gauge,

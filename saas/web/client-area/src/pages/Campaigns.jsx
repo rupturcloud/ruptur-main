@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Clock, Trash2, Play, Pause, Square, Upload } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CampaignEditor from '../components/CampaignEditor';

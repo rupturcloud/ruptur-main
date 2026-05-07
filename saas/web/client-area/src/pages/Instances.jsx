@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  AlertCircle,
-  CheckCircle2,
   Loader2,
   Plus,
   QrCode,
