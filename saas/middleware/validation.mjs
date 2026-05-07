@@ -119,6 +119,11 @@ export const WalletSchemas = {
     description: z.string().max(255, 'Descrição muito longa').optional(),
   }),
 
+  addCreditsAuthenticated: z.object({
+    amount: z.number().positive('Valor deve ser positivo').finite(),
+    description: z.string().max(255, 'Descrição muito longa').optional(),
+  }),
+
   deductCredits: z.object({
     tenantId: z.string().uuid('tenantId deve ser UUID válido'),
     amount: z.number().positive('Valor deve ser positivo').finite(),
@@ -141,6 +146,22 @@ export const AdminSchemas = {
       })
     ).optional(),
     settings: z.record(z.any()).optional(),
+  }),
+};
+
+export const InboxSchemas = {
+  sendMessage: z.object({
+    recipient: z.string().min(1, 'Destinatário obrigatório').max(255),
+    content: z.string().min(1, 'Conteúdo obrigatório').max(4096),
+    type: z.enum(['text', 'media', 'template']).optional(),
+  }),
+
+  initializeInstance: z.object({
+    // No specific body required, uses path parameter
+  }),
+
+  markAsRead: z.object({
+    // No specific body required, uses path parameters
   }),
 };
 
@@ -183,6 +204,7 @@ export default {
   ReferralSchemas,
   TenantSchemas,
   WalletSchemas,
+  InboxSchemas,
   AdminSchemas,
   PlatformAdminSchemas,
 };

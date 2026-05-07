@@ -12,6 +12,7 @@ import { inboxManager } from '../inbox/index.js';
 import { campaignManager } from '../campaigns/index.js';
 import { createWalletManager, getWalletManager } from '../wallet/index.js';
 import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.js';
+import { parseBodyWithValidation, WalletSchemas, InboxSchemas } from '../../middleware/validation.mjs';
 
 const walletManager = createWalletManager(supabase);
 
@@ -3040,10 +3041,13 @@ async function handleInboxRoute(req, res, url) {
     // POST /api/inbox/send/:instanceId
     if (pathParts[2] === 'send' && req.method === 'POST') {
       const instanceId = pathParts[3];
-      if (!tenantId) return createResponse(res, 400, { error: 'Tenant ID required' });
-      const body = await parseBody(req);
-      const result = await inboxManager.sendMessage(instanceId, tenantId, body.recipient, body.content, body.type);
-      return createResponse(res, 200, result);
+      const validation = await parseBodyWithValidation(req, InboxSchemas.sendMessage);
+      if (!validation.success) {
+        return createResponse(res, 400, { error: validation.error, details: validation.details }, req);
+      }
+      const { recipient, content, type } = validation.data;
+      const result = await inboxManager.sendMessage(instanceId, tenant.id, recipient, content, type);
+      return createResponse(res, 200, result, req);
     }
     
     createResponse(res, 404, { error: 'Inbox endpoint not found' });
@@ -3317,14 +3321,16 @@ async function handleAuthenticatedWalletRoute(req, res, url) {
     if (pathParts[2] === 'add-credits' && req.method === 'POST') {
       // Only allow admin/super-admin to add credits
       if (authResult.userRole !== 'admin' && authResult.userRole !== 'super_admin') {
-        return createResponse(res, 403, { error: 'Insufficient permissions to add credits' });
+        return createResponse(res, 403, { error: 'Insufficient permissions to add credits' }, req);
       }
-      const body = await parseBody(req);
-      const amount = Number(body.amount);
-      if (isNaN(amount)) return createResponse(res, 400, { error: 'Invalid amount' });
+      const validation = await parseBodyWithValidation(req, WalletSchemas.addCreditsAuthenticated);
+      if (!validation.success) {
+        return createResponse(res, 400, { error: validation.error, details: validation.details }, req);
+      }
+      const { amount, description } = validation.data;
 
-      const newBalance = await walletManager.addCredits(tenant.id, amount, body.description);
-      return createResponse(res, 200, { balance: newBalance, tenantId: tenant.id });
+      const newBalance = await walletManager.addCredits(tenant.id, amount, description);
+      return createResponse(res, 200, { balance: newBalance, tenantId: tenant.id }, req);
     }
 
     createResponse(res, 404, { error: 'Wallet endpoint not found' });
