@@ -13,8 +13,10 @@ import { campaignManager } from '../campaigns/index.js';
 import { createWalletManager, getWalletManager } from '../wallet/index.js';
 import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.js';
 import { parseBodyWithValidation, WalletSchemas, InboxSchemas } from '../../middleware/validation.mjs';
+import { getPubSubClient, TOPICS } from '../a2a-gateway/config.js';
 
 const walletManager = createWalletManager(supabase);
+const pubSubClient = getPubSubClient();
 
 // Simple in-memory rate limiter
 class RateLimiter {
@@ -65,6 +67,23 @@ setInterval(() => {
   walletLimiter.cleanup();
   inboxLimiter.cleanup();
 }, 5 * 60 * 1000);
+
+// Publish notification event to Pub/Sub
+async function publishNotificationEvent(eventType, payload) {
+  try {
+    const topic = pubSubClient.topic(TOPICS.NOTIFICATIONS);
+    const message = {
+      type: eventType,
+      timestamp: new Date().toISOString(),
+      payload
+    };
+
+    const messageBuffer = Buffer.from(JSON.stringify(message));
+    await topic.publish(messageBuffer);
+  } catch (error) {
+    console.error(`[NotificationEvent] Failed to publish ${eventType}:`, error);
+  }
+}
 
 const HOST = process.env.WARMUP_RUNTIME_HOST || "0.0.0.0";
 const PORT = Number(process.env.WARMUP_RUNTIME_PORT || process.env.PORT || 8787);
@@ -3188,6 +3207,17 @@ async function handleCampaignRoute(req, res, url) {
         return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
       }
       const success = await campaignManager.launchCampaign(campaignId);
+
+      if (success) {
+        await publishNotificationEvent('campaign_launched', {
+          userId: campaign.createdBy,
+          tenantId: campaign.tenantId,
+          campaignId: campaign.id,
+          campaignName: campaign.name,
+          count: campaign.totalCount || 0
+        });
+      }
+
       return createResponse(res, 200, { success, campaignId });
     }
 
@@ -3202,6 +3232,16 @@ async function handleCampaignRoute(req, res, url) {
         return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
       }
       const success = await campaignManager.pauseCampaign(campaignId);
+
+      if (success) {
+        await publishNotificationEvent('campaign_paused', {
+          userId: campaign.createdBy,
+          tenantId: campaign.tenantId,
+          campaignId: campaign.id,
+          campaignName: campaign.name
+        });
+      }
+
       return createResponse(res, 200, { success, campaignId });
     }
 
@@ -3216,6 +3256,16 @@ async function handleCampaignRoute(req, res, url) {
         return createResponse(res, 403, { error: 'Unauthorized access to campaign' });
       }
       const success = await campaignManager.stopCampaign(campaignId);
+
+      if (success) {
+        await publishNotificationEvent('campaign_stopped', {
+          userId: campaign.createdBy,
+          tenantId: campaign.tenantId,
+          campaignId: campaign.id,
+          campaignName: campaign.name
+        });
+      }
+
       return createResponse(res, 200, { success, campaignId });
     }
     
