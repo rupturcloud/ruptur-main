@@ -33,6 +33,7 @@ import * as billingRoutes from './routes-billing.mjs';
 import * as notificationRoutes from './routes-notifications.mjs';
 import { handleUserRoutes } from './routes-users.mjs';
 import { handleAdminTenantRoutes } from './routes-admin-tenants.mjs';
+import * as instanceRoutes from './routes-instances.mjs';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import {
@@ -1635,6 +1636,51 @@ async function handler(req, res) {
 
     req.user = user;
     return handleUserRoutes(req, res);
+  }
+
+  // --- Instances: Gerenciamento de instâncias WhatsApp ---
+  if (pathname === '/api/instances' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    req.user = user;
+    return instanceRoutes.getInstances(req, res, json, supabase);
+  }
+
+  if (pathname === '/api/instances' && req.method === 'POST') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    const body = await parseBody(req);
+    req.user = user;
+    req.body = body;
+    return instanceRoutes.createInstance(req, res, json, supabase);
+  }
+
+  const instanceConnectMatch = pathname.match(/^\/api\/instances\/([^/]+)\/connect$/);
+  if (instanceConnectMatch && req.method === 'POST') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    const body = await parseBody(req);
+    req.user = user;
+    req.body = body;
+    req.params = { key: instanceConnectMatch[1] };
+    return instanceRoutes.connectInstance(req, res, json, supabase);
+  }
+
+  const instanceStatusMatch = pathname.match(/^\/api\/instances\/([^/]+)\/status$/);
+  if (instanceStatusMatch && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    req.user = user;
+    req.params = { key: instanceStatusMatch[1] };
+    return instanceRoutes.getInstanceStatus(req, res, json, supabase);
   }
 
   // --- Admin: Configuração de Tenants ---
