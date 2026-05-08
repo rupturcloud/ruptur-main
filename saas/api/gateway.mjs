@@ -35,6 +35,7 @@ import { handleUserRoutes } from './routes-users.mjs';
 import { handleAdminTenantRoutes } from './routes-admin-tenants.mjs';
 import * as instanceRoutes from './routes-instances.mjs';
 import * as bubbleRoutes from './routes-bubble.mjs';
+import { handleMessageRoutes } from './routes-messages.mjs';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import {
@@ -1773,6 +1774,20 @@ async function handler(req, res) {
     }
   }
 
+  // --- Messages: Sistema de Mensageria UAZAPI ---
+  // POST /api/messages/send - Enviar mensagem
+  if (pathname === '/api/messages/send' && req.method === 'POST') {
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+    const body = await parseBody(req);
+    return handleMessageRoutes(req, res, json, supabase, body);
+  }
+
+  // GET /api/messages - Listar mensagens de um chat
+  if (pathname === '/api/messages' && req.method === 'GET') {
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+    return handleMessageRoutes(req, res, json, supabase);
+  }
+
   // --- Bubble: Integração com Inbox ---
   // POST /api/bubble/token - Gera token para Bubble (requer autenticação)
   if (pathname === '/api/bubble/token' && req.method === 'POST') {
@@ -1785,7 +1800,8 @@ async function handler(req, res) {
     const body = await parseBody(req);
     // Se tem event + instance_id no body → webhook UAZAPI
     if (body && body.event && body.instance_id) {
-      return bubbleRoutes.handleUAZAPIWebhook(req, res, json, body);
+      if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+      return bubbleRoutes.handleUAZAPIWebhook(req, res, json, body, supabase);
     }
     // Se tem X-Token header → validação de token Bubble
     if (req.headers['x-token']) {
@@ -1812,7 +1828,7 @@ async function handler(req, res) {
   }
 
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications') && !pathname.startsWith('/api/users') && !pathname.startsWith('/api/bubble') && !pathname.startsWith('/api/instances')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications') && !pathname.startsWith('/api/users') && !pathname.startsWith('/api/bubble') && !pathname.startsWith('/api/instances') && !pathname.startsWith('/api/messages')) {
     // Proxy para o Warmup Manager existente
     try {
       const proxyUrl = `${WARMUP_URL}${pathname}${url.search}`;

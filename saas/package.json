@@ -45,6 +45,7 @@
     "@supabase/supabase-js": "^2.105.3",
     "bull": "^4.16.5",
     "dotenv": "^17.4.2",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "redis": "^5.12.1",
     "stripe": "^22.1.0",

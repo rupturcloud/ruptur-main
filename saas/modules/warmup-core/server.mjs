@@ -14,6 +14,7 @@ import { createWalletManager, getWalletManager } from '../wallet/index.js';
 import { requireAuth, requireTenant, parseBody, supabase } from '../auth/index.js';
 import { parseBodyWithValidation, WalletSchemas, InboxSchemas } from '../../middleware/validation.mjs';
 import { getPubSubClient, TOPICS } from '../a2a-gateway/config.js';
+import * as bubbleRoutes from '../../api/routes-bubble.mjs';
 
 const walletManager = createWalletManager(supabase);
 const pubSubClient = getPubSubClient();
@@ -2976,6 +2977,28 @@ function resolveManualActor(payload = {}) {
   return actor || "Operador local";
 }
 
+// Bubble Route Handler
+async function handleBubbleRoute(req, res, url) {
+  try {
+    // Parse body for POST requests
+    let body = null;
+    if (req.method === 'POST') {
+      body = await parseBody(req);
+    }
+
+    // Create a json wrapper function compatible with routes-bubble.mjs
+    const json = (res, statusCode, payload, reqObj) => {
+      return createResponse(res, statusCode, payload, reqObj);
+    };
+
+    // Delegate to the Bubble routes handler
+    return bubbleRoutes.handleBubbleRoutes(req, res, json, supabase, body);
+  } catch (error) {
+    console.error('[Bubble API] Error:', error.message);
+    return createResponse(res, 500, { error: error.message, success: false }, req);
+  }
+}
+
 // Inbox Route Handler
 // Wallet Route Handler
 async function handleWalletRoute(req, res, url) {
@@ -3952,6 +3975,10 @@ const server = http.createServer(async (req, res) => {
       return createResponse(res, 200, { received: true });
     }
 
+    // Bubble Integration Routes (Webhooks + Token Validation)
+    if (normalizedPathname.startsWith("/api/bubble/")) {
+      return handleBubbleRoute(req, res, url);
+    }
 
     // Authenticated Inbox API Routes (REQUIRES JWT + TENANT)
     if (normalizedPathname.startsWith("/api/inbox/")) {
