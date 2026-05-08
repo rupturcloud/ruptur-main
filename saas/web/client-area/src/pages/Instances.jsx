@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Loader2,
@@ -13,6 +13,7 @@ import { apiService } from '../services/api';
 import Toast from '../components/Toast';
 import QRScanner from '../components/QRScanner';
 import { formatError } from '../utils/errorHelper';
+import { useInstancesRealtime } from '../hooks/useInstancesRealtime';
 
 function getInstanceKey(instance) {
   return instance?.token || instance?.id || instance?.name;
@@ -33,8 +34,7 @@ function getStatusClass(instance) {
 }
 
 export default function Instances() {
-  const [instances, setInstances] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { instances, loading, reload: loadInstances } = useInstancesRealtime();
   const [saving, setSaving] = useState(false);
   const [connectingKey, setConnectingKey] = useState('');
   const [toast, setToast] = useState(null);
@@ -48,23 +48,6 @@ export default function Instances() {
     const connecting = instances.filter((instance) => getStatusClass(instance) === 'connecting').length;
     return { connected, connecting, total: instances.length };
   }, [instances]);
-
-  async function loadInstances({ silent = false } = {}) {
-    if (!silent) setLoading(true);
-    try {
-      const data = await apiService.getInstances();
-      const list = Array.isArray(data) ? data : (data.instances || data.data || []);
-      setInstances(list);
-    } catch (err) {
-      setToast({ type: 'error', message: formatError(err, 'instance') });
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    Promise.resolve().then(() => loadInstances());
-  }, []);
 
   async function handleCreate(event) {
     event.preventDefault();
@@ -86,7 +69,7 @@ export default function Instances() {
 
       const key = getInstanceKey(instance);
       if (key) {
-        await handleConnect(instance, { phone: form.phone, refreshList: true });
+        await handleConnect(instance, { phone: form.phone });
       }
     } catch (err) {
       setToast({ type: 'error', message: formatError(err, 'instance') });
@@ -105,7 +88,6 @@ export default function Instances() {
       const result = await apiService.connectInstance(key, phone ? { phone } : {});
       setConnectionPayload({ ...result, instance: result.instance || instance });
       setToast({ type: 'success', message: phone ? 'Código de pareamento solicitado.' : 'QR code solicitado. Escaneie no WhatsApp para conectar.' });
-      if (options.refreshList !== false) await loadInstances({ silent: true });
     } catch (err) {
       setToast({ type: 'error', message: formatError(err, 'instance') });
     } finally {
@@ -120,7 +102,6 @@ export default function Instances() {
     try {
       const result = await apiService.getInstanceStatus(key);
       setConnectionPayload({ ...result, instance: result.instance || instance });
-      await loadInstances({ silent: true });
     } catch (err) {
       setToast({ type: 'error', message: formatError(err, 'instance') });
     } finally {
