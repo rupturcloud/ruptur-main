@@ -100,7 +100,7 @@ export async function createInstance(req, res, json, supabase) {
       .select('id, server_url, account_kind, used_instances, capacity_instances, status')
       .eq('provider', PROVIDER)
       .eq('status', 'active')
-      .gte('capacity_instances', supabase.raw('COALESCE(used_instances, 0) + 1'))
+      .order('capacity_instances', { ascending: false })
       .limit(1);
 
     if (paError) throw paError;
@@ -111,6 +111,14 @@ export async function createInstance(req, res, json, supabase) {
     }
 
     const account = providerAccounts[0];
+    const usedInstances = Number(account.used_instances || 0);
+    const capacity = Number(account.capacity_instances || 0);
+
+    if (capacity > 0 && usedInstances >= capacity) {
+      return json
+        ? json(res, 503, { error: 'Provider account capacity exceeded. Please contact support.' }, req)
+        : res.status(503).json({ error: 'Provider account capacity exceeded. Please contact support.' });
+    }
     const adapter = createUazapiAdapter({ serverUrl: account.server_url || DEFAULT_SERVER_URL });
 
     // Criar instância na UazAPI
