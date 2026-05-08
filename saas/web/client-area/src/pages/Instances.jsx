@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/api';
 import Toast from '../components/Toast';
+import QRScanner from '../components/QRScanner';
 import { formatError } from '../utils/errorHelper';
 
 function getInstanceKey(instance) {
@@ -39,6 +40,8 @@ export default function Instances() {
   const [toast, setToast] = useState(null);
   const [connectionPayload, setConnectionPayload] = useState(null);
   const [form, setForm] = useState({ name: '', phone: '' });
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scannerInstance, setScannerInstance] = useState(null);
 
   const totals = useMemo(() => {
     const connected = instances.filter((instance) => getStatusClass(instance) === 'connected').length;
@@ -123,6 +126,23 @@ export default function Instances() {
     } finally {
       setConnectingKey('');
     }
+  }
+
+  function openQRScanner(instance) {
+    setScannerInstance(instance);
+    setShowQRScanner(true);
+  }
+
+  async function handleQRScanned() {
+    setShowQRScanner(false);
+    setToast({ type: 'success', message: 'QR code detectado! Conectando...' });
+
+    // Se o valor for um token de instância, conectar automaticamente
+    if (scannerInstance) {
+      await handleConnect(scannerInstance, { refreshList: true });
+    }
+
+    setScannerInstance(null);
   }
 
   const qrCode = connectionPayload?.instance?.qrcode || connectionPayload?.qrcode;
@@ -210,6 +230,7 @@ export default function Instances() {
                   <div className="row-actions">
                     <button onClick={() => refreshStatus(instance)} disabled={busy}>{busy ? <Loader2 className="spin" size={15} /> : <RefreshCw size={15} />} Status</button>
                     <button onClick={() => handleConnect(instance)} disabled={busy || statusClass === 'connected'}>{busy ? <Loader2 className="spin" size={15} /> : <QrCode size={15} />} Conectar</button>
+                    <button onClick={() => openQRScanner(instance)} disabled={busy || statusClass === 'connected'} title="Escanear QR code com câmera">{busy ? <Loader2 className="spin" size={15} /> : <QrCode size={15} />} Escanear</button>
                   </div>
                 </article>
               );
@@ -219,6 +240,14 @@ export default function Instances() {
       </section>
 
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
+
+      {showQRScanner && (
+        <QRScanner
+          title={`Escanear QR Code — ${scannerInstance?.name || 'Instância'}`}
+          onScanned={handleQRScanned}
+          onClose={() => setShowQRScanner(false)}
+        />
+      )}
 
       <style>{`
         .instances-page { display: flex; flex-direction: column; gap: 24px; }

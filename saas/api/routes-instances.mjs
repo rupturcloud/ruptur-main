@@ -6,6 +6,7 @@
  */
 
 import { createUazapiAdapter } from '../modules/provider-adapter/uazapi-adapter.js';
+import { decryptSecret } from '../modules/providers/uazapi-account.service.js';
 
 const PROVIDER = 'uazapi';
 const DEFAULT_SERVER_URL = 'https://free.uazapi.com';
@@ -219,7 +220,7 @@ export async function connectInstance(req, res, json, supabase) {
     // Buscar conta do provider
     const { data: account, error: accError } = await supabase
       .from('provider_accounts')
-      .select('id, server_url, status')
+      .select('id, server_url, admin_token_enc, status')
       .eq('id', instance.provider_account_id)
       .single();
 
@@ -229,15 +230,18 @@ export async function connectInstance(req, res, json, supabase) {
         : res.status(500).json({ error: 'Provider account not found' });
     }
 
-    // Chamar UazAPI para conectar e obter QR code
-    const adapter = createUazapiAdapter({ serverUrl: account.server_url || DEFAULT_SERVER_URL });
-    const result = await adapter.connectInstance(instance.remote_instance_id, phone ? { phone } : {});
+    // Chamar UazAPI para obter QR code
+    const adapter = createUazapiAdapter({ serverUrl: account.server_url || DEFAULT_SERVER_URL, adminToken: decryptSecret(account.admin_token_enc) });
+    const result = await adapter.getInstance(instance.remote_instance_id);
 
     // Salvar phone se fornecido
     if (phone) {
       await supabase
         .from('instance_registry')
-        .update({ metadata: { phone } })
+        .update({
+          metadata: { phone },
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', instance.id)
         .catch(() => null);
     }
@@ -256,8 +260,8 @@ export async function connectInstance(req, res, json, supabase) {
       .catch(() => null);
 
     return json
-      ? json(res, 200, { qrcode: result.qrcode, paircode: result.paircode, instance: { name: instance.instance_name, id: instance.id } }, req)
-      : res.json({ qrcode: result.qrcode, paircode: result.paircode, instance: { name: instance.instance_name, id: instance.id } });
+      ? json(res, 200, { qrcode: result.qrcode, paircode: result.paircode, status: result.status, instance: { name: instance.instance_name, id: instance.id } }, req)
+      : res.json({ qrcode: result.qrcode, paircode: result.paircode, status: result.status, instance: { name: instance.instance_name, id: instance.id } });
   } catch (err) {
     return json ? json(res, 500, { error: err.message }, req) : res.status(500).json({ error: err.message });
   }
@@ -298,7 +302,7 @@ export async function getInstanceStatus(req, res, json, supabase) {
     // Buscar conta do provider
     const { data: account, error: accError } = await supabase
       .from('provider_accounts')
-      .select('server_url')
+      .select('server_url, admin_token_enc')
       .eq('id', instance.provider_account_id)
       .single();
 
@@ -309,8 +313,8 @@ export async function getInstanceStatus(req, res, json, supabase) {
     }
 
     // Chamar UazAPI para obter status
-    const adapter = createUazapiAdapter({ serverUrl: account.server_url || DEFAULT_SERVER_URL });
-    const statusData = await adapter.getInstanceStatus(instance.remote_instance_id);
+    const adapter = createUazapiAdapter({ serverUrl: account.server_url || DEFAULT_SERVER_URL, adminToken: decryptSecret(account.admin_token_enc) });
+    const statusData = await adapter.getInstance(instance.remote_instance_id);
 
     // Normalizar resposta
     const normalized = {
@@ -337,6 +341,7 @@ export async function getInstanceStatus(req, res, json, supabase) {
           lastStatusCheck: new Date().toISOString(),
         },
         last_seen_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq('id', instance.id)
       .catch(() => null);
@@ -349,9 +354,141 @@ export async function getInstanceStatus(req, res, json, supabase) {
   }
 }
 
+/**
+ * DELETE /api/instances/{key}
+ * Deletar instância (soft-delete)
+ */
+export async function deleteInstance(req, res, json, supabase) {
+  try {
+    const userId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    const instanceKey = req.params.key || req.query.key;
+
+    if (!userId || !tenantId) {
+      return json ? json(res, 400, { error: 'Missing userId or tenantId' }, req) : res.status(400).json({ error: 'Missing userId or tenantId' });
+    }
+
+    if (!instanceKey) {
+      return json ? json(res, 400, { error: 'Instance key is required' }, req) : res.status(400).json({ error: 'Instance key is required' });
+    }
+
+    // Buscar instância do tenant
+    const { data: instance, error: instError } = await supabase
+      .from('instance_registry')
+      .select('id, instance_name')
+      .eq('tenant_id', tenantId)
+      .or(`remote_instance_id.eq.${instanceKey},id.eq.${instanceKey}`)
+      .single();
+
+    if (instError || !instance) {
+      return json
+        ? json(res, 404, { error: 'Instance not found' }, req)
+        : res.status(404).json({ error: 'Instance not found' });
+    }
+
+    // Deletar (soft-delete com status deleted)
+    const { error: deleteError } = await supabase
+      .from('instance_registry')
+      .update({
+        status: 'deleted',
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', instance.id);
+
+    if (deleteError) throw deleteError;
+
+    // Registrar evento
+    await supabase
+      .from('audit_logs')
+      .insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        action: 'instance_deleted',
+        resource_type: 'instance',
+        resource_id: instance.id,
+        details: { name: instance.instance_name },
+      })
+      .catch(() => null);
+
+    return json
+      ? json(res, 200, { success: true, id: instance.id }, req)
+      : res.json({ success: true, id: instance.id });
+  } catch (err) {
+    return json ? json(res, 500, { error: err.message }, req) : res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * PATCH /api/instances/{key}
+ * Atualizar instância (nome, etc)
+ */
+export async function updateInstance(req, res, json, supabase) {
+  try {
+    const userId = req.user?.id;
+    const tenantId = req.user?.tenantId;
+    const instanceKey = req.params.key || req.query.key;
+    const { name } = req.body || {};
+
+    if (!userId || !tenantId) {
+      return json ? json(res, 400, { error: 'Missing userId or tenantId' }, req) : res.status(400).json({ error: 'Missing userId or tenantId' });
+    }
+
+    if (!instanceKey) {
+      return json ? json(res, 400, { error: 'Instance key is required' }, req) : res.status(400).json({ error: 'Instance key is required' });
+    }
+
+    // Buscar instância do tenant
+    const { data: instance, error: instError } = await supabase
+      .from('instance_registry')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .or(`remote_instance_id.eq.${instanceKey},id.eq.${instanceKey}`)
+      .single();
+
+    if (instError || !instance) {
+      return json
+        ? json(res, 404, { error: 'Instance not found' }, req)
+        : res.status(404).json({ error: 'Instance not found' });
+    }
+
+    const updates = {};
+    if (name) updates.instance_name = String(name).trim();
+    updates.updated_at = new Date().toISOString();
+
+    const { error: updateError } = await supabase
+      .from('instance_registry')
+      .update(updates)
+      .eq('id', instance.id);
+
+    if (updateError) throw updateError;
+
+    // Registrar evento
+    await supabase
+      .from('audit_logs')
+      .insert({
+        tenant_id: tenantId,
+        user_id: userId,
+        action: 'instance_updated',
+        resource_type: 'instance',
+        resource_id: instance.id,
+        details: { name },
+      })
+      .catch(() => null);
+
+    return json
+      ? json(res, 200, { success: true, id: instance.id }, req)
+      : res.json({ success: true, id: instance.id });
+  } catch (err) {
+    return json ? json(res, 500, { error: err.message }, req) : res.status(500).json({ error: err.message });
+  }
+}
+
 export default {
   getInstances,
   createInstance,
   connectInstance,
   getInstanceStatus,
+  deleteInstance,
+  updateInstance,
 };

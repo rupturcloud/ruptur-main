@@ -1683,6 +1683,30 @@ async function handler(req, res) {
     return instanceRoutes.getInstanceStatus(req, res, json, supabase);
   }
 
+  const instanceDeleteMatch = pathname.match(/^\/api\/instances\/([^/]+)$/);
+  if (instanceDeleteMatch && req.method === 'DELETE') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    req.user = user;
+    req.params = { key: instanceDeleteMatch[1] };
+    return instanceRoutes.deleteInstance(req, res, json, supabase);
+  }
+
+  const instanceUpdateMatch = pathname.match(/^\/api\/instances\/([^/]+)$/);
+  if (instanceUpdateMatch && req.method === 'PATCH') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    const body = await parseBody(req);
+    req.user = user;
+    req.body = body;
+    req.params = { key: instanceUpdateMatch[1] };
+    return instanceRoutes.updateInstance(req, res, json, supabase);
+  }
+
   // --- Admin: Configuração de Tenants ---
   if (pathname.startsWith('/api/admin/tenants') && pathname.includes('/settings')) {
     const user = await extractUser(req);
