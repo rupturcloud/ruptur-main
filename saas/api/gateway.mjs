@@ -34,6 +34,7 @@ import * as notificationRoutes from './routes-notifications.mjs';
 import { handleUserRoutes } from './routes-users.mjs';
 import { handleAdminTenantRoutes } from './routes-admin-tenants.mjs';
 import * as instanceRoutes from './routes-instances.mjs';
+import * as bubbleRoutes from './routes-bubble.mjs';
 import TenantService from '../modules/tenants/service.js';
 import { extractAndValidateTenantId } from '../middleware/tenant-security.mjs';
 import {
@@ -1773,19 +1774,15 @@ async function handler(req, res) {
   }
 
   // --- Bubble: Integração com Inbox ---
-  // GET/POST /api/bubble/token - Gera token para Bubble (requer autenticação)
-  if (pathname === '/api/bubble/token') {
-    const user = await extractUser(req);
-    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+  // POST /api/bubble/token - Gera token para Bubble (requer autenticação)
+  if (pathname === '/api/bubble/token' && req.method === 'POST') {
     if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
-
-    req.user = user;
-    return json(res, 501, { error: 'Bubble integration not yet implemented' }, req);
+    return bubbleRoutes.handleBubbleToken(req, res, json, supabase);
   }
 
   // POST /api/bubble/validate - Valida token (chamado por Bubble, sem auth)
   if (pathname === '/api/bubble/validate' && req.method === 'POST') {
-    return json(res, 501, { error: 'Bubble integration not yet implemented' }, req);
+    return bubbleRoutes.handleBubbleValidate(req, res, json);
   }
 
   // --- Health local do gateway SaaS ---
