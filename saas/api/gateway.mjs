@@ -1748,6 +1748,22 @@ async function handler(req, res) {
     }
   }
 
+  // --- Bubble: Integração com Inbox ---
+  // GET/POST /api/bubble/token - Gera token para Bubble (requer autenticação)
+  if (pathname === '/api/bubble/token') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    if (!supabase) return json(res, 503, { error: 'Supabase não configurado' }, req);
+
+    req.user = user;
+    return json(res, 501, { error: 'Bubble integration not yet implemented' }, req);
+  }
+
+  // POST /api/bubble/validate - Valida token (chamado por Bubble, sem auth)
+  if (pathname === '/api/bubble/validate' && req.method === 'POST') {
+    return json(res, 501, { error: 'Bubble integration not yet implemented' }, req);
+  }
+
   // --- Health local do gateway SaaS ---
   if (pathname === '/api/local/health' && req.method === 'GET') {
     return json(res, 200, {
@@ -1765,7 +1781,7 @@ async function handler(req, res) {
   }
 
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications') && !pathname.startsWith('/api/users')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications') && !pathname.startsWith('/api/users') && !pathname.startsWith('/api/bubble') && !pathname.startsWith('/api/instances')) {
     // Proxy para o Warmup Manager existente
     try {
       const proxyUrl = `${WARMUP_URL}${pathname}${url.search}`;
