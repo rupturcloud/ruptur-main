@@ -3,7 +3,9 @@
  * Gerencia autenticação e token para Bubble Inbox dentro de Ruptur
  *
  * POST /api/bubble/token - Gera token JWT para acesso ao Bubble
- * POST /api/bubble/validate - Valida token gerado por Ruptur
+ * POST /api/bubble/validate - Valida token OU webhook UAZAPI
+ *   - Com X-Token header: validação de token Bubble
+ *   - Com body {event, instance_id}: webhook UAZAPI
  */
 
 /**
@@ -152,9 +154,48 @@ export async function handleBubbleValidate(req, res, json) {
 }
 
 /**
- * Router principal para rotas Bubble
+ * POST /api/bubble/validate
+ * Handler para webhooks UAZAPI (message.received, instance.connected, etc)
+ *
+ * Body:
+ * {
+ *   "event": "message.received",
+ *   "instance_id": "...",
+ *   "data": { "sender": "...", "message": "...", ... }
+ * }
+ *
+ * Response: { "ok": true }
  */
-export async function handleBubbleRoutes(req, res, json, supabase) {
+export async function handleUAZAPIWebhook(req, res, json, body) {
+  try {
+    const { event, instance_id, data } = body || {};
+
+    if (!event || !instance_id) {
+      console.warn('[UAZAPI Webhook] Payload incompleto:', body);
+      return json(res, 400, { error: 'event e instance_id obrigatórios' }, req);
+    }
+
+    console.log(`[UAZAPI Webhook] ${event} | instance: ${instance_id} | data:`, JSON.stringify(data, null, 2));
+
+    // Todos os eventos são logados e processáveis
+    // TODO: Implementar handlers específicos por tipo de evento:
+    // - message.received → criar msg na Bubble
+    // - instance.connected → atualizar status
+    // - instance.disconnected → atualizar status
+    // - presence.changed → atualizar online/offline
+
+    return json(res, 200, { ok: true, event, instance_id }, req);
+
+  } catch (error) {
+    console.error('[UAZAPI Webhook] Erro ao processar:', error);
+    return json(res, 500, { error: error.message }, req);
+  }
+}
+
+/**
+ * Router principal para rotas Bubble + webhooks UAZAPI
+ */
+export async function handleBubbleRoutes(req, res, json, supabase, body) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
   const { method } = req;
@@ -166,7 +207,21 @@ export async function handleBubbleRoutes(req, res, json, supabase) {
 
   // POST /api/bubble/validate
   if (method === 'POST' && pathname === '/api/bubble/validate') {
-    return handleBubbleValidate(req, res, json);
+    // Se tem X-Token header → validação de token
+    // Se tem event no body → webhook UAZAPI
+    const hasTokenHeader = req.headers['x-token'];
+    const isWebhook = body && body.event && body.instance_id;
+
+    if (isWebhook) {
+      return handleUAZAPIWebhook(req, res, json, body);
+    }
+
+    if (hasTokenHeader) {
+      return handleBubbleValidate(req, res, json);
+    }
+
+    // Sem token header nem webhook → 400
+    return json(res, 400, { error: 'Envie X-Token header ou webhook com event/instance_id' }, req);
   }
 
   return json(res, 404, { error: 'Rota Bubble não encontrada' }, req);

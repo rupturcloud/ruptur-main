@@ -1780,9 +1780,19 @@ async function handler(req, res) {
     return bubbleRoutes.handleBubbleToken(req, res, json, supabase);
   }
 
-  // POST /api/bubble/validate - Valida token (chamado por Bubble, sem auth)
+  // POST /api/bubble/validate - Valida token OU recebe webhook UAZAPI
   if (pathname === '/api/bubble/validate' && req.method === 'POST') {
-    return bubbleRoutes.handleBubbleValidate(req, res, json);
+    const body = await parseBody(req);
+    // Se tem event + instance_id no body → webhook UAZAPI
+    if (body && body.event && body.instance_id) {
+      return bubbleRoutes.handleUAZAPIWebhook(req, res, json, body);
+    }
+    // Se tem X-Token header → validação de token Bubble
+    if (req.headers['x-token']) {
+      return bubbleRoutes.handleBubbleValidate(req, res, json);
+    }
+    // Sem tokens nem webhook → erro
+    return json(res, 400, { error: 'Envie X-Token header ou webhook UAZAPI' }, req);
   }
 
   // --- Health local do gateway SaaS ---
