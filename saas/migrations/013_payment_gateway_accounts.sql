@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS payment_gateway_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   provider TEXT NOT NULL
-    CHECK (provider IN ('getnet', 'cakto')),
+    CHECK (provider IN ('getnet', 'cakto', 'stripe', 'mercado_pago')),
 
   label TEXT NOT NULL,
   environment TEXT NOT NULL DEFAULT 'production'

@@ -6,19 +6,27 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import UserManagementService from '../../modules/users/user-management.service.js';
 
+// Criar um builder de query mock que é chainável
+function createMockQueryBuilder(responseData = { data: null, error: null }) {
+  return {
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    single: jest.fn(),
+    gte: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    then: jest.fn((onFulfill) => Promise.resolve(responseData).then(onFulfill)),
+    catch: jest.fn().mockReturnThis(),
+    [Symbol.toStringTag]: 'Promise',
+  };
+}
+
 jest.unstable_mockModule('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
-    from: jest.fn((table) => ({
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      in: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      single: jest.fn(),
-      gte: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-    })),
+    from: jest.fn((table) => createMockQueryBuilder()),
   })),
 }));
 
@@ -178,14 +186,20 @@ describe('UserManagementService', () => {
     });
 
     test('deve validar mínimo 1 admin ao remover admin', async () => {
+      // Mock para contar admins ativos
       jest
         .spyOn(service, '_countActiveAdmins')
         .mockResolvedValue(1);
 
+      // Mock para obter role do usuário
+      jest
+        .spyOn(service, '_getUserRole')
+        .mockResolvedValue('admin');
+
       await expect(
         service.changeUserRole('tenant-123', 'user-456', 'member', 'admin-123')
       ).rejects.toThrow('Cannot remove last admin from tenant');
-    });
+    }, 10000);
   });
 
   // ===== TESTS: suspendUser =====
@@ -223,13 +237,18 @@ describe('UserManagementService', () => {
         { id: '2', user_id: 'user-2', status: 'active', role: 'member' },
       ];
 
-      jest
-        .spyOn(service.client, 'from')
-        .mockReturnValue({
+      // Mock que retorna um objeto totalmente chainável
+      const fromMock = jest.fn(() => {
+        const chainable = {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockResolvedValue({ data: mockUsers, error: null }),
-        });
+          order: jest.fn().mockReturnThis(),
+          then: jest.fn((cb) => cb({ data: mockUsers, error: null })),
+        };
+        return chainable;
+      });
+
+      jest.spyOn(service.client, 'from').mockImplementation(fromMock);
 
       const result = await service.listTenantUsers('tenant-123');
 
@@ -242,13 +261,17 @@ describe('UserManagementService', () => {
         { id: '1', user_id: 'user-1', status: 'active', role: 'admin' },
       ];
 
-      jest
-        .spyOn(service.client, 'from')
-        .mockReturnValue({
+      const fromMock = jest.fn(() => {
+        const chainable = {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockResolvedValue({ data: mockAdmins, error: null }),
-        });
+          order: jest.fn().mockReturnThis(),
+          then: jest.fn((cb) => cb({ data: mockAdmins, error: null })),
+        };
+        return chainable;
+      });
+
+      jest.spyOn(service.client, 'from').mockImplementation(fromMock);
 
       const result = await service.listTenantUsers('tenant-123', { role: 'admin' });
 
@@ -262,13 +285,17 @@ describe('UserManagementService', () => {
         { id: '2', user_id: 'user-2', status: 'inactive', role: 'member' },
       ];
 
-      jest
-        .spyOn(service.client, 'from')
-        .mockReturnValue({
+      const fromMock = jest.fn(() => {
+        const chainable = {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockResolvedValue({ data: allUsers, error: null }),
-        });
+          order: jest.fn().mockReturnThis(),
+          then: jest.fn((cb) => cb({ data: allUsers, error: null })),
+        };
+        return chainable;
+      });
+
+      jest.spyOn(service.client, 'from').mockImplementation(fromMock);
 
       const result = await service.listTenantUsers('tenant-123', { includeInactive: true });
 

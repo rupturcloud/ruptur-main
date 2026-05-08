@@ -17,10 +17,10 @@ export default {
   coverageProvider: 'v8',
   coverageThreshold: {
     global: {
-      branches: 0,
-      functions: 0,
-      lines: 0,
-      statements: 0,
+      branches: 60,
+      functions: 70,
+      lines: 75,
+      statements: 75,
     },
   },
   transform: {},

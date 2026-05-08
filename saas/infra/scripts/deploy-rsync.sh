@@ -137,7 +137,9 @@ main() {
 
         # Check if migration script exists
         if [ -f 'scripts/apply-migration-pg.mjs' ]; then
-            node scripts/apply-migration-pg.mjs || log_warning 'Migrations skipped'
+            if ! node scripts/apply-migration-pg.mjs; then
+                echo 'Migrações falharam - mas continuando (não são críticas)'
+            fi
         fi
     " || log_warning "Nenhuma migração a executar"
     log_success "Migrações completas"

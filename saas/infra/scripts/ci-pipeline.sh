@@ -22,88 +22,134 @@ BUILD_NUMBER=${GITHUB_RUN_NUMBER:-local}
 log_info() { echo -e "${BLUE}[CI]${NC} $1"; }
 log_success() { echo -e "${GREEN}[CI]${NC} $1"; }
 log_error() { echo -e "${RED}[CI]${NC} $1"; }
+log_warning() { echo -e "${YELLOW}[CI]${NC} $1"; }
+
+# Error handler
+trap 'handle_error' ERR
+
+handle_error() {
+    log_error "PIPELINE FALHOU!"
+    log_error "Build #$BUILD_NUMBER falhou na execução"
+    exit 1
+}
 
 # Etapas do CI
 lint_code() {
     log_info "Executando lint..."
-    
+
     # JavaScript/Node.js
     if [ -f "package.json" ]; then
-        npm run lint || log_warning "Lint falhou, mas continuando..."
+        if ! npm run lint; then
+            log_error "Lint falhou! Pipeline bloqueado."
+            exit 1
+        fi
     fi
-    
+
     # Dockerfile
     if command -v hadolint &> /dev/null; then
-        hadolint Dockerfile || log_warning "Hadolint falhou"
+        if ! hadolint Dockerfile; then
+            log_error "Hadolint falhou! Pipeline bloqueado."
+            exit 1
+        fi
     fi
 }
 
 run_tests() {
     log_info "Executando testes..."
-    
-    # Testes unitários
-    if [ -f "package.json" ] && npm run test &>/dev/null; then
-        npm test
+
+    # Testes unitários (OBRIGATÓRIO - bloqueia se falhar)
+    if [ -f "package.json" ]; then
+        if ! npm test -- --runInBand; then
+            log_error "Testes unitários falharam! Pipeline bloqueado."
+            exit 1
+        fi
         log_success "Testes unitários OK"
     else
-        log_warning "Sem testes unitários configurados"
+        log_error "Arquivo package.json não encontrado!"
+        exit 1
     fi
-    
-    # Testes de integração
-    log_info "Executando testes de integração..."
-    # Adicionar testes de integração aqui
+
+    # Testes de cobertura
+    log_info "Gerando relatório de cobertura..."
+    if ! npm run test:coverage; then
+        log_error "Testes de cobertura falharam! Pipeline bloqueado."
+        exit 1
+    fi
+    log_success "Cobertura verificada"
 }
 
 security_scan() {
     log_info "Executando scan de segurança..."
-    
-    # npm audit
+
+    # npm audit (OBRIGATÓRIO)
     if [ -f "package.json" ]; then
-        npm audit --audit-level moderate || log_warning "Vulnerabilidades encontradas"
+        if ! npm audit --audit-level moderate; then
+            log_error "npm audit encontrou vulnerabilidades! Pipeline bloqueado."
+            exit 1
+        fi
+        log_success "npm audit OK"
     fi
-    
-    # Snyk (se disponível)
+
+    # Snyk (se disponível - warning apenas)
     if command -v snyk &> /dev/null; then
-        snyk test || log_warning "Snyk encontrou vulnerabilidades"
+        if ! snyk test; then
+            log_warning "Snyk encontrou vulnerabilidades (não bloqueia)"
+        fi
     fi
 }
 
 build_application() {
     log_info "Build da aplicação..."
-    
-    # Build Node.js
+
+    # Build Node.js (OBRIGATÓRIO)
     if [ -f "package.json" ]; then
-        npm ci --production
-        npm run build || log_warning "Build falhou"
+        if ! npm ci --production; then
+            log_error "npm ci falhou! Pipeline bloqueado."
+            exit 1
+        fi
+
+        if ! npm run build; then
+            log_error "Build falhou! Pipeline bloqueado."
+            exit 1
+        fi
     fi
-    
-    # Build Docker
-    docker build -t ruptur-saas:$BUILD_NUMBER .
+
+    # Build Docker (OBRIGATÓRIO)
+    if ! docker build -t ruptur-saas:$BUILD_NUMBER .; then
+        log_error "Docker build falhou! Pipeline bloqueado."
+        exit 1
+    fi
+
     docker tag ruptur-saas:$BUILD_NUMBER ruptur-saas:latest
-    
-    log_success "Build concluído"
+    log_success "Build concluído com sucesso"
 }
 
 run_e2e_tests() {
     log_info "Executando testes E2E..."
-    
+
     # Inicia container para testes
-    docker run -d --name test-container -p 4173:4173 ruptur-saas:latest
-    
-    # Aguarda startup
-    sleep 30
-    
-    # Testa APIs
-    if curl -f http://localhost:4173/api/local/health; then
-        log_success "Health check OK"
-    else
-        log_error "Health check FAILED"
-        docker rm -f test-container
+    if ! docker run -d --name test-container -p 4173:4173 ruptur-saas:latest; then
+        log_error "Falha ao iniciar container! Pipeline bloqueado."
         exit 1
     fi
-    
-    # Limpa
-    docker rm -f test-container
+
+    # Aguarda startup
+    log_info "Aguardando inicialização do container (30s)..."
+    sleep 30
+
+    # Testa APIs (OBRIGATÓRIO)
+    if ! curl -f http://localhost:4173/api/local/health; then
+        log_error "Health check FAILED! Pipeline bloqueado."
+        docker rm -f test-container || true
+        exit 1
+    fi
+
+    log_success "Health check OK"
+
+    # Limpa container
+    if ! docker rm -f test-container; then
+        log_warning "Falha ao remover container (continuando)"
+    fi
 }
 
 generate_artifacts() {

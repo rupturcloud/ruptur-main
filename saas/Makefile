@@ -3,7 +3,7 @@
 # Comandos centralizados para deploy, gestão e operação do SaaS
 # Uso: make <comando>
 
-.PHONY: help deploy-prod deploy-staging deploy-local build push clean logs status test-apis restart
+.PHONY: help deploy-prod deploy-staging deploy-local build push clean logs status test-apis restart ci ci-lint ci-test ci-quality ci-coverage
 
 # Variáveis de ambiente
 ENV ?= production
@@ -22,6 +22,14 @@ NC := \033[0m # No Color
 
 help: ## Exibe todos os comandos disponíveis
 	@echo "$(BLUE)Ruptur SaaS - Automação Completa$(NC)"
+	@echo ""
+	@echo "$(YELLOW)🚨 CI/CD - Validação Local (execute ANTES de push):$(NC)"
+	@echo "  make ci              - Pipeline completo de CI (lint + test + quality + coverage)"
+	@echo "  make ci-lint         - Valida sintaxe de código"
+	@echo "  make ci-test         - Executa testes unitários"
+	@echo "  make ci-quality      - Quality gate (lint + test + build)"
+	@echo "  make ci-coverage     - Gera relatório de cobertura"
+	@echo "  make ci-audit        - Security audit"
 	@echo ""
 	@echo "$(GREEN)Deploy:$(NC)"
 	@echo "  make deploy-prod     - Deploy completo em produção"
@@ -173,12 +181,34 @@ monitor: ## Abre dashboard de monitoramento
 	@open https://app.ruptur.cloud/warmup
 	@open https://app.ruptur.cloud/api/local/health
 
-# CI/CD
-ci: ## Pipeline completo de CI
-	@echo "$(BLUE)Executando pipeline CI...$(NC)"
-	@make test-apis
-	@make build
-	@echo "$(GREEN)CI concluído!$(NC)"
+# CI/CD - Validação Local
+ci-lint: ## Valida sintaxe de código
+	@echo "$(BLUE)Executando lint...$(NC)"
+	@npm run lint
+	@echo "$(GREEN)Lint OK!$(NC)"
+
+ci-test: ## Executa testes unitários
+	@echo "$(BLUE)Executando testes...$(NC)"
+	@npm test -- --runInBand
+	@echo "$(GREEN)Testes OK!$(NC)"
+
+ci-quality: ## Valida qualidade (lint + test + build)
+	@echo "$(BLUE)Executando quality gate...$(NC)"
+	@npm run quality
+	@echo "$(GREEN)Quality gate OK!$(NC)"
+
+ci-coverage: ## Gera relatório de cobertura
+	@echo "$(BLUE)Gerando cobertura...$(NC)"
+	@npm run test:coverage
+	@echo "$(YELLOW)Relatório em: coverage/lcov-report/index.html$(NC)"
+
+ci: ci-lint ci-test ci-quality ci-coverage ## Pipeline completo de CI (local)
+	@echo "$(GREEN)✅ Toda validação passou! Pronto para push.$(NC)"
+
+ci-audit: ## Security audit
+	@echo "$(BLUE)Executando security audit...$(NC)"
+	@npm audit --audit-level moderate
+	@echo "$(GREEN)Audit OK!$(NC)"
 
 cd: ## Pipeline completo de CD
 	@echo "$(BLUE)Executando pipeline CD...$(NC)"
