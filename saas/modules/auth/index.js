@@ -161,8 +161,8 @@ async function getOrCreateUserTenant(user) {
     console.log('[Auth] Existing roles query:', { rolesError: rolesError?.message, found: existingRoles?.length });
 
     if (existingRoles && existingRoles.length > 0) {
-      // Já tem tenant, busca os detalhes
-      const { data: tenant } = await supabase
+      // Já tem tenant, busca os detalhes (usando service role para RLS)
+      const { data: tenant } = await getSupabaseAdmin()
         .from('tenants')
         .select('*')
         .eq('id', existingRoles[0].tenant_id)
