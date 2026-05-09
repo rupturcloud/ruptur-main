@@ -50,6 +50,8 @@ import { UazapiAccountService } from '../modules/providers/uazapi-account.servic
 import { PaymentGatewayAccountService } from '../modules/billing/payment-gateway-account.service.js';
 import { CommercialAdminService, missingCommercialTable } from '../modules/admin/commercial-admin.service.js';
 import { listIntegrationPresets } from '../modules/integrations-core/index.js';
+import { AnalyticsService } from '../modules/billing/analytics.service.js';
+import { OnboardingService } from '../modules/billing/onboarding.service.js';
 
 // --- Config ---
 const HOST = process.env.API_HOST || '0.0.0.0';
@@ -135,6 +137,8 @@ const platformAdminService = supabase ? new PlatformAdminService(supabase, null)
 const uazapiAccountService = supabase ? new UazapiAccountService(supabase) : null;
 const paymentGatewayAccountService = supabase ? new PaymentGatewayAccountService(supabase) : null;
 const commercialAdminService = supabase ? new CommercialAdminService(supabase) : null;
+const analyticsService = supabase ? new AnalyticsService(supabase) : null;
+const onboardingService = supabase ? new OnboardingService(supabase) : null;
 
 // --- Rate Limiter (em memória, por IP) ---
 const RATE_LIMIT = {
@@ -657,6 +661,47 @@ async function handler(req, res) {
   // --- Billing: Listar pacotes de créditos ---
   if (pathname === '/api/billing/packages' && req.method === 'GET') {
     return json(res, 200, { packages: billing.getCreditPackages() }, req);
+  }
+
+  // --- Tier 1 Plans: Listar planos disponíveis ---
+  if (pathname === '/api/billing/plans/all' && req.method === 'GET') {
+    try {
+      const plans = billingRoutes.getPlans();
+      return json(res, 200, { plans }, req);
+    } catch (e) {
+      return json(res, 500, { error: e.message }, req);
+    }
+  }
+
+  // --- Tier 1 Subscription: Status atual ---
+  if (pathname === '/api/billing/subscription' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getSubscription(req, res, tenantId, supabase, json);
+  }
+
+  // --- Tier 1 Features: Quais features estão desbloqueadas ---
+  if (pathname === '/api/billing/features' && req.method === 'GET') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+    return billingRoutes.getFeatures(req, res, tenantId, supabase, json);
+  }
+
+  // --- Tier 1 Feature Validation: Validar feature específica ---
+  if (pathname === '/api/billing/validate-feature' && req.method === 'POST') {
+    const user = await extractUser(req);
+    if (!user) return json(res, 401, { error: 'Não autenticado' }, req);
+    const tenantId = await extractAndValidateTenantId(url, req, user, supabase);
+    if (!tenantId) return json(res, 403, { error: 'Acesso negado ao tenant' }, req);
+
+    const bodyData = await parseBody(req);
+    req.headers['x-body'] = JSON.stringify(bodyData);
+
+    return billingRoutes.validateFeature(req, res, tenantId, supabase, json);
   }
 
   if (pathname === '/api/billing/checkout' && req.method === 'POST') {
@@ -1827,8 +1872,150 @@ async function handler(req, res) {
     }, req);
   }
 
+  // ================================================================
+  //  Analytics & Onboarding Endpoints
+  // ================================================================
+
+  // --- Analytics: Rastrear evento ---
+  if (pathname === '/api/analytics/track' && req.method === 'POST') {
+    if (!analyticsService) return json(res, 503, { error: 'Analytics não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const user = await extractUser(req);
+
+      // Validar tenantId
+      const tenantId = body.tenantId || body.properties?.tenantId;
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      // Rastrear evento
+      const result = await analyticsService.track(body.event, {
+        ...body.properties,
+        tenantId,
+        userId: user?.id || null,
+        ipAddress: clientIp || null,
+        userAgent: req.headers['user-agent'] || null,
+      });
+
+      return json(res, 200, { ok: true, event: result }, req);
+    } catch (e) {
+      console.error('[Analytics] Erro:', e.message);
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Analytics: Dashboard metrics ---
+  if (pathname === '/api/analytics/dashboard' && req.method === 'GET') {
+    if (!analyticsService) return json(res, 503, { error: 'Analytics não configurado' }, req);
+
+    try {
+      const tenantId = url.searchParams.get('tenantId');
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      const metrics = await analyticsService.getDashboardMetrics(tenantId);
+      return json(res, 200, metrics, req);
+    } catch (e) {
+      console.error('[Analytics] Erro ao obter dashboard:', e.message);
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Analytics: Métricas de conversão ---
+  if (pathname === '/api/analytics/conversion' && req.method === 'GET') {
+    if (!analyticsService) return json(res, 503, { error: 'Analytics não configurado' }, req);
+
+    try {
+      const tenantId = url.searchParams.get('tenantId');
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      const startDate = url.searchParams.get('startDate');
+      const endDate = url.searchParams.get('endDate');
+
+      const metrics = await analyticsService.getConversionMetrics(
+        tenantId,
+        startDate ? new Date(startDate) : null,
+        endDate ? new Date(endDate) : null
+      );
+      return json(res, 200, metrics, req);
+    } catch (e) {
+      console.error('[Analytics] Erro ao obter conversão:', e.message);
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Analytics: Histórico de eventos ---
+  if (pathname === '/api/analytics/events' && req.method === 'GET') {
+    if (!analyticsService) return json(res, 503, { error: 'Analytics não configurado' }, req);
+
+    try {
+      const tenantId = url.searchParams.get('tenantId');
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      const eventType = url.searchParams.get('eventType');
+      const limit = parseInt(url.searchParams.get('limit')) || 100;
+      const offset = parseInt(url.searchParams.get('offset')) || 0;
+
+      const events = await analyticsService.getEventHistory(tenantId, { eventType, limit, offset });
+      return json(res, 200, events, req);
+    } catch (e) {
+      console.error('[Analytics] Erro ao obter eventos:', e.message);
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Onboarding: Obter progresso ---
+  if (pathname === '/api/onboarding/progress' && req.method === 'GET') {
+    if (!onboardingService) return json(res, 503, { error: 'Onboarding não configurado' }, req);
+
+    try {
+      const tenantId = url.searchParams.get('tenantId');
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      const progress = await onboardingService.getProgress(tenantId);
+      return json(res, 200, progress, req);
+    } catch (e) {
+      console.error('[Onboarding] Erro ao obter progresso:', e.message);
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Onboarding: Completar step ---
+  if (pathname === '/api/onboarding/complete-step' && req.method === 'POST') {
+    if (!onboardingService) return json(res, 503, { error: 'Onboarding não configurado' }, req);
+
+    try {
+      const body = await parseBody(req);
+      const { tenantId, stepId, metadata } = body;
+
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+      if (!stepId) return json(res, 400, { error: 'stepId obrigatório' }, req);
+
+      const progress = await onboardingService.completeStep(tenantId, stepId, metadata || {});
+      return json(res, 200, progress, req);
+    } catch (e) {
+      console.error('[Onboarding] Erro ao completar step:', e.message);
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
+  // --- Onboarding: Status de trial ---
+  if (pathname === '/api/onboarding/trial-status' && req.method === 'GET') {
+    if (!onboardingService) return json(res, 503, { error: 'Onboarding não configurado' }, req);
+
+    try {
+      const tenantId = url.searchParams.get('tenantId');
+      if (!tenantId) return json(res, 400, { error: 'tenantId obrigatório' }, req);
+
+      const status = await onboardingService.getTrialStatus(tenantId);
+      return json(res, 200, status, req);
+    } catch (e) {
+      console.error('[Onboarding] Erro ao obter trial status:', e.message);
+      return json(res, 400, { error: e.message }, req);
+    }
+  }
+
   // --- Proxy: Dashboard Stats, Campaigns, Wallet, Inbox → Warmup Manager ---
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications') && !pathname.startsWith('/api/users') && !pathname.startsWith('/api/bubble') && !pathname.startsWith('/api/instances') && !pathname.startsWith('/api/messages')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/billing') && !pathname.startsWith('/api/tenants') && !pathname.startsWith('/api/webhooks') && !pathname.startsWith('/api/referrals') && !pathname.startsWith('/api/admin') && !pathname.startsWith('/api/notifications') && !pathname.startsWith('/api/users') && !pathname.startsWith('/api/bubble') && !pathname.startsWith('/api/instances') && !pathname.startsWith('/api/messages') && !pathname.startsWith('/api/analytics') && !pathname.startsWith('/api/onboarding')) {
     // Proxy para o Warmup Manager existente
     try {
       const proxyUrl = `${WARMUP_URL}${pathname}${url.search}`;

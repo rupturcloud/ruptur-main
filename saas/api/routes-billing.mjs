@@ -176,6 +176,275 @@ export async function getWebhookQueueStatus(req, res, webhookQueueIntegration, j
   }
 }
 
+// ========================================================================
+// PLANOS E SUBSCRIPTION — Tier 1 Billing (Trial, Starter, Pro)
+// ========================================================================
+
+/**
+ * GET /api/billing/plans
+ * Retorna todos os planos disponíveis com features hardcodeadas
+ */
+export function getPlans() {
+  return [
+    {
+      id: 'trial',
+      name: 'Trial',
+      description: 'Grátis por 7 dias',
+      price: { currency: 'BRL', amount: 500, formatted: 'R$ 5,00' },
+      credits: 100,
+      maxInstances: 1,
+      features: {
+        canUseInbox: false,
+        canUseWorkflows: false,
+        canUseAnalytics: false,
+        canAccessAPI: false,
+        maxCampaignsActive: 1,
+        support: 'email',
+      },
+      displayOrder: 0,
+    },
+    {
+      id: 'starter',
+      name: 'Starter',
+      description: 'Ideal para começar com automação',
+      price: { currency: 'BRL', amount: 9900, formatted: 'R$ 99,00' },
+      credits: 10000,
+      maxInstances: 5,
+      features: {
+        canUseInbox: true,
+        canUseWorkflows: 'basic',
+        canUseAnalytics: false,
+        canAccessAPI: false,
+        maxCampaignsActive: 10,
+        support: 'email',
+      },
+      displayOrder: 1,
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      description: 'Para quem quer escalar',
+      price: { currency: 'BRL', amount: 29900, formatted: 'R$ 299,00' },
+      credits: 50000,
+      maxInstances: 20,
+      features: {
+        canUseInbox: true,
+        canUseWorkflows: 'advanced',
+        canUseAnalytics: true,
+        canAccessAPI: true,
+        maxCampaignsActive: 50,
+        support: 'priority',
+      },
+      displayOrder: 2,
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      description: 'Solução customizada para grandes operações',
+      price: { currency: 'BRL', amount: null, formatted: 'Personalizado' },
+      credits: null,
+      maxInstances: 999,
+      features: {
+        canUseInbox: true,
+        canUseWorkflows: 'advanced',
+        canUseAnalytics: true,
+        canAccessAPI: true,
+        maxCampaignsActive: 9999,
+        support: 'dedicated',
+        whiteLabel: true,
+      },
+      displayOrder: 3,
+    },
+  ];
+}
+
+/**
+ * POST /api/billing/subscribe
+ * Cria subscription (trial direto, ou redireciona para checkout)
+ *
+ * Request: { planId: 'trial' | 'starter' | 'pro' | 'enterprise', paymentMethodId?: 'pm_xxx' }
+ * Response: { subscriptionId, status, planId, currentPeriodStart, currentPeriodEnd }
+ */
+export async function subscribeUser(req, res, tenantId, supabase, json) {
+  try {
+    const body = JSON.parse(req.headers['x-body'] || '{}');
+    const { planId, paymentMethodId } = body;
+
+    if (!planId) {
+      return json(res, 400, { error: 'planId é obrigatório' }, null);
+    }
+
+    const plans = getPlans();
+    const plan = plans.find((p) => p.id === planId);
+    if (!plan) {
+      return json(res, 400, { error: 'Plano não encontrado' }, null);
+    }
+
+    // Se trial, criar subscription direto
+    if (planId === 'trial') {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 7);
+
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .insert([
+          {
+            tenant_id: tenantId,
+            plan_id: planId,
+            status: 'authorized',
+            current_period_start: new Date().toISOString(),
+            current_period_end: trialEnd.toISOString(),
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Subscribe] Erro ao criar trial subscription:', error);
+        return json(res, 500, { error: 'Falha ao criar subscription' }, null);
+      }
+
+      return json(res, 201, {
+        subscriptionId: data.id,
+        status: data.status,
+        planId: data.plan_id,
+        currentPeriodStart: data.current_period_start,
+        currentPeriodEnd: data.current_period_end,
+      }, null);
+    }
+
+    // Se não trial, redireciona para checkout
+    return json(res, 200, {
+      redirect: true,
+      checkoutUrl: `/checkout?plan=${planId}`,
+      message: 'Redirecionar para checkout Stripe/Getnet',
+    }, null);
+  } catch (e) {
+    console.error('[Subscribe] Erro:', e.message);
+    return json(res, 500, { error: e.message }, null);
+  }
+}
+
+/**
+ * GET /api/billing/subscription
+ * Retorna status atual da subscription do tenant
+ */
+export async function getSubscription(req, res, tenantId, supabase, json) {
+  try {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[GetSubscription] Erro:', error);
+      return json(res, 500, { error: 'Falha ao buscar subscription' }, null);
+    }
+
+    if (!data) {
+      return json(res, 200, { subscription: null }, null);
+    }
+
+    return json(res, 200, { subscription: data }, null);
+  } catch (e) {
+    return json(res, 500, { error: e.message }, null);
+  }
+}
+
+/**
+ * GET /api/billing/features
+ * Retorna features desbloqueadas para o tenant baseado no plano
+ */
+export async function getFeatures(req, res, tenantId, supabase, json) {
+  try {
+    const { data: subscription, error } = await supabase
+      .from('subscriptions')
+      .select('plan_id')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'authorized')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[GetFeatures] Erro:', error);
+      return json(res, 500, { error: 'Falha ao buscar features' }, null);
+    }
+
+    const planId = subscription?.plan_id || 'trial';
+    const plans = getPlans();
+    const plan = plans.find((p) => p.id === planId);
+
+    if (!plan) {
+      return json(res, 200, { features: {}, planId: 'trial' }, null);
+    }
+
+    return json(res, 200, {
+      planId,
+      features: plan.features,
+      maxInstances: plan.maxInstances,
+      credits: plan.credits,
+    }, null);
+  } catch (e) {
+    return json(res, 500, { error: e.message }, null);
+  }
+}
+
+/**
+ * POST /api/billing/validate-feature
+ * Verifica se um feature está desbloqueado
+ *
+ * Request: { feature: 'canUseInbox' | 'canUseWorkflows', ... }
+ * Response: { allowed: boolean, reason?: string }
+ */
+export async function validateFeature(req, res, tenantId, supabase, json) {
+  try {
+    const body = JSON.parse(req.headers['x-body'] || '{}');
+    const { feature } = body;
+
+    if (!feature) {
+      return json(res, 400, { error: 'feature é obrigatório' }, null);
+    }
+
+    const { data: subscription, error } = await supabase
+      .from('subscriptions')
+      .select('plan_id')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'authorized')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return json(res, 500, { error: 'Falha ao validar feature' }, null);
+    }
+
+    const planId = subscription?.plan_id || 'trial';
+    const plans = getPlans();
+    const plan = plans.find((p) => p.id === planId);
+
+    if (!plan) {
+      return json(res, 200, { allowed: false, reason: 'Plano não encontrado' }, null);
+    }
+
+    const featureValue = plan.features[feature];
+    const allowed = featureValue !== false && featureValue !== undefined;
+
+    return json(res, 200, {
+      allowed,
+      feature,
+      planId,
+      value: featureValue,
+      reason: !allowed ? `Feature ${feature} não disponível no plano ${planId}` : undefined,
+    }, null);
+  } catch (e) {
+    return json(res, 500, { error: e.message }, null);
+  }
+}
+
 /**
  * Handler de webhook com Job Queue (versão confiável)
  * Enfileira o webhook para processamento assíncrono com retry automático
