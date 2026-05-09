@@ -1,0 +1,27 @@
+#!/bin/sh
+# Husky pre-commit hook for Ruptur SaaS
+# Executado ANTES de fazer commit
+# Garante que código quebrado não chegue ao repositório
+
+set -e
+
+echo "🔍 Pre-commit validation..."
+
+# Lint
+echo "📋 Executando lint..."
+if ! npm run lint; then
+    echo "❌ Lint falhou! Corrija os erros acima e tente novamente."
+    exit 1
+fi
+
+# Testes (rápido, apenas unitários)
+echo "✅ Lint OK"
+echo "🧪 Executando testes unitários..."
+if ! npm test -- --runInBand 2>/dev/null; then
+    echo "❌ Testes falharam! Corrija os testes e tente novamente."
+    exit 1
+fi
+
+echo "✅ Testes OK"
+echo "✅ Pre-commit validation passed!"
+echo ""

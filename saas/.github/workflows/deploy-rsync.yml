@@ -25,24 +25,56 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
-    - name: Verify code integrity
+    - name: Install dependencies
       run: |
-        echo "✅ Installing dependencies for quality gate..."
         npm ci
         npm --prefix web/client-area ci
 
-        echo "✅ Running review and quality gate..."
-        npm run review
-        npm run quality
-        npm run test:coverage
+    - name: Lint code (BLOCKING)
+      run: npm run lint
 
-    - name: Setup SSH
+    - name: Run unit tests (BLOCKING)
+      run: npm test -- --runInBand
+
+    - name: Generate coverage report
+      run: npm run test:coverage
+
+    - name: Code review checklist
+      run: npm run review
+
+    - name: Quality gate (BLOCKING)
+      run: npm run quality
+
+    - name: Security audit (BLOCKING)
+      run: npm audit --audit-level moderate
+
+    - name: Build Docker image for testing
+      run: |
+        docker build -t ruptur-saas:${{ github.run_number }} .
+        docker tag ruptur-saas:${{ github.run_number }} ruptur-saas:latest
+
+    - name: Health check Docker image
+      run: |
+        docker run -d --name health-check -p 4173:4173 ruptur-saas:latest
+        sleep 15
+        curl -f http://localhost:4173/api/local/health || (docker logs health-check && exit 1)
+        docker rm -f health-check
+
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        if-no-files-found: warn
+
+    - name: Setup SSH for deployment
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
         known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
 
-    - name: Deploy with rsync
+    - name: Deploy with rsync (only if CI passed)
       run: |
         chmod +x infra/scripts/deploy-rsync.sh
         ./infra/scripts/deploy-rsync.sh
@@ -59,11 +91,55 @@ jobs:
         echo "Monitor production: https://app.ruptur.cloud"
         echo "Check logs: ssh deploy@ruptur.cloud 'tail -f /app/ruptur-saas/logs/*.log'"
 
-    - name: Notify on failure
+    - name: Notify on CI failure
       if: failure()
       run: |
         if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
           curl -X POST -H 'Content-type: application/json' \
-            --data '{"text":"❌ Ruptur SaaS deployment FAILED (build #${{ github.run_number }})"}' \
+            --data '{
+              "text": "❌ Ruptur SaaS CI FAILED (build #${{ github.run_number }})",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*❌ CI Pipeline Falhou*\n*Build:* #${{ github.run_number }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* `${{ github.sha }}`\n*Action:* Testes ou validação bloqueou o deploy"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Ver Logs"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }' \
+            ${{ secrets.SLACK_WEBHOOK }} || true
+        fi
+
+    - name: Notify on deployment success
+      if: success()
+      run: |
+        if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{
+              "text": "✅ Ruptur SaaS Deployed to Production",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*✅ Deploy Completo*\n*Build:* #${{ github.run_number }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* `${{ github.sha }}`\n*Status:* Produção atualizada com sucesso"
+                  }
+                }
+              ]
+            }' \
             ${{ secrets.SLACK_WEBHOOK }} || true
         fi
