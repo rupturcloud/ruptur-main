@@ -161,17 +161,16 @@ describe('FeatureFlagsService', () => {
 
   describe('validateFeature()', () => {
     it('deve validar feature simples (canUseInbox)', async () => {
+      const createChainMock = () => ({
+        eq: jest.fn(function() { return createChainMock(); }),
+        order: jest.fn(function() { return createChainMock(); }),
+        limit: jest.fn(function() { return createChainMock(); }),
+        maybeSingle: jest.fn().mockResolvedValue({ data: { plan_id: 'starter' } }),
+      });
+
       const mockSupabase = {
         from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({ data: { plan_id: 'starter' } }),
-                }),
-              }),
-            }),
-          }),
+          select: jest.fn().mockReturnValue(createChainMock()),
         }),
       };
 
@@ -184,17 +183,16 @@ describe('FeatureFlagsService', () => {
     });
 
     it('deve validar feature nested com dot notation', async () => {
+      const createChainMock = () => ({
+        eq: jest.fn(function() { return createChainMock(); }),
+        order: jest.fn(function() { return createChainMock(); }),
+        limit: jest.fn(function() { return createChainMock(); }),
+        maybeSingle: jest.fn().mockResolvedValue({ data: { plan_id: 'starter' } }),
+      });
+
       const mockSupabase = {
         from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({ data: { plan_id: 'starter' } }),
-                }),
-              }),
-            }),
-          }),
+          select: jest.fn().mockReturnValue(createChainMock()),
         }),
       };
 
@@ -206,17 +204,16 @@ describe('FeatureFlagsService', () => {
     });
 
     it('deve bloquear feature em plano que não tem', async () => {
+      const createChainMock = () => ({
+        eq: jest.fn(function() { return createChainMock(); }),
+        order: jest.fn(function() { return createChainMock(); }),
+        limit: jest.fn(function() { return createChainMock(); }),
+        maybeSingle: jest.fn().mockResolvedValue({ data: { plan_id: 'trial' } }),
+      });
+
       const mockSupabase = {
         from: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({ data: { plan_id: 'trial' } }),
-                }),
-              }),
-            }),
-          }),
+          select: jest.fn().mockReturnValue(createChainMock()),
         }),
       };
 
@@ -343,34 +340,46 @@ describe('featureValidators', () => {
 describe('createFeatureCheckMiddleware', () => {
   it('deve permitir se feature está permitida', async () => {
     const featureFlags = new FeatureFlagsService(null);
-    featureFlags.validateFeature = jest.fn().mockResolvedValue({
+
+    // Mock dos métodos do FeatureFlagsService que o validador chama
+    featureFlags.canUseInbox = jest.fn().mockResolvedValue({
       allowed: true,
+      value: true,
       plan: 'pro',
     });
 
     const middleware = createFeatureCheckMiddleware(featureFlags);
-    const result = await middleware('tenant-123', 'canUseInbox', {}, null, null);
+    const mockRes = {};
+    const mockJson = jest.fn();
+    const mockReq = {};
+    const result = await middleware('tenant-123', 'canUseInbox', mockRes, mockJson, mockReq);
 
     expect(result).toBe(true);
+    expect(mockJson).not.toHaveBeenCalled();
   });
 
   it('deve bloquear se feature não está permitida', async () => {
     const featureFlags = new FeatureFlagsService(null);
-    featureFlags.validateFeature = jest.fn().mockResolvedValue({
+
+    // Mock dos métodos do FeatureFlagsService que o validador chama
+    featureFlags.canUseInbox = jest.fn().mockResolvedValue({
       allowed: false,
+      value: false,
       plan: 'trial',
     });
 
     const middleware = createFeatureCheckMiddleware(featureFlags);
+    const mockRes = { statusCode: 200 };
     const mockJson = jest.fn();
-    const result = await middleware('tenant-123', 'canUseInbox', {}, mockJson, null);
+    const mockReq = {};
+    const result = await middleware('tenant-123', 'canUseInbox', mockRes, mockJson, mockReq);
 
     expect(result).toBe(false);
     expect(mockJson).toHaveBeenCalledWith(
-      expect.anything(),
+      mockRes,
       403,
       expect.objectContaining({ error: 'Feature não disponível' }),
-      expect.anything()
+      mockReq
     );
   });
 });

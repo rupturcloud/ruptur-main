@@ -145,9 +145,27 @@ export const featureValidators = {
 export function createFeatureCheckMiddleware(featureFlagsService) {
   return async (tenantId, featureName, res, json, req) => {
     try {
-      const validator = featureValidators[featureName];
+      // Mapear nomes de features para validadores
+      const featureMap = {
+        'canUseInbox': 'inbox',
+        'inbox': 'inbox',
+        'canUseWorkflows': 'workflows',
+        'workflows': 'workflows',
+        'canUseAnalytics': 'analytics',
+        'analytics': 'analytics',
+        'canAccessAPI': 'api',
+        'api': 'api',
+        'canCreateInstance': 'instances',
+        'instances': 'instances',
+        'maxCampaignsActive': 'campaigns',
+        'campaigns': 'campaigns',
+      };
+
+      const validatorName = featureMap[featureName];
+      const validator = featureValidators[validatorName];
+
       if (!validator) {
-        console.warn(`[FeatureCheck] Feature ${featureName} não tem validador`);
+        console.warn(`[FeatureCheck] Feature ${featureName} (${validatorName}) não tem validador`);
         return true; // Allow se não temos regra explícita
       }
 
